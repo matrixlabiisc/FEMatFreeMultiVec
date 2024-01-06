@@ -1,0 +1,10 @@
+module unload darshan
+module load lsf-tools/2.0 hsi/5.0.2.p5 darshan-runtime/3.4.0-lite xalt/1.2.1 DefApps gcc/9.1.0 spectrum-mpi/10.4.0.3-20210112 cmake/3.23.2 essl/6.3.0 nsight-compute/2021.2.1 nsight-systems/2021.3.1.54 cuda/11.0.3 netlib-lapack/3.9.1 netlib-scalapack/2.1.0-openblas openblas/0.3.15-omp
+
+cd /gpfs/alpine/mat187/scratch/gourabp/multiVectors/build
+
+module load gcc/9.1.0 spectrum-mpi/10.4.0.3-20210112 cmake essl/6.3.0 cuda/11.0.3 netlib-lapack/3.9.1 netlib-scalapack/2.1.0-openblas openblas/0.3.15-omp
+
+/////////////////////////////////////////////////////////////////////////////
+
+cmake -DDEAL_II_WITH_TASKFLOW=OFF -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-mvsx -maltivec -mcpu=power9" -DDEAL_II_CUDA_FLAGS="-arch=sm_70" -DDEAL_II_CXX_FLAGS_RELEASE="-O2" -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ -DCMAKE_Fortran_COMPILER=gfortran -DMPI_C_COMPILER=mpicc -DMPI_CXX_COMPILER=mpiCC -DMPI_Fortran_COMPILER=mpif90 -DDEAL_II_WITH_CUDA=ON -DDEAL_II_MPI_WITH_CUDA_SUPPORT=ON -DDEAL_II_WITH_TBB=OFF -DDEAL_II_COMPONENT_EXAMPLES=OFF -DDEAL_II_WITH_MPI=ON -DDEAL_II_WITH_64BIT_INDICES=ON -DP4EST_DIR="/ccs/home/gourabp/softwareSummit/p4est/installGcc9.1.0" -DDEAL_II_WITH_LAPACK=ON -DLAPACK_DIR="$OLCF_ESSL_ROOT/lib64;$OLCF_NETLIB_LAPACK_ROOT/lib64;$OLCF_OPENBLAS_ROOT/lib" -DLAPACK_FOUND=true -DLAPACK_LIBRARIES="$OLCF_ESSL_ROOT/lib64/libessl.so;$OLCF_NETLIB_LAPACK_ROOT/lib64/liblapack.so;$OLCF_OPENBLAS_ROOT/lib/libopenblas.so" -DSCALAPACK_DIR="/ccs/home/gourabp/softwareSummit/scalapack/installGcc9.1.0" -DSCALAPACK_LIBRARIES="/ccs/home/gourabp/softwareSummit/scalapack/installGcc9.1.0/lib/libscalapack.so" -DCMAKE_INSTALL_PREFIX="/ccs/home/gourabp/softwareSummit/dealii94/install94"  ../dealii

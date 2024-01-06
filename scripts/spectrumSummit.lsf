@@ -1,0 +1,43 @@
+#!/bin/bash
+# Begin LSF Directives
+#BSUB -P MAT187
+#BSUB -W 00:20
+#BSUB -nnodes 1
+#BSUB -alloc_flags gpumps
+#BSUB -J eigen
+#BSUB -o eigen.o.%J
+#BSUB -e eigen.e.%J
+
+module unload darshan
+date
+export OMP_NUM_THREADS=1
+
+FeOrder=6
+Quad=$((FeOrder+3))
+Vec=8
+Approach=MF
+Mesh=Uniform
+Nodes=1
+TaskperNode=1
+Tasks=$((Nodes*TaskperNode))
+
+DFTFE=/gpfs/alpine/mat187/scratch/gourabp/multiVectors/buildCUDAOFF/release/real/dftfe
+Prm=/gpfs/alpine/mat187/scratch/gourabp/multiVectors/buildCUDAOFF/parameterFile_"$Approach"_poly"$FeOrder"_N"$Nodes".prm
+Ouput=/gpfs/alpine/mat187/scratch/gourabp/multiVectors/buildCUDAOFF/benchmarks/eigen_HXOld_Hanging_nvec300_"$Approach"_poly"$FeOrder"_gpu"$Tasks".txt
+Profile=/gpfs/alpine/mat187/scratch/gourabp/multiVectors/buildCUDAOFF/reportOld
+
+ulimit -c 0
+
+module load lsf-tools/2.0 hsi/5.0.2.p5 darshan-runtime/3.4.0-lite xalt/1.2.1 DefApps gcc/9.1.0 spectrum-mpi/10.4.0.3-20210112 cmake/3.23.2 essl/6.3.0 nsight-compute/2021.2.1 nsight-systems/2021.3.1.54 cuda/11.0.3 netlib-lapack/3.9.1 netlib-scalapack/2.1.0-openblas openblas/0.3.15-omp
+
+#jsrun --smpiargs "-gpu" -n $Tasks -a 1 -c 7 -g 1 -r $TaskperNode -d packed -b packed:7 /gpfs/alpine/mat187/scratch/gourabp/multiVectors/buildDealii/release/real/dftfe parameterFile_"$Mesh"_"$Approach"_poly"$FeOrder"_vec"$Vec"_N"$Nodes".prm > benchmarks/HX_q"$Quad"_"$Mesh"_FP64Comm_"$Approach"_poly"$FeOrder"_vec"$Vec"_gpu"$Tasks".txt
+
+jsrun --smpiargs "-gpu" -n $Tasks -a 1 -c 7 -g 1 -r $TaskperNode -d packed -b packed:7 "./wrapSummit.sh" "$FeOrder" "$Vec" "$Approach" "$Nodes" "$Mesh" "$TaskperNode"
+
+
+
+#jsrun --smpiargs "-gpu" -n $Tasks -a 1 -c 7 -g 1 -r 6 -d packed -b packed:7 "./wrapSummit.sh" "$DFTFE" "$Prm" "$Output" "$Profile"
+
+#nsys profile --nic-metrics=true jsrun --smpiargs "-gpu" -n $Tasks -a 1 -c 7 -g 1 -r 6 -d packed -b packed:7 /gpfs/alpine/mat187/scratch/gourabp/multiVectors/buildCUDAOFF/release/real/dftfe parameterFile_"$Approach"_poly"$FeOrder"_N"$Nodes".prm > benchmarks/test_"$Approach"_poly"$FeOrder"_gpu"$Tasks".txt
+
+#jsrun --smpiargs "-gpu" -n $Tasks -a 1 -c 1 -g 1 -r 1 -d packed -b packed:7 nvidia-smi topo -m > topo.txt

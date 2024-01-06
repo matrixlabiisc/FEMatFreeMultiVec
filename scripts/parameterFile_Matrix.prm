@@ -1,0 +1,62 @@
+set SOLVER MODE = GS
+set VERBOSITY = 4
+subsection Geometry
+  set NATOMS=2
+  set NATOM TYPES=1
+  set ATOMIC COORDINATES FILE = coordinates.inp
+  set DOMAIN VECTORS FILE     = domainVectors.inp
+end
+
+subsection Boundary conditions
+  set PERIODIC1                       = false
+  set PERIODIC2                       = false
+  set PERIODIC3                       = false
+end
+
+subsection DFT functional parameters
+  set EXCHANGE CORRELATION TYPE   = 2
+  set PSEUDOPOTENTIAL CALCULATION = true
+  set PSEUDOPOTENTIAL FILE NAMES LIST = pseudo.inp
+  subsection Dispersion Correction
+    set TWO BODY CUTOFF            = 1024
+    set D3 ATM                     = false      # matrixFreeFlag
+    set D4 MBD                     = false      # cellFlagGPU
+  end
+end
+
+subsection SCF parameters
+  set MIXING PARAMETER                 = 0.5
+  set MAXIMUM ITERATIONS               = 1
+  set TEMPERATURE                      = 500
+  set TOLERANCE                        = 5e-5
+  subsection Eigen-solver parameters
+    set NUMBER OF KOHN-SHAM WAVEFUNCTIONS                    = 1024
+    set CHEBY WFC BLOCK SIZE                                 = 256
+    set WFC BLOCK SIZE                                       = 256
+    set USE MIXED PREC CHEBY                                 = false
+    set CHEBYSHEV FILTER TOLERANCE                           = 5e-5
+    set OVERLAP COMPUTE COMMUN CHEBY                         = false
+    set OVERLAP COMPUTE COMMUN ORTHO RR                      = false
+    set SUBSPACE PROJ SHEP GPU                               = false
+    set ENABLE HAMILTONIAN TIMES VECTOR OPTIM                = false
+    #set CHEBYSHEV POLYNOMIAL DEGREE                          = 6
+    #set CHEBYSHEV POLYNOMIAL DEGREE SCALING FACTOR FIRST SCF = 1.0
+  end
+end
+
+subsection Finite element mesh parameters
+  set POLYNOMIAL ORDER=7
+  subsection Auto mesh generation parameters
+    set AUTO ADAPT BASE MESH SIZE               = false
+    set BASE MESH SIZE                          = 2
+    set ATOM BALL RADIUS                        = 6
+    set MESH SIZE AROUND ATOM                   = 1
+  end
+end
+
+subsection GPU
+  set USE GPU                      = true
+  set USE GPUDIRECT MPI ALL REDUCE = true
+  set AUTO GPU BLOCK SIZES         = false
+  set FINE GRAINED GPU TIMINGS     = true
+end

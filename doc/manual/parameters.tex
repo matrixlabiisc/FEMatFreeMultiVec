@@ -1,0 +1,2881 @@
+\subsection{Global parameters}
+\label{parameters:global}
+
+
+\begin{itemize}
+\item {\it Parameter name:} {\tt H REFINED ELECTROSTATICS}
+\phantomsection\label{parameters:H REFINED ELECTROSTATICS}
+\label{parameters:H_20REFINED_20ELECTROSTATICS}
+
+
+\index[prmindex]{H REFINED ELECTROSTATICS}
+\index[prmindexfull]{H REFINED ELECTROSTATICS}
+{\it Value:} false
+
+
+{\it Default:} false
+
+
+{\it Description:} [Advanced] Compute electrostatic energy on a h refined mesh after each ground-state solve. Default: false.
+
+
+{\it Possible values:} A boolean value (true or false)
+\item {\it Parameter name:} {\tt KEEP SCRATCH FOLDER}
+\phantomsection\label{parameters:KEEP SCRATCH FOLDER}
+\label{parameters:KEEP_20SCRATCH_20FOLDER}
+
+
+\index[prmindex]{KEEP SCRATCH FOLDER}
+\index[prmindexfull]{KEEP SCRATCH FOLDER}
+{\it Value:} false
+
+
+{\it Default:} false
+
+
+{\it Description:} [Advanced] If set to true this option does not delete the dftfeScratch folder when the dftfe object is destroyed. This is useful for debugging and code development. Default: false.
+
+
+{\it Possible values:} A boolean value (true or false)
+\item {\it Parameter name:} {\tt REPRODUCIBLE OUTPUT}
+\phantomsection\label{parameters:REPRODUCIBLE OUTPUT}
+\label{parameters:REPRODUCIBLE_20OUTPUT}
+
+
+\index[prmindex]{REPRODUCIBLE OUTPUT}
+\index[prmindexfull]{REPRODUCIBLE OUTPUT}
+{\it Value:} false
+
+
+{\it Default:} false
+
+
+{\it Description:} [Developer] Limit output to what is reproducible, i.e. don't print timing or absolute paths. This parameter is only used for testing purposes.
+
+
+{\it Possible values:} A boolean value (true or false)
+\item {\it Parameter name:} {\tt RESTART}
+\phantomsection\label{parameters:RESTART}
+
+
+\index[prmindex]{RESTART}
+\index[prmindexfull]{RESTART}
+{\it Value:} false
+
+
+{\it Default:} false
+
+
+{\it Description:} [Standard] If set to true RESTART triggers restart checks and modifies the input files for coordinates, domain vectors. Default: false.
+
+
+{\it Possible values:} A boolean value (true or false)
+\item {\it Parameter name:} {\tt RESTART FOLDER}
+\phantomsection\label{parameters:RESTART FOLDER}
+\label{parameters:RESTART_20FOLDER}
+
+
+\index[prmindex]{RESTART FOLDER}
+\index[prmindexfull]{RESTART FOLDER}
+{\it Value:} GSfolder
+
+
+{\it Default:} .
+
+
+{\it Description:} [Standard] Folder to store restart files.
+
+
+{\it Possible values:} Any string
+\item {\it Parameter name:} {\tt SOLVER MODE}
+\phantomsection\label{parameters:SOLVER MODE}
+\label{parameters:SOLVER_20MODE}
+
+
+\index[prmindex]{SOLVER MODE}
+\index[prmindexfull]{SOLVER MODE}
+{\it Value:} NONE
+
+
+{\it Default:} GS
+
+
+{\it Description:} [Standard] DFT-FE SOLVER MODE: If GS: performs GroundState calculations, ionic and cell relaxation. If MD: performs Molecular Dynamics Simulation. If NEB: performs a NEB calculation. If GEOOPT: performs an ion and/or cell optimization calculation. If NONE: the density is initialised with superposition of atomic densities and is written to file along with mesh data.
+
+
+{\it Possible values:} Any one of GS, MD, NEB, GEOOPT, NONE
+\item {\it Parameter name:} {\tt VERBOSITY}
+\phantomsection\label{parameters:VERBOSITY}
+
+
+\index[prmindex]{VERBOSITY}
+\index[prmindexfull]{VERBOSITY}
+{\it Value:} 1
+
+
+{\it Default:} 1
+
+
+{\it Description:} [Standard] Parameter to control verbosity of terminal output. Ranges from 1 for low, 2 for medium (prints some more additional information), 3 for high (prints eigenvalues and fractional occupancies at the end of each self-consistent field iteration), and 4 for very high, which is only meant for code development purposes. VERBOSITY=0 is only used for unit testing and shouldn't be used by standard users. VERBOSITY=-1 ensures no outout is printed, which is useful when DFT-FE is used as a calculator inside a larger workflow where multiple parallel DFT-FE jobs might be running, for example when using ASE or generating training data for ML workflows.
+
+
+{\it Possible values:} An integer $n$ such that $-1\leq n \leq 5$
+\end{itemize}
+
+
+
+\subsection{Parameters in section \tt Boundary conditions}
+\label{parameters:Boundary_20conditions}
+
+\begin{itemize}
+\item {\it Parameter name:} {\tt CONSTRAINTS FROM SERIAL DOFHANDLER}
+\phantomsection\label{parameters:Boundary conditions/CONSTRAINTS FROM SERIAL DOFHANDLER}
+\label{parameters:Boundary_20conditions/CONSTRAINTS_20FROM_20SERIAL_20DOFHANDLER}
+
+
+\index[prmindex]{CONSTRAINTS FROM SERIAL DOFHANDLER}
+\index[prmindexfull]{Boundary conditions!CONSTRAINTS FROM SERIAL DOFHANDLER}
+{\it Value:} false
+
+
+{\it Default:} false
+
+
+{\it Description:} [Developer] Create constraints from serial dofHandler.
+
+
+{\it Possible values:} A boolean value (true or false)
+\item {\it Parameter name:} {\tt CONSTRAINTS PARALLEL CHECK}
+\phantomsection\label{parameters:Boundary conditions/CONSTRAINTS PARALLEL CHECK}
+\label{parameters:Boundary_20conditions/CONSTRAINTS_20PARALLEL_20CHECK}
+
+
+\index[prmindex]{CONSTRAINTS PARALLEL CHECK}
+\index[prmindexfull]{Boundary conditions!CONSTRAINTS PARALLEL CHECK}
+{\it Value:} false
+
+
+{\it Default:} false
+
+
+{\it Description:} [Developer] Check for consistency of constraints in parallel.
+
+
+{\it Possible values:} A boolean value (true or false)
+\item {\it Parameter name:} {\tt FLOATING NUCLEAR CHARGES}
+\phantomsection\label{parameters:Boundary conditions/FLOATING NUCLEAR CHARGES}
+\label{parameters:Boundary_20conditions/FLOATING_20NUCLEAR_20CHARGES}
+
+
+\index[prmindex]{FLOATING NUCLEAR CHARGES}
+\index[prmindexfull]{Boundary conditions!FLOATING NUCLEAR CHARGES}
+{\it Value:} true
+
+
+{\it Default:} true
+
+
+{\it Description:} [Developer] Nuclear charges are allowed to float independent of the FEM mesh nodal positions. Only allowed for pseudopotential calculations. Internally set to false for all-electron calculations.
+
+
+{\it Possible values:} A boolean value (true or false)
+\item {\it Parameter name:} {\tt PERIODIC1}
+\phantomsection\label{parameters:Boundary conditions/PERIODIC1}
+\label{parameters:Boundary_20conditions/PERIODIC1}
+
+
+\index[prmindex]{PERIODIC1}
+\index[prmindexfull]{Boundary conditions!PERIODIC1}
+{\it Value:} false
+
+
+{\it Default:} false
+
+
+{\it Description:} [Standard] Periodicity along the first domain bounding vector.
+
+
+{\it Possible values:} A boolean value (true or false)
+\item {\it Parameter name:} {\tt PERIODIC2}
+\phantomsection\label{parameters:Boundary conditions/PERIODIC2}
+\label{parameters:Boundary_20conditions/PERIODIC2}
+
+
+\index[prmindex]{PERIODIC2}
+\index[prmindexfull]{Boundary conditions!PERIODIC2}
+{\it Value:} false
+
+
+{\it Default:} false
+
+
+{\it Description:} [Standard] Periodicity along the second domain bounding vector.
+
+
+{\it Possible values:} A boolean value (true or false)
+\item {\it Parameter name:} {\tt PERIODIC3}
+\phantomsection\label{parameters:Boundary conditions/PERIODIC3}
+\label{parameters:Boundary_20conditions/PERIODIC3}
+
+
+\index[prmindex]{PERIODIC3}
+\index[prmindexfull]{Boundary conditions!PERIODIC3}
+{\it Value:} false
+
+
+{\it Default:} false
+
+
+{\it Description:} [Standard] Periodicity along the third domain bounding vector.
+
+
+{\it Possible values:} A boolean value (true or false)
+\item {\it Parameter name:} {\tt POINT WISE DIRICHLET CONSTRAINT}
+\phantomsection\label{parameters:Boundary conditions/POINT WISE DIRICHLET CONSTRAINT}
+\label{parameters:Boundary_20conditions/POINT_20WISE_20DIRICHLET_20CONSTRAINT}
+
+
+\index[prmindex]{POINT WISE DIRICHLET CONSTRAINT}
+\index[prmindexfull]{Boundary conditions!POINT WISE DIRICHLET CONSTRAINT}
+{\it Value:} false
+
+
+{\it Default:} false
+
+
+{\it Description:} [Developer] Flag to set point wise dirichlet constraints to eliminate null-space associated with the discretized Poisson operator subject to periodic BCs.
+
+
+{\it Possible values:} A boolean value (true or false)
+\item {\it Parameter name:} {\tt SELF POTENTIAL RADIUS}
+\phantomsection\label{parameters:Boundary conditions/SELF POTENTIAL RADIUS}
+\label{parameters:Boundary_20conditions/SELF_20POTENTIAL_20RADIUS}
+
+
+\index[prmindex]{SELF POTENTIAL RADIUS}
+\index[prmindexfull]{Boundary conditions!SELF POTENTIAL RADIUS}
+{\it Value:} 0.0
+
+
+{\it Default:} 0.0
+
+
+{\it Description:} [Advanced] The radius (in a.u) of the ball around an atom in which self-potential of the associated nuclear charge is solved. For the default value of 0.0, the radius value is automatically determined to accommodate the largest radius possible for the given finite element mesh. The default approach works for most problems.
+
+
+{\it Possible values:} A floating point number $v$ such that $0 \leq v \leq 50$
+\item {\it Parameter name:} {\tt SMEARED NUCLEAR CHARGES}
+\phantomsection\label{parameters:Boundary conditions/SMEARED NUCLEAR CHARGES}
+\label{parameters:Boundary_20conditions/SMEARED_20NUCLEAR_20CHARGES}
+
+
+\index[prmindex]{SMEARED NUCLEAR CHARGES}
+\index[prmindexfull]{Boundary conditions!SMEARED NUCLEAR CHARGES}
+{\it Value:} true
+
+
+{\it Default:} true
+
+
+{\it Description:} [Developer] Nuclear charges are smeared for solving electrostatic fields. Default is true for pseudopotential calculations and false for all-electron calculations.
+
+
+{\it Possible values:} A boolean value (true or false)
+\end{itemize}
+
+\subsection{Parameters in section \tt Brillouin zone k point sampling options}
+\label{parameters:Brillouin_20zone_20k_20point_20sampling_20options}
+
+\begin{itemize}
+\item {\it Parameter name:} {\tt USE GROUP SYMMETRY}
+\phantomsection\label{parameters:Brillouin zone k point sampling options/USE GROUP SYMMETRY}
+\label{parameters:Brillouin_20zone_20k_20point_20sampling_20options/USE_20GROUP_20SYMMETRY}
+
+
+\index[prmindex]{USE GROUP SYMMETRY}
+\index[prmindexfull]{Brillouin zone k point sampling options!USE GROUP SYMMETRY}
+{\it Value:} false
+
+
+{\it Default:} false
+
+
+{\it Description:} [Standard] Flag to control the use of point group symmetries. Currently this feature cannot be used if ION FORCE or CELL STRESS input parameters are set to true.
+
+
+{\it Possible values:} A boolean value (true or false)
+\item {\it Parameter name:} {\tt USE TIME REVERSAL SYMMETRY}
+\phantomsection\label{parameters:Brillouin zone k point sampling options/USE TIME REVERSAL SYMMETRY}
+\label{parameters:Brillouin_20zone_20k_20point_20sampling_20options/USE_20TIME_20REVERSAL_20SYMMETRY}
+
+
+\index[prmindex]{USE TIME REVERSAL SYMMETRY}
+\index[prmindexfull]{Brillouin zone k point sampling options!USE TIME REVERSAL SYMMETRY}
+{\it Value:} false
+
+
+{\it Default:} false
+
+
+{\it Description:} [Standard] Flag to control the use of time reversal symmetry.
+
+
+{\it Possible values:} A boolean value (true or false)
+\item {\it Parameter name:} {\tt kPOINT RULE FILE}
+\phantomsection\label{parameters:Brillouin zone k point sampling options/kPOINT RULE FILE}
+\label{parameters:Brillouin_20zone_20k_20point_20sampling_20options/kPOINT_20RULE_20FILE}
+
+
+\index[prmindex]{kPOINT RULE FILE}
+\index[prmindexfull]{Brillouin zone k point sampling options!kPOINT RULE FILE}
+{\it Value:} 
+
+
+{\it Default:} 
+
+
+{\it Description:} [Developer] File providing list of k points on which eigen values are to be computed from converged KS Hamiltonian. The first three columns specify the crystal coordinates of the k points. The fourth column provides weights of the corresponding points, which is currently not used. The eigen values are written on an output file bands.out
+
+
+{\it Possible values:} Any string
+\end{itemize}
+
+
+
+\subsection{Parameters in section \tt Brillouin zone k point sampling options/Monkhorst-Pack (MP) grid generation}
+\label{parameters:Brillouin_20zone_20k_20point_20sampling_20options/Monkhorst_2dPack_20_28MP_29_20grid_20generation}
+
+\begin{itemize}
+\item {\it Parameter name:} {\tt SAMPLING POINTS 1}
+\phantomsection\label{parameters:Brillouin zone k point sampling options/Monkhorst_2dPack _28MP_29 grid generation/SAMPLING POINTS 1}
+\label{parameters:Brillouin_20zone_20k_20point_20sampling_20options/Monkhorst_2dPack_20_28MP_29_20grid_20generation/SAMPLING_20POINTS_201}
+
+
+\index[prmindex]{SAMPLING POINTS 1}
+\index[prmindexfull]{Brillouin zone k point sampling options!Monkhorst-Pack (MP) grid generation!SAMPLING POINTS 1}
+{\it Value:} 1
+
+
+{\it Default:} 1
+
+
+{\it Description:} [Standard] Number of Monkhorst-Pack grid points to be used along reciprocal lattice vector 1.
+
+
+{\it Possible values:} An integer $n$ such that $1\leq n \leq 1000$
+\item {\it Parameter name:} {\tt SAMPLING POINTS 2}
+\phantomsection\label{parameters:Brillouin zone k point sampling options/Monkhorst_2dPack _28MP_29 grid generation/SAMPLING POINTS 2}
+\label{parameters:Brillouin_20zone_20k_20point_20sampling_20options/Monkhorst_2dPack_20_28MP_29_20grid_20generation/SAMPLING_20POINTS_202}
+
+
+\index[prmindex]{SAMPLING POINTS 2}
+\index[prmindexfull]{Brillouin zone k point sampling options!Monkhorst-Pack (MP) grid generation!SAMPLING POINTS 2}
+{\it Value:} 1
+
+
+{\it Default:} 1
+
+
+{\it Description:} [Standard] Number of Monkhorst-Pack grid points to be used along reciprocal lattice vector 2.
+
+
+{\it Possible values:} An integer $n$ such that $1\leq n \leq 1000$
+\item {\it Parameter name:} {\tt SAMPLING POINTS 3}
+\phantomsection\label{parameters:Brillouin zone k point sampling options/Monkhorst_2dPack _28MP_29 grid generation/SAMPLING POINTS 3}
+\label{parameters:Brillouin_20zone_20k_20point_20sampling_20options/Monkhorst_2dPack_20_28MP_29_20grid_20generation/SAMPLING_20POINTS_203}
+
+
+\index[prmindex]{SAMPLING POINTS 3}
+\index[prmindexfull]{Brillouin zone k point sampling options!Monkhorst-Pack (MP) grid generation!SAMPLING POINTS 3}
+{\it Value:} 1
+
+
+{\it Default:} 1
+
+
+{\it Description:} [Standard] Number of Monkhorst-Pack grid points to be used along reciprocal lattice vector 3.
+
+
+{\it Possible values:} An integer $n$ such that $1\leq n \leq 1000$
+\item {\it Parameter name:} {\tt SAMPLING SHIFT 1}
+\phantomsection\label{parameters:Brillouin zone k point sampling options/Monkhorst_2dPack _28MP_29 grid generation/SAMPLING SHIFT 1}
+\label{parameters:Brillouin_20zone_20k_20point_20sampling_20options/Monkhorst_2dPack_20_28MP_29_20grid_20generation/SAMPLING_20SHIFT_201}
+
+
+\index[prmindex]{SAMPLING SHIFT 1}
+\index[prmindexfull]{Brillouin zone k point sampling options!Monkhorst-Pack (MP) grid generation!SAMPLING SHIFT 1}
+{\it Value:} 0
+
+
+{\it Default:} 0
+
+
+{\it Description:} [Standard] If fractional shifting to be used (0 for no shift, 1 for shift) along reciprocal lattice vector 1.
+
+
+{\it Possible values:} An integer $n$ such that $0\leq n \leq 1$
+\item {\it Parameter name:} {\tt SAMPLING SHIFT 2}
+\phantomsection\label{parameters:Brillouin zone k point sampling options/Monkhorst_2dPack _28MP_29 grid generation/SAMPLING SHIFT 2}
+\label{parameters:Brillouin_20zone_20k_20point_20sampling_20options/Monkhorst_2dPack_20_28MP_29_20grid_20generation/SAMPLING_20SHIFT_202}
+
+
+\index[prmindex]{SAMPLING SHIFT 2}
+\index[prmindexfull]{Brillouin zone k point sampling options!Monkhorst-Pack (MP) grid generation!SAMPLING SHIFT 2}
+{\it Value:} 0
+
+
+{\it Default:} 0
+
+
+{\it Description:} [Standard] If fractional shifting to be used (0 for no shift, 1 for shift) along reciprocal lattice vector 2.
+
+
+{\it Possible values:} An integer $n$ such that $0\leq n \leq 1$
+\item {\it Parameter name:} {\tt SAMPLING SHIFT 3}
+\phantomsection\label{parameters:Brillouin zone k point sampling options/Monkhorst_2dPack _28MP_29 grid generation/SAMPLING SHIFT 3}
+\label{parameters:Brillouin_20zone_20k_20point_20sampling_20options/Monkhorst_2dPack_20_28MP_29_20grid_20generation/SAMPLING_20SHIFT_203}
+
+
+\index[prmindex]{SAMPLING SHIFT 3}
+\index[prmindexfull]{Brillouin zone k point sampling options!Monkhorst-Pack (MP) grid generation!SAMPLING SHIFT 3}
+{\it Value:} 0
+
+
+{\it Default:} 0
+
+
+{\it Description:} [Standard] If fractional shifting to be used (0 for no shift, 1 for shift) along reciprocal lattice vector 3.
+
+
+{\it Possible values:} An integer $n$ such that $0\leq n \leq 1$
+\end{itemize}
+
+\subsection{Parameters in section \tt DFT functional parameters}
+\label{parameters:DFT_20functional_20parameters}
+
+\begin{itemize}
+\item {\it Parameter name:} {\tt EXCHANGE CORRELATION TYPE}
+\phantomsection\label{parameters:DFT functional parameters/EXCHANGE CORRELATION TYPE}
+\label{parameters:DFT_20functional_20parameters/EXCHANGE_20CORRELATION_20TYPE}
+
+
+\index[prmindex]{EXCHANGE CORRELATION TYPE}
+\index[prmindexfull]{DFT functional parameters!EXCHANGE CORRELATION TYPE}
+{\it Value:} 4
+
+
+{\it Default:} 1
+
+
+{\it Description:} [Standard] Parameter specifying the type of exchange-correlation to be used: 1(LDA: Perdew Zunger Ceperley Alder correlation with Slater Exchange[PRB. 23, 5048 (1981)]), 2(LDA: Perdew-Wang 92 functional with Slater Exchange [PRB. 45, 13244 (1992)]), 3(LDA: Vosko, Wilk \& Nusair with Slater Exchange[Can. J. Phys. 58, 1200 (1980)]), 4(GGA: Perdew-Burke-Ernzerhof functional [PRL. 77, 3865 (1996)], 5(RPBE: B. Hammer, L. B. Hansen, and J. K. Nørskov, Phys. Rev. B 59, 7413 (1999)).
+
+
+{\it Possible values:} An integer $n$ such that $1\leq n \leq 5$
+\item {\it Parameter name:} {\tt NUMBER OF IMAGES}
+\phantomsection\label{parameters:DFT functional parameters/NUMBER OF IMAGES}
+\label{parameters:DFT_20functional_20parameters/NUMBER_20OF_20IMAGES}
+
+
+\index[prmindex]{NUMBER OF IMAGES}
+\index[prmindexfull]{DFT functional parameters!NUMBER OF IMAGES}
+{\it Value:} 1
+
+
+{\it Default:} 1
+
+
+{\it Description:} [Standard] NUMBER OF IMAGES:Default option is 1. When NEB is triggered this controls the total number of images along the MEP including the end points
+
+
+{\it Possible values:} An integer $n$ such that $1\leq n \leq 50$
+\item {\it Parameter name:} {\tt PSEUDOPOTENTIAL CALCULATION}
+\phantomsection\label{parameters:DFT functional parameters/PSEUDOPOTENTIAL CALCULATION}
+\label{parameters:DFT_20functional_20parameters/PSEUDOPOTENTIAL_20CALCULATION}
+
+
+\index[prmindex]{PSEUDOPOTENTIAL CALCULATION}
+\index[prmindexfull]{DFT functional parameters!PSEUDOPOTENTIAL CALCULATION}
+{\it Value:} true
+
+
+{\it Default:} true
+
+
+{\it Description:} [Standard] Boolean Parameter specifying whether pseudopotential DFT calculation needs to be performed. For all-electron DFT calculation set to false.
+
+
+{\it Possible values:} A boolean value (true or false)
+\item {\it Parameter name:} {\tt PSEUDOPOTENTIAL FILE NAMES LIST}
+\phantomsection\label{parameters:DFT functional parameters/PSEUDOPOTENTIAL FILE NAMES LIST}
+\label{parameters:DFT_20functional_20parameters/PSEUDOPOTENTIAL_20FILE_20NAMES_20LIST}
+
+
+\index[prmindex]{PSEUDOPOTENTIAL FILE NAMES LIST}
+\index[prmindexfull]{DFT functional parameters!PSEUDOPOTENTIAL FILE NAMES LIST}
+{\it Value:} pseudo.inp
+
+
+{\it Default:} 
+
+
+{\it Description:} [Standard] Pseudopotential file. This file contains the list of pseudopotential file names in UPF format corresponding to the atoms involved in the calculations. UPF version 2.0 or greater and norm-conserving pseudopotentials(ONCV and Troullier Martins) in UPF format are only accepted. File format (example for two atoms Mg(z=12), Al(z=13)): 12 filename1.upf(row1), 13 filename2.upf (row2). Important Note: ONCV pseudopotentials data base in UPF format can be downloaded from http://www.quantum-simulation.org/potentials/sg15\_oncv or http://www.pseudo-dojo.org/.  Troullier-Martins pseudopotentials in UPF format can be downloaded from http://www.quantum-espresso.org/pseudopotentials/fhi-pp-from-abinit-web-site.
+
+
+{\it Possible values:} Any string
+\item {\it Parameter name:} {\tt PSEUDO TESTS FLAG}
+\phantomsection\label{parameters:DFT functional parameters/PSEUDO TESTS FLAG}
+\label{parameters:DFT_20functional_20parameters/PSEUDO_20TESTS_20FLAG}
+
+
+\index[prmindex]{PSEUDO TESTS FLAG}
+\index[prmindexfull]{DFT functional parameters!PSEUDO TESTS FLAG}
+{\it Value:} false
+
+
+{\it Default:} false
+
+
+{\it Description:} [Developer] Boolean parameter specifying the explicit path of pseudopotential upf format files used for ctests
+
+
+{\it Possible values:} A boolean value (true or false)
+\item {\it Parameter name:} {\tt PSP CUTOFF IMAGE CHARGES}
+\phantomsection\label{parameters:DFT functional parameters/PSP CUTOFF IMAGE CHARGES}
+\label{parameters:DFT_20functional_20parameters/PSP_20CUTOFF_20IMAGE_20CHARGES}
+
+
+\index[prmindex]{PSP CUTOFF IMAGE CHARGES}
+\index[prmindexfull]{DFT functional parameters!PSP CUTOFF IMAGE CHARGES}
+{\it Value:} 15.0
+
+
+{\it Default:} 15.0
+
+
+{\it Description:} [Standard] Distance from the domain till which periodic images will be considered for the local part of the pseudopotential. Units in a.u. 
+
+
+{\it Possible values:} A floating point number $v$ such that $-\text{MAX\_DOUBLE} \leq v \leq \text{MAX\_DOUBLE}$
+\item {\it Parameter name:} {\tt SPIN POLARIZATION}
+\phantomsection\label{parameters:DFT functional parameters/SPIN POLARIZATION}
+\label{parameters:DFT_20functional_20parameters/SPIN_20POLARIZATION}
+
+
+\index[prmindex]{SPIN POLARIZATION}
+\index[prmindexfull]{DFT functional parameters!SPIN POLARIZATION}
+{\it Value:} 0
+
+
+{\it Default:} 0
+
+
+{\it Description:} [Standard] Spin polarization: 0 for no spin polarization and 1 for collinear spin polarization calculation. Default option is 0.
+
+
+{\it Possible values:} An integer $n$ such that $0\leq n \leq 1$
+\item {\it Parameter name:} {\tt START MAGNETIZATION}
+\phantomsection\label{parameters:DFT functional parameters/START MAGNETIZATION}
+\label{parameters:DFT_20functional_20parameters/START_20MAGNETIZATION}
+
+
+\index[prmindex]{START MAGNETIZATION}
+\index[prmindexfull]{DFT functional parameters!START MAGNETIZATION}
+{\it Value:} 0.0
+
+
+{\it Default:} 0.0
+
+
+{\it Description:} [Standard] Starting magnetization to be used for spin-polarized DFT calculations (must be between -0.5 and +0.5). Corresponding magnetization per simulation domain will be (2 x START MAGNETIZATION x Number of electrons) a.u. 
+
+
+{\it Possible values:} A floating point number $v$ such that $-0.5 \leq v \leq 0.5$
+\end{itemize}
+
+
+
+\subsection{Parameters in section \tt DFT functional parameters/Dispersion Correction}
+\label{parameters:DFT_20functional_20parameters/Dispersion_20Correction}
+
+\begin{itemize}
+\item {\it Parameter name:} {\tt CN CUTOFF}
+\phantomsection\label{parameters:DFT functional parameters/Dispersion Correction/CN CUTOFF}
+\label{parameters:DFT_20functional_20parameters/Dispersion_20Correction/CN_20CUTOFF}
+
+
+\index[prmindex]{CN CUTOFF}
+\index[prmindexfull]{DFT functional parameters!Dispersion Correction!CN CUTOFF}
+{\it Value:} 40.0
+
+
+{\it Default:} 40.0
+
+
+{\it Description:} [Advanced] Cutoff in a.u. for computing coordination number in D3 correction
+
+
+{\it Possible values:} A floating point number $v$ such that $0 \leq v \leq \text{MAX\_DOUBLE}$
+\item {\it Parameter name:} {\tt D3 ATM}
+\phantomsection\label{parameters:DFT functional parameters/Dispersion Correction/D3 ATM}
+\label{parameters:DFT_20functional_20parameters/Dispersion_20Correction/D3_20ATM}
+
+
+\index[prmindex]{D3 ATM}
+\index[prmindexfull]{DFT functional parameters!Dispersion Correction!D3 ATM}
+{\it Value:} false
+
+
+{\it Default:} false
+
+
+{\it Description:} [Standard] Boolean parameter specifying whether or not the triple dipole correction in DFTD3 is to be included (ignored if DAMPING PARAMETERS FILE is specified).
+
+
+{\it Possible values:} A boolean value (true or false)
+\item {\it Parameter name:} {\tt D3 DAMPING TYPE}
+\phantomsection\label{parameters:DFT functional parameters/Dispersion Correction/D3 DAMPING TYPE}
+\label{parameters:DFT_20functional_20parameters/Dispersion_20Correction/D3_20DAMPING_20TYPE}
+
+
+\index[prmindex]{D3 DAMPING TYPE}
+\index[prmindexfull]{DFT functional parameters!Dispersion Correction!D3 DAMPING TYPE}
+{\it Value:} 3
+
+
+{\it Default:} 3
+
+
+{\it Description:} [Standard] The damping used for DFTD3, 0 for zero damping, 1 for BJ damping, 2 for D3M variant, 3 for BJM variant (default) and 4 for the OP variant.
+
+
+{\it Possible values:} An integer $n$ such that $0\leq n \leq 4$
+\item {\it Parameter name:} {\tt D4 MBD}
+\phantomsection\label{parameters:DFT functional parameters/Dispersion Correction/D4 MBD}
+\label{parameters:DFT_20functional_20parameters/Dispersion_20Correction/D4_20MBD}
+
+
+\index[prmindex]{D4 MBD}
+\index[prmindexfull]{DFT functional parameters!Dispersion Correction!D4 MBD}
+{\it Value:} false
+
+
+{\it Default:} false
+
+
+{\it Description:} [Standard] Boolean parameter specifying whether or not the MBD correction in DFTD4 is to be included (ignored if DAMPING PARAMETERS FILE is specified).
+
+
+{\it Possible values:} A boolean value (true or false)
+\item {\it Parameter name:} {\tt DAMPING PARAMETERS FILE}
+\phantomsection\label{parameters:DFT functional parameters/Dispersion Correction/DAMPING PARAMETERS FILE}
+\label{parameters:DFT_20functional_20parameters/Dispersion_20Correction/DAMPING_20PARAMETERS_20FILE}
+
+
+\index[prmindex]{DAMPING PARAMETERS FILE}
+\index[prmindexfull]{DFT functional parameters!Dispersion Correction!DAMPING PARAMETERS FILE}
+{\it Value:} 
+
+
+{\it Default:} 
+
+
+{\it Description:} [Advanced] Name of the file containing custom damping parameters, for ZERO damping 6 parameters are expected (s6, s8, s9, sr6, sr8, alpha), for BJ anf BJM damping 6 parameters are expected (s6, s8, s9, a1, a2, alpha), for ZEROM damping 7 parameters are expected (s6, s8, s9, sr6, sr8, alpha, beta) and for optimized power damping 7 parameters are expected (s6, s8, s9, a1, a2, alpha, beta).
+
+
+{\it Possible values:} Any string
+\item {\it Parameter name:} {\tt DISPERSION CORRECTION TYPE}
+\phantomsection\label{parameters:DFT functional parameters/Dispersion Correction/DISPERSION CORRECTION TYPE}
+\label{parameters:DFT_20functional_20parameters/Dispersion_20Correction/DISPERSION_20CORRECTION_20TYPE}
+
+
+\index[prmindex]{DISPERSION CORRECTION TYPE}
+\index[prmindexfull]{DFT functional parameters!Dispersion Correction!DISPERSION CORRECTION TYPE}
+{\it Value:} 0
+
+
+{\it Default:} 0
+
+
+{\it Description:} [Standard] The dispersion correction type to be included post scf convergence: 0 for none, 1 for DFT-D3[JCP 132, 154104 (2010)][JCC 32, 1456 (2011)], 2 for DFT-D4 [JCP 147, 034112 (2017)][JCP 150, 154122 (2019)][PCCP 22, 8499-8512 (2020)].
+
+
+{\it Possible values:} An integer $n$ such that $0\leq n \leq 2$
+\item {\it Parameter name:} {\tt THREE BODY CUTOFF}
+\phantomsection\label{parameters:DFT functional parameters/Dispersion Correction/THREE BODY CUTOFF}
+\label{parameters:DFT_20functional_20parameters/Dispersion_20Correction/THREE_20BODY_20CUTOFF}
+
+
+\index[prmindex]{THREE BODY CUTOFF}
+\index[prmindexfull]{DFT functional parameters!Dispersion Correction!THREE BODY CUTOFF}
+{\it Value:} 40.0
+
+
+{\it Default:} 40.0
+
+
+{\it Description:} [Advanced] Cutoff in a.u. for computing 3 body interactions terms in D3 correction
+
+
+{\it Possible values:} A floating point number $v$ such that $0 \leq v \leq \text{MAX\_DOUBLE}$
+\item {\it Parameter name:} {\tt TWO BODY CUTOFF}
+\phantomsection\label{parameters:DFT functional parameters/Dispersion Correction/TWO BODY CUTOFF}
+\label{parameters:DFT_20functional_20parameters/Dispersion_20Correction/TWO_20BODY_20CUTOFF}
+
+
+\index[prmindex]{TWO BODY CUTOFF}
+\index[prmindexfull]{DFT functional parameters!Dispersion Correction!TWO BODY CUTOFF}
+{\it Value:} 94.8683298050514
+
+
+{\it Default:} 94.8683298050514
+
+
+{\it Description:} [Advanced] Cutoff in a.u. for computing 2 body interactions terms in D3 correction
+
+
+{\it Possible values:} A floating point number $v$ such that $0 \leq v \leq \text{MAX\_DOUBLE}$
+\end{itemize}
+
+\subsection{Parameters in section \tt Finite element mesh parameters}
+\label{parameters:Finite_20element_20mesh_20parameters}
+
+\begin{itemize}
+\item {\it Parameter name:} {\tt POLYNOMIAL ORDER}
+\phantomsection\label{parameters:Finite element mesh parameters/POLYNOMIAL ORDER}
+\label{parameters:Finite_20element_20mesh_20parameters/POLYNOMIAL_20ORDER}
+
+
+\index[prmindex]{POLYNOMIAL ORDER}
+\index[prmindexfull]{Finite element mesh parameters!POLYNOMIAL ORDER}
+{\it Value:} 6
+
+
+{\it Default:} 6
+
+
+{\it Description:} [Standard] The degree of the finite-element interpolating polynomial in the Kohn-Sham Hamitonian except the electrostatics. Default value is 6 which is good choice for most pseudopotential calculations. POLYNOMIAL ORDER= 4 or 5 is usually a good choice for all-electron problems.
+
+
+{\it Possible values:} An integer $n$ such that $1\leq n \leq 12$
+\item {\it Parameter name:} {\tt POLYNOMIAL ORDER ELECTROSTATICS}
+\phantomsection\label{parameters:Finite element mesh parameters/POLYNOMIAL ORDER ELECTROSTATICS}
+\label{parameters:Finite_20element_20mesh_20parameters/POLYNOMIAL_20ORDER_20ELECTROSTATICS}
+
+
+\index[prmindex]{POLYNOMIAL ORDER ELECTROSTATICS}
+\index[prmindexfull]{Finite element mesh parameters!POLYNOMIAL ORDER ELECTROSTATICS}
+{\it Value:} 0
+
+
+{\it Default:} 0
+
+
+{\it Description:} [Standard] The degree of the finite-element interpolating polynomial for the electrostatics part of the Kohn-Sham Hamiltonian. It is automatically set to POLYNOMIAL ORDER if POLYNOMIAL ORDER ELECTROSTATICS set to default value of zero.
+
+
+{\it Possible values:} An integer $n$ such that $0\leq n \leq 24$
+\end{itemize}
+
+
+
+\subsection{Parameters in section \tt Finite element mesh parameters/Auto mesh generation parameters}
+\label{parameters:Finite_20element_20mesh_20parameters/Auto_20mesh_20generation_20parameters}
+
+\begin{itemize}
+\item {\it Parameter name:} {\tt ATOM BALL RADIUS}
+\phantomsection\label{parameters:Finite element mesh parameters/Auto mesh generation parameters/ATOM BALL RADIUS}
+\label{parameters:Finite_20element_20mesh_20parameters/Auto_20mesh_20generation_20parameters/ATOM_20BALL_20RADIUS}
+
+
+\index[prmindex]{ATOM BALL RADIUS}
+\index[prmindexfull]{Finite element mesh parameters!Auto mesh generation parameters!ATOM BALL RADIUS}
+{\it Value:} 20
+
+
+{\it Default:} 0.0
+
+
+{\it Description:} [Standard] Radius of ball enclosing every atom, inside which the mesh size is set close to MESH SIZE AROUND ATOM and coarse-grained in the region outside the enclosing balls. For the default value of 0.0, a heuristically determined value is used, which is good enough for most cases but can be a bit conservative choice for fully non-periodic and semi-periodic problems as well as all-electron problems. To improve the computational efficiency user may experiment with values of ATOM BALL RADIUS ranging between 3.0 to 6.0 for pseudopotential problems, and ranging between 1.0 to 2.5 for all-electron problems.  Units: a.u.
+
+
+{\it Possible values:} A floating point number $v$ such that $0 \leq v \leq 20$
+\item {\it Parameter name:} {\tt AUTO ADAPT BASE MESH SIZE}
+\phantomsection\label{parameters:Finite element mesh parameters/Auto mesh generation parameters/AUTO ADAPT BASE MESH SIZE}
+\label{parameters:Finite_20element_20mesh_20parameters/Auto_20mesh_20generation_20parameters/AUTO_20ADAPT_20BASE_20MESH_20SIZE}
+
+
+\index[prmindex]{AUTO ADAPT BASE MESH SIZE}
+\index[prmindexfull]{Finite element mesh parameters!Auto mesh generation parameters!AUTO ADAPT BASE MESH SIZE}
+{\it Value:} true
+
+
+{\it Default:} true
+
+
+{\it Description:} [Developer] Automatically adapt the BASE MESH SIZE such that subdivisions of that during refinement leads closest to the desired MESH SIZE AROUND ATOM. Default: true.
+
+
+{\it Possible values:} A boolean value (true or false)
+\item {\it Parameter name:} {\tt BASE MESH SIZE}
+\phantomsection\label{parameters:Finite element mesh parameters/Auto mesh generation parameters/BASE MESH SIZE}
+\label{parameters:Finite_20element_20mesh_20parameters/Auto_20mesh_20generation_20parameters/BASE_20MESH_20SIZE}
+
+
+\index[prmindex]{BASE MESH SIZE}
+\index[prmindexfull]{Finite element mesh parameters!Auto mesh generation parameters!BASE MESH SIZE}
+{\it Value:} 0.0
+
+
+{\it Default:} 0.0
+
+
+{\it Description:} [Advanced] Mesh size of the base mesh on which refinement is performed. For the default value of 0.0, a heuristically determined base mesh size is used, which is good enough for most cases. Standard users do not need to tune this parameter. Units: a.u.
+
+
+{\it Possible values:} A floating point number $v$ such that $0 \leq v \leq 20$
+\item {\it Parameter name:} {\tt ERROR ESTIMATE WAVEFUNCTIONS}
+\phantomsection\label{parameters:Finite element mesh parameters/Auto mesh generation parameters/ERROR ESTIMATE WAVEFUNCTIONS}
+\label{parameters:Finite_20element_20mesh_20parameters/Auto_20mesh_20generation_20parameters/ERROR_20ESTIMATE_20WAVEFUNCTIONS}
+
+
+\index[prmindex]{ERROR ESTIMATE WAVEFUNCTIONS}
+\index[prmindexfull]{Finite element mesh parameters!Auto mesh generation parameters!ERROR ESTIMATE WAVEFUNCTIONS}
+{\it Value:} 5
+
+
+{\it Default:} 5
+
+
+{\it Description:} [Developer] Number of wavefunctions to be used for error estimation.
+
+
+{\it Possible values:} An integer $n$ such that $0\leq n \leq 2147483647$
+\item {\it Parameter name:} {\tt GAUSSIAN CONSTANT FORCE GENERATOR}
+\phantomsection\label{parameters:Finite element mesh parameters/Auto mesh generation parameters/GAUSSIAN CONSTANT FORCE GENERATOR}
+\label{parameters:Finite_20element_20mesh_20parameters/Auto_20mesh_20generation_20parameters/GAUSSIAN_20CONSTANT_20FORCE_20GENERATOR}
+
+
+\index[prmindex]{GAUSSIAN CONSTANT FORCE GENERATOR}
+\index[prmindexfull]{Finite element mesh parameters!Auto mesh generation parameters!GAUSSIAN CONSTANT FORCE GENERATOR}
+{\it Value:} 0.75
+
+
+{\it Default:} 0.75
+
+
+{\it Description:} [Developer] Force computation generator gaussian constant. Also used for mesh movement. Gamma(r)= exp(-(r/gaussianConstant);(gaussianOrder)).
+
+
+{\it Possible values:} A floating point number $v$ such that $0 \leq v \leq \text{MAX\_DOUBLE}$
+\item {\it Parameter name:} {\tt GAUSSIAN ORDER FORCE GENERATOR}
+\phantomsection\label{parameters:Finite element mesh parameters/Auto mesh generation parameters/GAUSSIAN ORDER FORCE GENERATOR}
+\label{parameters:Finite_20element_20mesh_20parameters/Auto_20mesh_20generation_20parameters/GAUSSIAN_20ORDER_20FORCE_20GENERATOR}
+
+
+\index[prmindex]{GAUSSIAN ORDER FORCE GENERATOR}
+\index[prmindexfull]{Finite element mesh parameters!Auto mesh generation parameters!GAUSSIAN ORDER FORCE GENERATOR}
+{\it Value:} 4.0
+
+
+{\it Default:} 4.0
+
+
+{\it Description:} [Developer] Force computation generator gaussian order. Also used for mesh movement. Gamma(r)= exp(-(r/gaussianConstant);(gaussianOrder)).
+
+
+{\it Possible values:} A floating point number $v$ such that $0 \leq v \leq \text{MAX\_DOUBLE}$
+\item {\it Parameter name:} {\tt GAUSSIAN ORDER MOVE MESH TO ATOMS}
+\phantomsection\label{parameters:Finite element mesh parameters/Auto mesh generation parameters/GAUSSIAN ORDER MOVE MESH TO ATOMS}
+\label{parameters:Finite_20element_20mesh_20parameters/Auto_20mesh_20generation_20parameters/GAUSSIAN_20ORDER_20MOVE_20MESH_20TO_20ATOMS}
+
+
+\index[prmindex]{GAUSSIAN ORDER MOVE MESH TO ATOMS}
+\index[prmindexfull]{Finite element mesh parameters!Auto mesh generation parameters!GAUSSIAN ORDER MOVE MESH TO ATOMS}
+{\it Value:} 4.0
+
+
+{\it Default:} 4.0
+
+
+{\it Description:} [Developer] Move mesh to atoms gaussian order. Gamma(r)= exp(-(r/gaussianConstant);(gaussianOrder)).
+
+
+{\it Possible values:} A floating point number $v$ such that $0 \leq v \leq \text{MAX\_DOUBLE}$
+\item {\it Parameter name:} {\tt INNER ATOM BALL RADIUS}
+\phantomsection\label{parameters:Finite element mesh parameters/Auto mesh generation parameters/INNER ATOM BALL RADIUS}
+\label{parameters:Finite_20element_20mesh_20parameters/Auto_20mesh_20generation_20parameters/INNER_20ATOM_20BALL_20RADIUS}
+
+
+\index[prmindex]{INNER ATOM BALL RADIUS}
+\index[prmindexfull]{Finite element mesh parameters!Auto mesh generation parameters!INNER ATOM BALL RADIUS}
+{\it Value:} 0.0
+
+
+{\it Default:} 0.0
+
+
+{\it Description:} [Advanced] Radius of ball enclosing every atom, inside which the mesh size is set close to MESH SIZE AT ATOM. Standard users do not need to tune this parameter. Units: a.u.
+
+
+{\it Possible values:} A floating point number $v$ such that $0 \leq v \leq 20$
+\item {\it Parameter name:} {\tt MESH ADAPTION}
+\phantomsection\label{parameters:Finite element mesh parameters/Auto mesh generation parameters/MESH ADAPTION}
+\label{parameters:Finite_20element_20mesh_20parameters/Auto_20mesh_20generation_20parameters/MESH_20ADAPTION}
+
+
+\index[prmindex]{MESH ADAPTION}
+\index[prmindexfull]{Finite element mesh parameters!Auto mesh generation parameters!MESH ADAPTION}
+{\it Value:} false
+
+
+{\it Default:} false
+
+
+{\it Description:} [Developer] Generates adaptive mesh based on a-posteriori mesh adaption strategy using single atom wavefunctions before computing the ground-state. Default: false.
+
+
+{\it Possible values:} A boolean value (true or false)
+\item {\it Parameter name:} {\tt MESH SIZE AROUND ATOM}
+\phantomsection\label{parameters:Finite element mesh parameters/Auto mesh generation parameters/MESH SIZE AROUND ATOM}
+\label{parameters:Finite_20element_20mesh_20parameters/Auto_20mesh_20generation_20parameters/MESH_20SIZE_20AROUND_20ATOM}
+
+
+\index[prmindex]{MESH SIZE AROUND ATOM}
+\index[prmindexfull]{Finite element mesh parameters!Auto mesh generation parameters!MESH SIZE AROUND ATOM}
+{\it Value:} 1.0
+
+
+{\it Default:} 1.0
+
+
+{\it Description:} [Standard] Mesh size in a ball of radius ATOM BALL RADIUS around every atom. For pseudopotential calculations, the value ranges between 0.8 to 2.5 depending on the cutoff energy for the pseudopotential. For all-electron calculations, a value of around 0.5 would be a good starting choice. In most cases, MESH SIZE AROUND ATOM is the only parameter to be tuned to achieve the desired accuracy in energy and forces with respect to the mesh refinement. Units: a.u.
+
+
+{\it Possible values:} A floating point number $v$ such that $0.0001 \leq v \leq 10$
+\item {\it Parameter name:} {\tt MESH SIZE AT ATOM}
+\phantomsection\label{parameters:Finite element mesh parameters/Auto mesh generation parameters/MESH SIZE AT ATOM}
+\label{parameters:Finite_20element_20mesh_20parameters/Auto_20mesh_20generation_20parameters/MESH_20SIZE_20AT_20ATOM}
+
+
+\index[prmindex]{MESH SIZE AT ATOM}
+\index[prmindexfull]{Finite element mesh parameters!Auto mesh generation parameters!MESH SIZE AT ATOM}
+{\it Value:} 0.0
+
+
+{\it Default:} 0.0
+
+
+{\it Description:} [Advanced] Mesh size of the finite elements in the immediate vicinity of the atom. For the default value of 0.0, a heuristically determined MESH SIZE AT ATOM is used for all-electron calculations. For pseudopotential calculations, the default value of 0.0, sets the MESH SIZE AT ATOM to be the same value as MESH SIZE AROUND ATOM. Standard users do not need to tune this parameter. Units: a.u.
+
+
+{\it Possible values:} A floating point number $v$ such that $0 \leq v \leq 10$
+\item {\it Parameter name:} {\tt NUM LEVELS}
+\phantomsection\label{parameters:Finite element mesh parameters/Auto mesh generation parameters/NUM LEVELS}
+\label{parameters:Finite_20element_20mesh_20parameters/Auto_20mesh_20generation_20parameters/NUM_20LEVELS}
+
+
+\index[prmindex]{NUM LEVELS}
+\index[prmindexfull]{Finite element mesh parameters!Auto mesh generation parameters!NUM LEVELS}
+{\it Value:} 10
+
+
+{\it Default:} 10
+
+
+{\it Description:} [Developer] Number of times to be refined.
+
+
+{\it Possible values:} An integer $n$ such that $0\leq n \leq 30$
+\item {\it Parameter name:} {\tt TOLERANCE FOR MESH ADAPTION}
+\phantomsection\label{parameters:Finite element mesh parameters/Auto mesh generation parameters/TOLERANCE FOR MESH ADAPTION}
+\label{parameters:Finite_20element_20mesh_20parameters/Auto_20mesh_20generation_20parameters/TOLERANCE_20FOR_20MESH_20ADAPTION}
+
+
+\index[prmindex]{TOLERANCE FOR MESH ADAPTION}
+\index[prmindexfull]{Finite element mesh parameters!Auto mesh generation parameters!TOLERANCE FOR MESH ADAPTION}
+{\it Value:} 1
+
+
+{\it Default:} 1
+
+
+{\it Description:} [Developer] Tolerance criteria used for stopping the multi-level mesh adaption done apriori using single atom wavefunctions. This is used as Kinetic energy change between two successive iterations
+
+
+{\it Possible values:} A floating point number $v$ such that $0 \leq v \leq 1$
+\item {\it Parameter name:} {\tt TOP FRAC}
+\phantomsection\label{parameters:Finite element mesh parameters/Auto mesh generation parameters/TOP FRAC}
+\label{parameters:Finite_20element_20mesh_20parameters/Auto_20mesh_20generation_20parameters/TOP_20FRAC}
+
+
+\index[prmindex]{TOP FRAC}
+\index[prmindexfull]{Finite element mesh parameters!Auto mesh generation parameters!TOP FRAC}
+{\it Value:} 0.1
+
+
+{\it Default:} 0.1
+
+
+{\it Description:} [Developer] Top fraction of elements to be refined.
+
+
+{\it Possible values:} A floating point number $v$ such that $0 \leq v \leq 1$
+\item {\it Parameter name:} {\tt USE FLAT TOP GENERATOR}
+\phantomsection\label{parameters:Finite element mesh parameters/Auto mesh generation parameters/USE FLAT TOP GENERATOR}
+\label{parameters:Finite_20element_20mesh_20parameters/Auto_20mesh_20generation_20parameters/USE_20FLAT_20TOP_20GENERATOR}
+
+
+\index[prmindex]{USE FLAT TOP GENERATOR}
+\index[prmindexfull]{Finite element mesh parameters!Auto mesh generation parameters!USE FLAT TOP GENERATOR}
+{\it Value:} false
+
+
+{\it Default:} false
+
+
+{\it Description:} [Developer] Use a composite generator flat top and Gaussian generator for mesh movement and configurational force computation.
+
+
+{\it Possible values:} A boolean value (true or false)
+\item {\it Parameter name:} {\tt USE MESH SIZES FROM ATOM LOCATIONS FILE}
+\phantomsection\label{parameters:Finite element mesh parameters/Auto mesh generation parameters/USE MESH SIZES FROM ATOM LOCATIONS FILE}
+\label{parameters:Finite_20element_20mesh_20parameters/Auto_20mesh_20generation_20parameters/USE_20MESH_20SIZES_20FROM_20ATOM_20LOCATIONS_20FILE}
+
+
+\index[prmindex]{USE MESH SIZES FROM ATOM LOCATIONS FILE}
+\index[prmindexfull]{Finite element mesh parameters!Auto mesh generation parameters!USE MESH SIZES FROM ATOM LOCATIONS FILE}
+{\it Value:} false
+
+
+{\it Default:} false
+
+
+{\it Description:} [Developer] Use mesh sizes from atom locations file.
+
+
+{\it Possible values:} A boolean value (true or false)
+\end{itemize}
+
+\subsection{Parameters in section \tt GPU}
+\label{parameters:GPU}
+
+\begin{itemize}
+\item {\it Parameter name:} {\tt AUTO GPU BLOCK SIZES}
+\phantomsection\label{parameters:GPU/AUTO GPU BLOCK SIZES}
+\label{parameters:GPU/AUTO_20GPU_20BLOCK_20SIZES}
+
+
+\index[prmindex]{AUTO GPU BLOCK SIZES}
+\index[prmindexfull]{GPU!AUTO GPU BLOCK SIZES}
+{\it Value:} true
+
+
+{\it Default:} true
+
+
+{\it Description:} [Advanced] Automatically sets total number of kohn-sham wave functions and eigensolver optimal block sizes for running on GPUs. If manual tuning is desired set this parameter to false and set the block sizes using the input parameters for the block sizes. Default: true.
+
+
+{\it Possible values:} A boolean value (true or false)
+\item {\it Parameter name:} {\tt FINE GRAINED GPU TIMINGS}
+\phantomsection\label{parameters:GPU/FINE GRAINED GPU TIMINGS}
+\label{parameters:GPU/FINE_20GRAINED_20GPU_20TIMINGS}
+
+
+\index[prmindex]{FINE GRAINED GPU TIMINGS}
+\index[prmindexfull]{GPU!FINE GRAINED GPU TIMINGS}
+{\it Value:} false
+
+
+{\it Default:} false
+
+
+{\it Description:} [Developer] Print more fine grained GPU timing results. Default: false.
+
+
+{\it Possible values:} A boolean value (true or false)
+\item {\it Parameter name:} {\tt GPU MEM OPT MODE}
+\phantomsection\label{parameters:GPU/GPU MEM OPT MODE}
+\label{parameters:GPU/GPU_20MEM_20OPT_20MODE}
+
+
+\index[prmindex]{GPU MEM OPT MODE}
+\index[prmindexfull]{GPU!GPU MEM OPT MODE}
+{\it Value:} true
+
+
+{\it Default:} true
+
+
+{\it Description:} [Adavanced] Uses algorithms which have lower peak memory on GPUs but with a marginal performance degradation. Recommended when using more than 100k degrees of freedom per GPU. Default: true.
+
+
+{\it Possible values:} A boolean value (true or false)
+\item {\it Parameter name:} {\tt SUBSPACE ROT FULL CPU MEM}
+\phantomsection\label{parameters:GPU/SUBSPACE ROT FULL CPU MEM}
+\label{parameters:GPU/SUBSPACE_20ROT_20FULL_20CPU_20MEM}
+
+
+\index[prmindex]{SUBSPACE ROT FULL CPU MEM}
+\index[prmindexfull]{GPU!SUBSPACE ROT FULL CPU MEM}
+{\it Value:} true
+
+
+{\it Default:} true
+
+
+{\it Description:} [Developer] Option to use full NxN memory on CPU in subspace rotation and when mixed precision optimization is not being used. This reduces the number of MPI\_Allreduce communication calls. Default: true.
+
+
+{\it Possible values:} A boolean value (true or false)
+\item {\it Parameter name:} {\tt USE ELPA GPU KERNEL}
+\phantomsection\label{parameters:GPU/USE ELPA GPU KERNEL}
+\label{parameters:GPU/USE_20ELPA_20GPU_20KERNEL}
+
+
+\index[prmindex]{USE ELPA GPU KERNEL}
+\index[prmindexfull]{GPU!USE ELPA GPU KERNEL}
+{\it Value:} false
+
+
+{\it Default:} false
+
+
+{\it Description:} [Advanced] If DFT-FE is linked to ELPA eigensolver library configured to run on GPUs, this parameter toggles the use of ELPA GPU kernels for dense symmetric matrix diagonalization calls in DFT-FE. ELPA version>=2020.11.001 is required for this feature. Default: false.
+
+
+{\it Possible values:} A boolean value (true or false)
+\item {\it Parameter name:} {\tt USE GPU}
+\phantomsection\label{parameters:GPU/USE GPU}
+\label{parameters:GPU/USE_20GPU}
+
+
+\index[prmindex]{USE GPU}
+\index[prmindexfull]{GPU!USE GPU}
+{\it Value:} false
+
+
+{\it Default:} false
+
+
+{\it Description:} [Standard] Use GPU for compute.
+
+
+{\it Possible values:} A boolean value (true or false)
+\item {\it Parameter name:} {\tt USE TF32 OP}
+\phantomsection\label{parameters:GPU/USE TF32 OP}
+\label{parameters:GPU/USE_20TF32_20OP}
+
+
+\index[prmindex]{USE TF32 OP}
+\index[prmindexfull]{GPU!USE TF32 OP}
+{\it Value:} false
+
+
+{\it Default:} false
+
+
+{\it Description:} [Advanced] Enables TensorFloat-32 precision for single precision math operations on GPUs, which take advantage of the tensor core hardware. This capability is currently available for certain GPUs like NVIDIA A100. Accuracy of USE TF32 OP has been tested in the case of LRDM preconditioner with USE SINGLE PREC DENSITY RESPONSE mode set to true.
+
+
+{\it Possible values:} A boolean value (true or false)
+\item {\it Parameter name:} {\tt USE GPUDIRECT MPI ALL REDUCE}
+\phantomsection\label{parameters:GPU/USE GPUDIRECT MPI ALL REDUCE}
+\label{parameters:GPU/USE_20GPUDIRECT_20MPI_20ALL_20REDUCE}
+
+
+\index[prmindex]{USE GPUDIRECT MPI ALL REDUCE}
+\index[prmindexfull]{GPU!USE GPUDIRECT MPI ALL REDUCE}
+{\it Value:} false
+
+
+{\it Default:} false
+
+
+{\it Description:} [Adavanced] Use GPUDIRECT MPI\_Allreduce. This route will only work if DFT-FE is either compiled with NVIDIA NCCL library or withGPUAwareMPI=ON. Both these routes require GPU Aware MPI library to be available as well relevant hardware. If both NVIDIA NCCL library and withGPUAwareMPI modes are toggled on, the NCCL mode takes precedence. Also note that one MPI rank per GPU can be used when using this option. Default: false.
+
+
+{\it Possible values:} A boolean value (true or false)
+\end{itemize}
+
+\subsection{Parameters in section \tt Geometry}
+\label{parameters:Geometry}
+
+\begin{itemize}
+\item {\it Parameter name:} {\tt ATOMIC COORDINATES FILE}
+\phantomsection\label{parameters:Geometry/ATOMIC COORDINATES FILE}
+\label{parameters:Geometry/ATOMIC_20COORDINATES_20FILE}
+
+
+\index[prmindex]{ATOMIC COORDINATES FILE}
+\index[prmindexfull]{Geometry!ATOMIC COORDINATES FILE}
+{\it Value:} coordinates1.inp
+
+
+{\it Default:} 
+
+
+{\it Description:} [Standard] Atomic-coordinates input file name. For fully non-periodic domain give Cartesian coordinates of the atoms (in a.u) with respect to origin at the center of the domain. For periodic and semi-periodic domain give fractional coordinates of atoms. File format (example for two atoms): Atom1-atomic-charge Atom1-valence-charge x1 y1 z1 (row1), Atom2-atomic-charge Atom2-valence-charge x2 y2 z2 (row2). The number of rows must be equal to NATOMS, and number of unique atoms must be equal to NATOM TYPES.
+
+
+{\it Possible values:} Any string
+\item {\it Parameter name:} {\tt ATOMIC DISP COORDINATES FILE}
+\phantomsection\label{parameters:Geometry/ATOMIC DISP COORDINATES FILE}
+\label{parameters:Geometry/ATOMIC_20DISP_20COORDINATES_20FILE}
+
+
+\index[prmindex]{ATOMIC DISP COORDINATES FILE}
+\index[prmindexfull]{Geometry!ATOMIC DISP COORDINATES FILE}
+{\it Value:} 
+
+
+{\it Default:} 
+
+
+{\it Description:} [Standard] Atomic displacement coordinates input file name. The FEM mesh is deformed using Gaussian functions attached to the atoms. File format (example for two atoms): delx1 dely1 delz1 (row1), delx2 dely2 delz2 (row2). The number of rows must be equal to NATOMS. Units in a.u.
+
+
+{\it Possible values:} Any string
+\item {\it Parameter name:} {\tt DOMAIN VECTORS FILE}
+\phantomsection\label{parameters:Geometry/DOMAIN VECTORS FILE}
+\label{parameters:Geometry/DOMAIN_20VECTORS_20FILE}
+
+
+\index[prmindex]{DOMAIN VECTORS FILE}
+\index[prmindexfull]{Geometry!DOMAIN VECTORS FILE}
+{\it Value:} domainVectors.inp
+
+
+{\it Default:} 
+
+
+{\it Description:} [Standard] Domain vectors input file name. Domain vectors are the vectors bounding the three edges of the 3D parallelepiped computational domain. File format: v1x v1y v1z (row1), v2y v2y v2z (row2), v3z v3y v3z (row3). Units: a.u. CAUTION: please ensure that the domain vectors form a right-handed coordinate system i.e. dotProduct(crossProduct(v1,v2),v3)>0. Domain vectors are the typical lattice vectors in a fully periodic calculation.
+
+
+{\it Possible values:} Any string
+\item {\it Parameter name:} {\tt NATOMS}
+\phantomsection\label{parameters:Geometry/NATOMS}
+
+
+\index[prmindex]{NATOMS}
+\index[prmindexfull]{Geometry!NATOMS}
+{\it Value:} 2
+
+
+{\it Default:} 0
+
+
+{\it Description:} [Standard] Total number of atoms. This parameter requires a mandatory non-zero input which is equal to the number of rows in the file passed to ATOMIC COORDINATES FILE.
+
+
+{\it Possible values:} An integer $n$ such that $0\leq n \leq 2147483647$
+\item {\it Parameter name:} {\tt NATOM TYPES}
+\phantomsection\label{parameters:Geometry/NATOM TYPES}
+\label{parameters:Geometry/NATOM_20TYPES}
+
+
+\index[prmindex]{NATOM TYPES}
+\index[prmindexfull]{Geometry!NATOM TYPES}
+{\it Value:} 1
+
+
+{\it Default:} 0
+
+
+{\it Description:} [Standard] Total number of atom types. This parameter requires a mandatory non-zero input which is equal to the number of unique atom types in the file passed to ATOMIC COORDINATES FILE.
+
+
+{\it Possible values:} An integer $n$ such that $0\leq n \leq 2147483647$
+\end{itemize}
+
+
+
+\subsection{Parameters in section \tt Geometry/Optimization}
+\label{parameters:Geometry/Optimization}
+
+\begin{itemize}
+\item {\it Parameter name:} {\tt BFGS STEP METHOD}
+\phantomsection\label{parameters:Geometry/Optimization/BFGS STEP METHOD}
+\label{parameters:Geometry/Optimization/BFGS_20STEP_20METHOD}
+
+
+\index[prmindex]{BFGS STEP METHOD}
+\index[prmindexfull]{Geometry!Optimization!BFGS STEP METHOD}
+{\it Value:} QN
+
+
+{\it Default:} QN
+
+
+{\it Description:} [Standard] Method for computing update step in BFGS. Quasi-Newton step (default) or Rational Function Step as described in JPC 1985, 89:52-57.
+
+
+{\it Possible values:} Any one of QN, RFO
+\item {\it Parameter name:} {\tt CELL CONSTRAINT TYPE}
+\phantomsection\label{parameters:Geometry/Optimization/CELL CONSTRAINT TYPE}
+\label{parameters:Geometry/Optimization/CELL_20CONSTRAINT_20TYPE}
+
+
+\index[prmindex]{CELL CONSTRAINT TYPE}
+\index[prmindexfull]{Geometry!Optimization!CELL CONSTRAINT TYPE}
+{\it Value:} 12
+
+
+{\it Default:} 12
+
+
+{\it Description:} [Standard] Cell relaxation constraint type, 1 (isotropic shape-fixed volume optimization), 2 (volume-fixed shape optimization), 3 (relax along domain vector component v1x), 4 (relax along domain vector component v2y), 5 (relax along domain vector component v3z), 6 (relax along domain vector components v2y and v3z), 7 (relax along domain vector components v1x and v3z), 8 (relax along domain vector components v1x and v2y), 9 (relax along domain vector components v1x, v2y and v3z), 10 (2D - relax along x and y components), 11(2D- relax only x and y components with inplane area fixed), 12(relax all domain vector components), 13 automatically decides the constraints based on boundary conditions. CAUTION: A majority of these options only make sense in an orthorhombic cell geometry.
+
+
+{\it Possible values:} An integer $n$ such that $1\leq n \leq 13$
+\item {\it Parameter name:} {\tt CELL OPT SOLVER}
+\phantomsection\label{parameters:Geometry/Optimization/CELL OPT SOLVER}
+\label{parameters:Geometry/Optimization/CELL_20OPT_20SOLVER}
+
+
+\index[prmindex]{CELL OPT SOLVER}
+\index[prmindexfull]{Geometry!Optimization!CELL OPT SOLVER}
+{\it Value:} LBFGS
+
+
+{\it Default:} LBFGS
+
+
+{\it Description:} [Standard] Method for Cell relaxation solver. LBFGS is the default
+
+
+{\it Possible values:} Any one of BFGS, LBFGS, CGPRP
+\item {\it Parameter name:} {\tt CELL STRESS}
+\phantomsection\label{parameters:Geometry/Optimization/CELL STRESS}
+\label{parameters:Geometry/Optimization/CELL_20STRESS}
+
+
+\index[prmindex]{CELL STRESS}
+\index[prmindexfull]{Geometry!Optimization!CELL STRESS}
+{\it Value:} false
+
+
+{\it Default:} false
+
+
+{\it Description:} [Standard] Boolean parameter specifying if cell stress needs to be computed. Automatically set to true if CELL OPT is true.
+
+
+{\it Possible values:} A boolean value (true or false)
+\item {\it Parameter name:} {\tt FORCE TOL}
+\phantomsection\label{parameters:Geometry/Optimization/FORCE TOL}
+\label{parameters:Geometry/Optimization/FORCE_20TOL}
+
+
+\index[prmindex]{FORCE TOL}
+\index[prmindexfull]{Geometry!Optimization!FORCE TOL}
+{\it Value:} 1e-4
+
+
+{\it Default:} 1e-4
+
+
+{\it Description:} [Standard] Sets the tolerance on the maximum force (in a.u.) on an atom during atomic relaxation, when the atoms are considered to be relaxed.
+
+
+{\it Possible values:} A floating point number $v$ such that $0 \leq v \leq 1$
+\item {\it Parameter name:} {\tt ION FORCE}
+\phantomsection\label{parameters:Geometry/Optimization/ION FORCE}
+\label{parameters:Geometry/Optimization/ION_20FORCE}
+
+
+\index[prmindex]{ION FORCE}
+\index[prmindexfull]{Geometry!Optimization!ION FORCE}
+{\it Value:} true
+
+
+{\it Default:} false
+
+
+{\it Description:} [Standard] Boolean parameter specifying if atomic forces are to be computed. Automatically set to true if ION OPT is true.
+
+
+{\it Possible values:} A boolean value (true or false)
+\item {\it Parameter name:} {\tt ION OPT SOLVER}
+\phantomsection\label{parameters:Geometry/Optimization/ION OPT SOLVER}
+\label{parameters:Geometry/Optimization/ION_20OPT_20SOLVER}
+
+
+\index[prmindex]{ION OPT SOLVER}
+\index[prmindexfull]{Geometry!Optimization!ION OPT SOLVER}
+{\it Value:} LBFGS
+
+
+{\it Default:} LBFGS
+
+
+{\it Description:} [Standard] Method for Ion relaxation solver. LBFGS is the default
+
+
+{\it Possible values:} Any one of BFGS, LBFGS, CGPRP
+\item {\it Parameter name:} {\tt ION RELAX FLAGS FILE}
+\phantomsection\label{parameters:Geometry/Optimization/ION RELAX FLAGS FILE}
+\label{parameters:Geometry/Optimization/ION_20RELAX_20FLAGS_20FILE}
+
+
+\index[prmindex]{ION RELAX FLAGS FILE}
+\index[prmindexfull]{Geometry!Optimization!ION RELAX FLAGS FILE}
+{\it Value:} 
+
+
+{\it Default:} 
+
+
+{\it Description:} [Standard] File specifying the permission flags (1-free to move, 0-fixed) and external forces for the 3-coordinate directions and for all atoms. File format (example for two atoms with atom 1 fixed and atom 2 free and 0.01 Ha/Bohr force acting on atom 2): 0 0 0 0.0 0.0 0.0(row1), 1 1 1 0.0 0.0 0.01(row2). External forces are optional.
+
+
+{\it Possible values:} Any string
+\item {\it Parameter name:} {\tt LBFGS HISTORY}
+\phantomsection\label{parameters:Geometry/Optimization/LBFGS HISTORY}
+\label{parameters:Geometry/Optimization/LBFGS_20HISTORY}
+
+
+\index[prmindex]{LBFGS HISTORY}
+\index[prmindexfull]{Geometry!Optimization!LBFGS HISTORY}
+{\it Value:} 5
+
+
+{\it Default:} 5
+
+
+{\it Description:} [Standard] Number of previous steps to considered for the LBFGS update.
+
+
+{\it Possible values:} An integer $n$ such that $1\leq n \leq 20$
+\item {\it Parameter name:} {\tt MAXIMUM CELL UPDATE STEP}
+\phantomsection\label{parameters:Geometry/Optimization/MAXIMUM CELL UPDATE STEP}
+\label{parameters:Geometry/Optimization/MAXIMUM_20CELL_20UPDATE_20STEP}
+
+
+\index[prmindex]{MAXIMUM CELL UPDATE STEP}
+\index[prmindexfull]{Geometry!Optimization!MAXIMUM CELL UPDATE STEP}
+{\it Value:} 0.1
+
+
+{\it Default:} 0.1
+
+
+{\it Description:} [Standard] Sets the maximum allowed step size (deformation) during cell relaxation.
+
+
+{\it Possible values:} A floating point number $v$ such that $0 \leq v \leq 5$
+\item {\it Parameter name:} {\tt MAXIMUM ION UPDATE STEP}
+\phantomsection\label{parameters:Geometry/Optimization/MAXIMUM ION UPDATE STEP}
+\label{parameters:Geometry/Optimization/MAXIMUM_20ION_20UPDATE_20STEP}
+
+
+\index[prmindex]{MAXIMUM ION UPDATE STEP}
+\index[prmindexfull]{Geometry!Optimization!MAXIMUM ION UPDATE STEP}
+{\it Value:} 0.5
+
+
+{\it Default:} 0.5
+
+
+{\it Description:} [Standard] Sets the maximum allowed step size (displacement in a.u.) during ion relaxation.
+
+
+{\it Possible values:} A floating point number $v$ such that $0 \leq v \leq 5$
+\item {\it Parameter name:} {\tt MAXIMUM OPTIMIZATION STEPS}
+\phantomsection\label{parameters:Geometry/Optimization/MAXIMUM OPTIMIZATION STEPS}
+\label{parameters:Geometry/Optimization/MAXIMUM_20OPTIMIZATION_20STEPS}
+
+
+\index[prmindex]{MAXIMUM OPTIMIZATION STEPS}
+\index[prmindexfull]{Geometry!Optimization!MAXIMUM OPTIMIZATION STEPS}
+{\it Value:} 300
+
+
+{\it Default:} 300
+
+
+{\it Description:} [Standard] Sets the maximum number of optimization steps to be performed.
+
+
+{\it Possible values:} An integer $n$ such that $1\leq n \leq 1000$
+\item {\it Parameter name:} {\tt MAXIMUM STAGGERED CYCLES}
+\phantomsection\label{parameters:Geometry/Optimization/MAXIMUM STAGGERED CYCLES}
+\label{parameters:Geometry/Optimization/MAXIMUM_20STAGGERED_20CYCLES}
+
+
+\index[prmindex]{MAXIMUM STAGGERED CYCLES}
+\index[prmindexfull]{Geometry!Optimization!MAXIMUM STAGGERED CYCLES}
+{\it Value:} 300
+
+
+{\it Default:} 300
+
+
+{\it Description:} [Standard] Sets the maximum number of staggered ion/cell optimization cycles to be performed.
+
+
+{\it Possible values:} An integer $n$ such that $1\leq n \leq 1000$
+\item {\it Parameter name:} {\tt MAX LINE SEARCH ITER}
+\phantomsection\label{parameters:Geometry/Optimization/MAX LINE SEARCH ITER}
+\label{parameters:Geometry/Optimization/MAX_20LINE_20SEARCH_20ITER}
+
+
+\index[prmindex]{MAX LINE SEARCH ITER}
+\index[prmindexfull]{Geometry!Optimization!MAX LINE SEARCH ITER}
+{\it Value:} 5
+
+
+{\it Default:} 5
+
+
+{\it Description:} [Standard] Sets the maximum number of line search iterations in the case of CGPRP. Default is 5.
+
+
+{\it Possible values:} An integer $n$ such that $1\leq n \leq 100$
+\item {\it Parameter name:} {\tt NON SELF CONSISTENT FORCE}
+\phantomsection\label{parameters:Geometry/Optimization/NON SELF CONSISTENT FORCE}
+\label{parameters:Geometry/Optimization/NON_20SELF_20CONSISTENT_20FORCE}
+
+
+\index[prmindex]{NON SELF CONSISTENT FORCE}
+\index[prmindexfull]{Geometry!Optimization!NON SELF CONSISTENT FORCE}
+{\it Value:} false
+
+
+{\it Default:} false
+
+
+{\it Description:} [Developer] Boolean parameter specifying whether to include the force contributions arising out of non self-consistency in the Kohn-Sham ground-state calculation. Currently non self-consistent force computation is still in experimental phase. The default option is false.
+
+
+{\it Possible values:} A boolean value (true or false)
+\item {\it Parameter name:} {\tt OPTIMIZATION MODE}
+\phantomsection\label{parameters:Geometry/Optimization/OPTIMIZATION MODE}
+\label{parameters:Geometry/Optimization/OPTIMIZATION_20MODE}
+
+
+\index[prmindex]{OPTIMIZATION MODE}
+\index[prmindexfull]{Geometry!Optimization!OPTIMIZATION MODE}
+{\it Value:} ION
+
+
+{\it Default:} ION
+
+
+{\it Description:} [Standard] Specifies whether the ionic coordinates and/or the lattice vectors are relaxed.
+
+
+{\it Possible values:} Any one of ION, CELL, IONCELL
+\item {\it Parameter name:} {\tt REUSE DENSITY}
+\phantomsection\label{parameters:Geometry/Optimization/REUSE DENSITY}
+\label{parameters:Geometry/Optimization/REUSE_20DENSITY}
+
+
+\index[prmindex]{REUSE DENSITY}
+\index[prmindexfull]{Geometry!Optimization!REUSE DENSITY}
+{\it Value:} 1
+
+
+{\it Default:} 1
+
+
+{\it Description:} [Standard] Parameter controlling the reuse of ground-state density during geometry optimization. The options are 0 (reinitialize density based on superposition of atomic densities), 1 (reuse ground-state density of previous relaxation step), and 2 (subtract superposition of atomic densities from the previous step's ground-state density and add superposition of atomic densities from the new atomic positions. Option 2 is not enabled for spin-polarized case. Default setting is 0.
+
+
+{\it Possible values:} An integer $n$ such that $0\leq n \leq 2$
+\item {\it Parameter name:} {\tt REUSE WFC}
+\phantomsection\label{parameters:Geometry/Optimization/REUSE WFC}
+\label{parameters:Geometry/Optimization/REUSE_20WFC}
+
+
+\index[prmindex]{REUSE WFC}
+\index[prmindexfull]{Geometry!Optimization!REUSE WFC}
+{\it Value:} true
+
+
+{\it Default:} true
+
+
+{\it Description:} [Standard] Reuse previous ground-state wavefunctions during geometry optimization. Default setting is true.
+
+
+{\it Possible values:} A boolean value (true or false)
+\item {\it Parameter name:} {\tt STRESS TOL}
+\phantomsection\label{parameters:Geometry/Optimization/STRESS TOL}
+\label{parameters:Geometry/Optimization/STRESS_20TOL}
+
+
+\index[prmindex]{STRESS TOL}
+\index[prmindexfull]{Geometry!Optimization!STRESS TOL}
+{\it Value:} 1e-6
+
+
+{\it Default:} 1e-6
+
+
+{\it Description:} [Standard] Sets the tolerance of the cell stress (in a.u.) during cell-relaxation.
+
+
+{\it Possible values:} A floating point number $v$ such that $0 \leq v \leq 1$
+\item {\it Parameter name:} {\tt USE PRECONDITIONER}
+\phantomsection\label{parameters:Geometry/Optimization/USE PRECONDITIONER}
+\label{parameters:Geometry/Optimization/USE_20PRECONDITIONER}
+
+
+\index[prmindex]{USE PRECONDITIONER}
+\index[prmindexfull]{Geometry!Optimization!USE PRECONDITIONER}
+{\it Value:} false
+
+
+{\it Default:} false
+
+
+{\it Description:} [Standard] Boolean parameter specifying if the preconditioner described by JCP 144, 164109 (2016) is to be used.
+
+
+{\it Possible values:} A boolean value (true or false)
+\end{itemize}
+
+\subsection{Parameters in section \tt Ground-state derived computations}
+\label{parameters:Ground_2dstate_20derived_20computations}
+
+\begin{itemize}
+\item {\it Parameter name:} {\tt READ ATOMIC WFC PDOS FROM PSP FILE}
+\phantomsection\label{parameters:Ground_2dstate derived computations/READ ATOMIC WFC PDOS FROM PSP FILE}
+\label{parameters:Ground_2dstate_20derived_20computations/READ_20ATOMIC_20WFC_20PDOS_20FROM_20PSP_20FILE}
+
+
+\index[prmindex]{READ ATOMIC WFC PDOS FROM PSP FILE}
+\index[prmindexfull]{Ground-state derived computations!READ ATOMIC WFC PDOS FROM PSP FILE}
+{\it Value:} false
+
+
+{\it Default:} false
+
+
+{\it Description:} [Standard] Read atomic wavefunctons from the pseudopotential file for computing projected density of states. When set to false atomic wavefunctions from the internal database are read, which correspond to sg15 ONCV pseudopotentials.
+
+
+{\it Possible values:} A boolean value (true or false)
+\item {\it Parameter name:} {\tt WRITE DENSITY}
+\phantomsection\label{parameters:Ground_2dstate derived computations/WRITE DENSITY}
+\label{parameters:Ground_2dstate_20derived_20computations/WRITE_20DENSITY}
+
+
+\index[prmindex]{WRITE DENSITY}
+\index[prmindexfull]{Ground-state derived computations!WRITE DENSITY}
+{\it Value:} false
+
+
+{\it Default:} false
+
+
+{\it Description:} [Standard] Writes DFT ground state electron-density solution fields (FEM mesh nodal values) to densityOutput.vtu file for visualization purposes. The electron-density solution field in densityOutput.vtu is named density. In case of spin-polarized calculation, two additional solution fields- density\_0 and density\_1 are also written where 0 and 1 denote the spin indices. In the case of geometry optimization, the electron-density corresponding to the last ground-state solve is written. Default: false.
+
+
+{\it Possible values:} A boolean value (true or false)
+\item {\it Parameter name:} {\tt WRITE DENSITY OF STATES}
+\phantomsection\label{parameters:Ground_2dstate derived computations/WRITE DENSITY OF STATES}
+\label{parameters:Ground_2dstate_20derived_20computations/WRITE_20DENSITY_20OF_20STATES}
+
+
+\index[prmindex]{WRITE DENSITY OF STATES}
+\index[prmindexfull]{Ground-state derived computations!WRITE DENSITY OF STATES}
+{\it Value:} false
+
+
+{\it Default:} false
+
+
+{\it Description:} [Standard] Computes density of states using Lorentzians. Uses specified Temperature for SCF as the broadening parameter. Outputs a file name 'dosData.out' containing two columns with first column indicating the energy in eV and second column indicating the density of states
+
+
+{\it Possible values:} A boolean value (true or false)
+\item {\it Parameter name:} {\tt WRITE LOCALIZATION LENGTHS}
+\phantomsection\label{parameters:Ground_2dstate derived computations/WRITE LOCALIZATION LENGTHS}
+\label{parameters:Ground_2dstate_20derived_20computations/WRITE_20LOCALIZATION_20LENGTHS}
+
+
+\index[prmindex]{WRITE LOCALIZATION LENGTHS}
+\index[prmindexfull]{Ground-state derived computations!WRITE LOCALIZATION LENGTHS}
+{\it Value:} false
+
+
+{\it Default:} false
+
+
+{\it Description:} [Standard] Computes localization lengths of all wavefunctions which is defined as the deviation around the mean position of a given wavefunction. Outputs a file name 'localizationLengths.out' containing 2 columns with first column indicating the wavefunction index and second column indicating localization length of the corresponding wavefunction.
+
+
+{\it Possible values:} A boolean value (true or false)
+\item {\it Parameter name:} {\tt WRITE LOCAL DENSITY OF STATES}
+\phantomsection\label{parameters:Ground_2dstate derived computations/WRITE LOCAL DENSITY OF STATES}
+\label{parameters:Ground_2dstate_20derived_20computations/WRITE_20LOCAL_20DENSITY_20OF_20STATES}
+
+
+\index[prmindex]{WRITE LOCAL DENSITY OF STATES}
+\index[prmindexfull]{Ground-state derived computations!WRITE LOCAL DENSITY OF STATES}
+{\it Value:} false
+
+
+{\it Default:} false
+
+
+{\it Description:} [Standard] Computes local density of states on each atom using Lorentzians. Uses specified Temperature for SCF as the broadening parameter. Outputs a file name 'ldosData.out' containing NUMATOM+1 columns with first column indicating the energy in eV and all other NUMATOM columns indicating local density of states for each of the NUMATOM atoms.
+
+
+{\it Possible values:} A boolean value (true or false)
+\item {\it Parameter name:} {\tt WRITE PROJECTED DENSITY OF STATES}
+\phantomsection\label{parameters:Ground_2dstate derived computations/WRITE PROJECTED DENSITY OF STATES}
+\label{parameters:Ground_2dstate_20derived_20computations/WRITE_20PROJECTED_20DENSITY_20OF_20STATES}
+
+
+\index[prmindex]{WRITE PROJECTED DENSITY OF STATES}
+\index[prmindexfull]{Ground-state derived computations!WRITE PROJECTED DENSITY OF STATES}
+{\it Value:} false
+
+
+{\it Default:} false
+
+
+{\it Description:} [Standard] Computes projected density of states on each atom using Lorentzians. Uses specified Temperature for SCF as the broadening parameter. Outputs a file name 'pdosData\_x' with x denoting atomID. This file contains columns with first column indicating the energy in eV and all other columns indicating projected density of states corresponding to single atom wavefunctions.
+
+
+{\it Possible values:} A boolean value (true or false)
+\item {\it Parameter name:} {\tt WRITE WFC}
+\phantomsection\label{parameters:Ground_2dstate derived computations/WRITE WFC}
+\label{parameters:Ground_2dstate_20derived_20computations/WRITE_20WFC}
+
+
+\index[prmindex]{WRITE WFC}
+\index[prmindexfull]{Ground-state derived computations!WRITE WFC}
+{\it Value:} false
+
+
+{\it Default:} false
+
+
+{\it Description:} [Standard] Writes DFT ground state wavefunction solution fields (FEM mesh nodal values) to wfcOutput.vtu file for visualization purposes. The wavefunction solution fields in wfcOutput.vtu are named wfc\_s\_k\_i in case of spin-polarized calculations and wfc\_k\_i otherwise, where s denotes the spin index (0 or 1), k denotes the k point index starting from 0, and i denotes the Kohn-Sham wavefunction index starting from 0. In the case of geometry optimization, the wavefunctions corresponding to the last ground-state solve are written.  Default: false.
+
+
+{\it Possible values:} A boolean value (true or false)
+\end{itemize}
+
+\subsection{Parameters in section \tt Helmholtz problem parameters}
+\label{parameters:Helmholtz_20problem_20parameters}
+
+\begin{itemize}
+\item {\it Parameter name:} {\tt ABSOLUTE TOLERANCE HELMHOLTZ}
+\phantomsection\label{parameters:Helmholtz problem parameters/ABSOLUTE TOLERANCE HELMHOLTZ}
+\label{parameters:Helmholtz_20problem_20parameters/ABSOLUTE_20TOLERANCE_20HELMHOLTZ}
+
+
+\index[prmindex]{ABSOLUTE TOLERANCE HELMHOLTZ}
+\index[prmindexfull]{Helmholtz problem parameters!ABSOLUTE TOLERANCE HELMHOLTZ}
+{\it Value:} 1e-10
+
+
+{\it Default:} 1e-10
+
+
+{\it Description:} [Advanced] Absolute tolerance on the residual as stopping criterion for Helmholtz problem convergence.
+
+
+{\it Possible values:} A floating point number $v$ such that $0 \leq v \leq 1$
+\item {\it Parameter name:} {\tt MAXIMUM ITERATIONS HELMHOLTZ}
+\phantomsection\label{parameters:Helmholtz problem parameters/MAXIMUM ITERATIONS HELMHOLTZ}
+\label{parameters:Helmholtz_20problem_20parameters/MAXIMUM_20ITERATIONS_20HELMHOLTZ}
+
+
+\index[prmindex]{MAXIMUM ITERATIONS HELMHOLTZ}
+\index[prmindexfull]{Helmholtz problem parameters!MAXIMUM ITERATIONS HELMHOLTZ}
+{\it Value:} 10000
+
+
+{\it Default:} 10000
+
+
+{\it Description:} [Advanced] Maximum number of iterations to be allowed for Helmholtz problem convergence.
+
+
+{\it Possible values:} An integer $n$ such that $0\leq n \leq 20000$
+\end{itemize}
+
+\subsection{Parameters in section \tt Molecular Dynamics}
+\label{parameters:Molecular_20Dynamics}
+
+\begin{itemize}
+\item {\it Parameter name:} {\tt ATOMIC MASSES FILE}
+\phantomsection\label{parameters:Molecular Dynamics/ATOMIC MASSES FILE}
+\label{parameters:Molecular_20Dynamics/ATOMIC_20MASSES_20FILE}
+
+
+\index[prmindex]{ATOMIC MASSES FILE}
+\index[prmindexfull]{Molecular Dynamics!ATOMIC MASSES FILE}
+{\it Value:} Mass.inp
+
+
+{\it Default:} 
+
+
+{\it Description:} [Standard] Input atomic masses file name. File format: atomicNumber1 atomicMass1 (row1), atomicNumber2 atomicMass2 (row2) and so on. Units: a.m.u.
+
+
+{\it Possible values:} Any string
+\item {\it Parameter name:} {\tt BOMD}
+\phantomsection\label{parameters:Molecular Dynamics/BOMD}
+\label{parameters:Molecular_20Dynamics/BOMD}
+
+
+\index[prmindex]{BOMD}
+\index[prmindexfull]{Molecular Dynamics!BOMD}
+{\it Value:} true
+
+
+{\it Default:} false
+
+
+{\it Description:} [Standard] Perform Born-Oppenheimer molecular dynamics.
+
+
+{\it Possible values:} A boolean value (true or false)
+\item {\it Parameter name:} {\tt EXTRAPOLATE DENSITY}
+\phantomsection\label{parameters:Molecular Dynamics/EXTRAPOLATE DENSITY}
+\label{parameters:Molecular_20Dynamics/EXTRAPOLATE_20DENSITY}
+
+
+\index[prmindex]{EXTRAPOLATE DENSITY}
+\index[prmindexfull]{Molecular Dynamics!EXTRAPOLATE DENSITY}
+{\it Value:} 0
+
+
+{\it Default:} 0
+
+
+{\it Description:} [Standard] Parameter controlling the reuse of ground-state density during molecular dynamics. The options are 0 default setting where superposition of atomic densities is the initial rho, 1 (second order extrapolation of density), and 2 (extrapolation of split density and the atomic densities are added) Option 2 is not enabled for spin-polarized case. Default setting is 0.
+
+
+{\it Possible values:} An integer $n$ such that $0\leq n \leq 2$
+\item {\it Parameter name:} {\tt MAX JACOBIAN RATIO FACTOR}
+\phantomsection\label{parameters:Molecular Dynamics/MAX JACOBIAN RATIO FACTOR}
+\label{parameters:Molecular_20Dynamics/MAX_20JACOBIAN_20RATIO_20FACTOR}
+
+
+\index[prmindex]{MAX JACOBIAN RATIO FACTOR}
+\index[prmindexfull]{Molecular Dynamics!MAX JACOBIAN RATIO FACTOR}
+{\it Value:} 1.5
+
+
+{\it Default:} 1.5
+
+
+{\it Description:} [Developer] Maximum scaling factor for maximum jacobian ratio of FEM mesh when mesh is deformed.
+
+
+{\it Possible values:} A floating point number $v$ such that $0.9 \leq v \leq 3$
+\item {\it Parameter name:} {\tt MAX WALL TIME}
+\phantomsection\label{parameters:Molecular Dynamics/MAX WALL TIME}
+\label{parameters:Molecular_20Dynamics/MAX_20WALL_20TIME}
+
+
+\index[prmindex]{MAX WALL TIME}
+\index[prmindexfull]{Molecular Dynamics!MAX WALL TIME}
+{\it Value:} 2592000.0
+
+
+{\it Default:} 2592000.0
+
+
+{\it Description:} [Standard] Maximum Wall Time in seconds
+
+
+{\it Possible values:} A floating point number $v$ such that $0 \leq v \leq \text{MAX\_DOUBLE}$
+\item {\it Parameter name:} {\tt NUMBER OF STEPS}
+\phantomsection\label{parameters:Molecular Dynamics/NUMBER OF STEPS}
+\label{parameters:Molecular_20Dynamics/NUMBER_20OF_20STEPS}
+
+
+\index[prmindex]{NUMBER OF STEPS}
+\index[prmindexfull]{Molecular Dynamics!NUMBER OF STEPS}
+{\it Value:} 9
+
+
+{\it Default:} 1000
+
+
+{\it Description:} [Standard] Number of time steps.
+
+
+{\it Possible values:} An integer $n$ such that $0\leq n \leq 200000$
+\item {\it Parameter name:} {\tt STARTING TEMPERATURE}
+\phantomsection\label{parameters:Molecular Dynamics/STARTING TEMPERATURE}
+\label{parameters:Molecular_20Dynamics/STARTING_20TEMPERATURE}
+
+
+\index[prmindex]{STARTING TEMPERATURE}
+\index[prmindexfull]{Molecular Dynamics!STARTING TEMPERATURE}
+{\it Value:} 300.0
+
+
+{\it Default:} 300.0
+
+
+{\it Description:} [Standard] Starting temperature in K for MD simulation.
+
+
+{\it Possible values:} A floating point number $v$ such that $0 \leq v \leq \text{MAX\_DOUBLE}$
+\item {\it Parameter name:} {\tt TEMPERATURE CONTROLLER TYPE}
+\phantomsection\label{parameters:Molecular Dynamics/TEMPERATURE CONTROLLER TYPE}
+\label{parameters:Molecular_20Dynamics/TEMPERATURE_20CONTROLLER_20TYPE}
+
+
+\index[prmindex]{TEMPERATURE CONTROLLER TYPE}
+\index[prmindexfull]{Molecular Dynamics!TEMPERATURE CONTROLLER TYPE}
+{\it Value:} NO\_CONTROL
+
+
+{\it Default:} NO\_CONTROL
+
+
+{\it Description:} [Standard] Method of controlling temperature in the MD run. NO\_CONTROL is the default option.
+
+
+{\it Possible values:} Any one of NO\_CONTROL, RESCALE, NOSE\_HOVER\_CHAINS, CSVR
+\item {\it Parameter name:} {\tt THERMOSTAT TIME CONSTANT}
+\phantomsection\label{parameters:Molecular Dynamics/THERMOSTAT TIME CONSTANT}
+\label{parameters:Molecular_20Dynamics/THERMOSTAT_20TIME_20CONSTANT}
+
+
+\index[prmindex]{THERMOSTAT TIME CONSTANT}
+\index[prmindexfull]{Molecular Dynamics!THERMOSTAT TIME CONSTANT}
+{\it Value:} 100
+
+
+{\it Default:} 100
+
+
+{\it Description:} [Standard] Ratio of Time constant of thermostat and MD timestep. 
+
+
+{\it Possible values:} A floating point number $v$ such that $0 \leq v \leq \text{MAX\_DOUBLE}$
+\item {\it Parameter name:} {\tt TIME STEP}
+\phantomsection\label{parameters:Molecular Dynamics/TIME STEP}
+\label{parameters:Molecular_20Dynamics/TIME_20STEP}
+
+
+\index[prmindex]{TIME STEP}
+\index[prmindexfull]{Molecular Dynamics!TIME STEP}
+{\it Value:} 0.5
+
+
+{\it Default:} 0.5
+
+
+{\it Description:} [Standard] Time step in femtoseconds.
+
+
+{\it Possible values:} A floating point number $v$ such that $0 \leq v \leq \text{MAX\_DOUBLE}$
+\item {\it Parameter name:} {\tt TRACKING ATOMIC NO}
+\phantomsection\label{parameters:Molecular Dynamics/TRACKING ATOMIC NO}
+\label{parameters:Molecular_20Dynamics/TRACKING_20ATOMIC_20NO}
+
+
+\index[prmindex]{TRACKING ATOMIC NO}
+\index[prmindexfull]{Molecular Dynamics!TRACKING ATOMIC NO}
+{\it Value:} 0
+
+
+{\it Default:} 0
+
+
+{\it Description:} [Standard] The atom Number to track.
+
+
+{\it Possible values:} An integer $n$ such that $0\leq n \leq 200000$
+\end{itemize}
+
+\subsection{Parameters in section \tt Parallelization}
+\label{parameters:Parallelization}
+
+\begin{itemize}
+\item {\it Parameter name:} {\tt BAND PARAL OPT}
+\phantomsection\label{parameters:Parallelization/BAND PARAL OPT}
+\label{parameters:Parallelization/BAND_20PARAL_20OPT}
+
+
+\index[prmindex]{BAND PARAL OPT}
+\index[prmindexfull]{Parallelization!BAND PARAL OPT}
+{\it Value:} true
+
+
+{\it Default:} true
+
+
+{\it Description:} [Standard] Uses a more optimal route for band parallelization but at the cost of extra wavefunctions memory.
+
+
+{\it Possible values:} A boolean value (true or false)
+\item {\it Parameter name:} {\tt MPI ALLREDUCE BLOCK SIZE}
+\phantomsection\label{parameters:Parallelization/MPI ALLREDUCE BLOCK SIZE}
+\label{parameters:Parallelization/MPI_20ALLREDUCE_20BLOCK_20SIZE}
+
+
+\index[prmindex]{MPI ALLREDUCE BLOCK SIZE}
+\index[prmindexfull]{Parallelization!MPI ALLREDUCE BLOCK SIZE}
+{\it Value:} 100.0
+
+
+{\it Default:} 100.0
+
+
+{\it Description:} [Advanced] Block message size in MB used to break a single MPI\_Allreduce call on wavefunction vectors data into multiple MPI\_Allreduce calls. This is useful on certain architectures which take advantage of High Bandwidth Memory to improve efficiency of MPI operations. This variable is relevant only if NPBAND>1. Default value is 100.0 MB.
+
+
+{\it Possible values:} A floating point number $v$ such that $0 \leq v \leq \text{MAX\_DOUBLE}$
+\item {\it Parameter name:} {\tt NPBAND}
+\phantomsection\label{parameters:Parallelization/NPBAND}
+
+
+\index[prmindex]{NPBAND}
+\index[prmindexfull]{Parallelization!NPBAND}
+{\it Value:} 1
+
+
+{\it Default:} 1
+
+
+{\it Description:} [Standard] Number of groups of MPI tasks across which the work load of the bands is parallelised. NPKPT times NPBAND must be a divisor of total number of MPI tasks. Further, NPBAND must be less than or equal to NUMBER OF KOHN-SHAM WAVEFUNCTIONS.
+
+
+{\it Possible values:} An integer $n$ such that $1\leq n \leq 2147483647$
+\item {\it Parameter name:} {\tt NPKPT}
+\phantomsection\label{parameters:Parallelization/NPKPT}
+
+
+\index[prmindex]{NPKPT}
+\index[prmindexfull]{Parallelization!NPKPT}
+{\it Value:} 1
+
+
+{\it Default:} 1
+
+
+{\it Description:} [Standard] Number of groups of MPI tasks across which the work load of the irreducible k-points is parallelised. NPKPT times NPBAND must be a divisor of total number of MPI tasks. Further, NPKPT must be less than or equal to the number of irreducible k-points.
+
+
+{\it Possible values:} An integer $n$ such that $1\leq n \leq 2147483647$
+\end{itemize}
+
+\subsection{Parameters in section \tt Poisson problem parameters}
+\label{parameters:Poisson_20problem_20parameters}
+
+\begin{itemize}
+\item {\it Parameter name:} {\tt MAXIMUM ITERATIONS}
+\phantomsection\label{parameters:Poisson problem parameters/MAXIMUM ITERATIONS}
+\label{parameters:Poisson_20problem_20parameters/MAXIMUM_20ITERATIONS}
+
+
+\index[prmindex]{MAXIMUM ITERATIONS}
+\index[prmindexfull]{Poisson problem parameters!MAXIMUM ITERATIONS}
+{\it Value:} 20000
+
+
+{\it Default:} 20000
+
+
+{\it Description:} [Advanced] Maximum number of iterations to be allowed for Poisson problem convergence.
+
+
+{\it Possible values:} An integer $n$ such that $0\leq n \leq 20000$
+\item {\it Parameter name:} {\tt TOLERANCE}
+\phantomsection\label{parameters:Poisson problem parameters/TOLERANCE}
+\label{parameters:Poisson_20problem_20parameters/TOLERANCE}
+
+
+\index[prmindex]{TOLERANCE}
+\index[prmindexfull]{Poisson problem parameters!TOLERANCE}
+{\it Value:} 1e-10
+
+
+{\it Default:} 1e-10
+
+
+{\it Description:} [Advanced] Absolute tolerance on the residual as stopping criterion for Poisson problem convergence.
+
+
+{\it Possible values:} A floating point number $v$ such that $0 \leq v \leq 1$
+\end{itemize}
+
+\subsection{Parameters in section \tt SCF Checkpointing and Restart}
+\label{parameters:SCF_20Checkpointing_20and_20Restart}
+
+\begin{itemize}
+\item {\it Parameter name:} {\tt LOAD RHO DATA}
+\phantomsection\label{parameters:SCF Checkpointing and Restart/LOAD RHO DATA}
+\label{parameters:SCF_20Checkpointing_20and_20Restart/LOAD_20RHO_20DATA}
+
+
+\index[prmindex]{LOAD RHO DATA}
+\index[prmindexfull]{SCF Checkpointing and Restart!LOAD RHO DATA}
+{\it Value:} false
+
+
+{\it Default:} false
+
+
+{\it Description:} [Standard] Loads charge density and mesh triagulation data from file.
+
+
+{\it Possible values:} A boolean value (true or false)
+\item {\it Parameter name:} {\tt RESTART SP FROM NO SP}
+\phantomsection\label{parameters:SCF Checkpointing and Restart/RESTART SP FROM NO SP}
+\label{parameters:SCF_20Checkpointing_20and_20Restart/RESTART_20SP_20FROM_20NO_20SP}
+
+
+\index[prmindex]{RESTART SP FROM NO SP}
+\index[prmindexfull]{SCF Checkpointing and Restart!RESTART SP FROM NO SP}
+{\it Value:} false
+
+
+{\it Default:} false
+
+
+{\it Description:} [Standard] Enables ground-state solve for SPIN POLARIZED case reading the SPIN UNPOLARIZED density from the checkpoint files, and use the START MAGNETIZATION to compute the spin up and spin down densities. This option is only valid for CHK TYPE=2 and RESTART FROM CHK=true. Default false..
+
+
+{\it Possible values:} A boolean value (true or false)
+\item {\it Parameter name:} {\tt SAVE RHO DATA}
+\phantomsection\label{parameters:SCF Checkpointing and Restart/SAVE RHO DATA}
+\label{parameters:SCF_20Checkpointing_20and_20Restart/SAVE_20RHO_20DATA}
+
+
+\index[prmindex]{SAVE RHO DATA}
+\index[prmindexfull]{SCF Checkpointing and Restart!SAVE RHO DATA}
+{\it Value:} true
+
+
+{\it Default:} false
+
+
+{\it Description:} [Standard] Saves charge density and mesh triagulation data for restart, if SOLVER MODE is GS then the save is done every 10 scf iterations, otherwise it is done after each converged scf solve.
+
+
+{\it Possible values:} A boolean value (true or false)
+\end{itemize}
+
+\subsection{Parameters in section \tt SCF parameters}
+\label{parameters:SCF_20parameters}
+
+\begin{itemize}
+\item {\it Parameter name:} {\tt COMPUTE ENERGY EACH ITER}
+\phantomsection\label{parameters:SCF parameters/COMPUTE ENERGY EACH ITER}
+\label{parameters:SCF_20parameters/COMPUTE_20ENERGY_20EACH_20ITER}
+
+
+\index[prmindex]{COMPUTE ENERGY EACH ITER}
+\index[prmindexfull]{SCF parameters!COMPUTE ENERGY EACH ITER}
+{\it Value:} false
+
+
+{\it Default:} false
+
+
+{\it Description:} [Advanced] Boolean parameter specifying whether to compute the total energy at the end of every SCF. Setting it to false can lead to some computational time savings. Default value is false but is internally set to true if VERBOSITY==5
+
+
+{\it Possible values:} A boolean value (true or false)
+\item {\it Parameter name:} {\tt CONSTRAINT MAGNETIZATION}
+\phantomsection\label{parameters:SCF parameters/CONSTRAINT MAGNETIZATION}
+\label{parameters:SCF_20parameters/CONSTRAINT_20MAGNETIZATION}
+
+
+\index[prmindex]{CONSTRAINT MAGNETIZATION}
+\index[prmindexfull]{SCF parameters!CONSTRAINT MAGNETIZATION}
+{\it Value:} false
+
+
+{\it Default:} false
+
+
+{\it Description:} [Standard] Boolean parameter specifying whether to keep the starting magnetization fixed through the SCF iterations. Default is FALSE
+
+
+{\it Possible values:} A boolean value (true or false)
+\item {\it Parameter name:} {\tt KERKER MIXING PARAMETER}
+\phantomsection\label{parameters:SCF parameters/KERKER MIXING PARAMETER}
+\label{parameters:SCF_20parameters/KERKER_20MIXING_20PARAMETER}
+
+
+\index[prmindex]{KERKER MIXING PARAMETER}
+\index[prmindexfull]{SCF parameters!KERKER MIXING PARAMETER}
+{\it Value:} 0.05
+
+
+{\it Default:} 0.05
+
+
+{\it Description:} [Standard] Mixing parameter to be used in Kerker mixing scheme which usually represents Thomas Fermi wavevector (k\_{TF}**2).
+
+
+{\it Possible values:} A floating point number $v$ such that $0 \leq v \leq 1000$
+\item {\it Parameter name:} {\tt MAXIMUM ITERATIONS}
+\phantomsection\label{parameters:SCF parameters/MAXIMUM ITERATIONS}
+\label{parameters:SCF_20parameters/MAXIMUM_20ITERATIONS}
+
+
+\index[prmindex]{MAXIMUM ITERATIONS}
+\index[prmindexfull]{SCF parameters!MAXIMUM ITERATIONS}
+{\it Value:} 40
+
+
+{\it Default:} 200
+
+
+{\it Description:} [Standard] Maximum number of iterations to be allowed for SCF convergence
+
+
+{\it Possible values:} An integer $n$ such that $1\leq n \leq 1000$
+\item {\it Parameter name:} {\tt MIXING HISTORY}
+\phantomsection\label{parameters:SCF parameters/MIXING HISTORY}
+\label{parameters:SCF_20parameters/MIXING_20HISTORY}
+
+
+\index[prmindex]{MIXING HISTORY}
+\index[prmindexfull]{SCF parameters!MIXING HISTORY}
+{\it Value:} 50
+
+
+{\it Default:} 50
+
+
+{\it Description:} [Standard] Number of SCF iteration history to be considered for density mixing schemes. For metallic systems, a mixing history larger than the default value provides better scf convergence.
+
+
+{\it Possible values:} An integer $n$ such that $1\leq n \leq 1000$
+\item {\it Parameter name:} {\tt MIXING METHOD}
+\phantomsection\label{parameters:SCF parameters/MIXING METHOD}
+\label{parameters:SCF_20parameters/MIXING_20METHOD}
+
+
+\index[prmindex]{MIXING METHOD}
+\index[prmindexfull]{SCF parameters!MIXING METHOD}
+{\it Value:} ANDERSON
+
+
+{\it Default:} ANDERSON
+
+
+{\it Description:} [Standard] Method for density mixing. ANDERSON is the default option.
+
+
+{\it Possible values:} Any one of BROYDEN, ANDERSON, ANDERSON\_WITH\_KERKER, LOW\_RANK\_DIELECM\_PRECOND
+\item {\it Parameter name:} {\tt MIXING PARAMETER}
+\phantomsection\label{parameters:SCF parameters/MIXING PARAMETER}
+\label{parameters:SCF_20parameters/MIXING_20PARAMETER}
+
+
+\index[prmindex]{MIXING PARAMETER}
+\index[prmindexfull]{SCF parameters!MIXING PARAMETER}
+{\it Value:} 0.5
+
+
+{\it Default:} 0.0
+
+
+{\it Description:} [Standard] Mixing parameter to be used in density mixing schemes. For default value of 0.0, it is heuristically set for different mixing schemes (0.2 for Anderson and Broyden, and 0.5 for Kerker and LRD.
+
+
+{\it Possible values:} A floating point number $v$ such that $-1e-12 \leq v \leq 1$
+\item {\it Parameter name:} {\tt STARTING WFC}
+\phantomsection\label{parameters:SCF parameters/STARTING WFC}
+\label{parameters:SCF_20parameters/STARTING_20WFC}
+
+
+\index[prmindex]{STARTING WFC}
+\index[prmindexfull]{SCF parameters!STARTING WFC}
+{\it Value:} ATOMIC
+
+
+{\it Default:} RANDOM
+
+
+{\it Description:} [Standard] Sets the type of the starting Kohn-Sham wavefunctions guess: Atomic(Superposition of single atom atomic orbitals. Atom types for which atomic orbitals are not available, random wavefunctions are taken. Currently, atomic orbitals data is not available for all atoms.), Random(The starting guess for all wavefunctions are taken to be random). Default: RANDOM.
+
+
+{\it Possible values:} Any one of ATOMIC, RANDOM
+\item {\it Parameter name:} {\tt TEMPERATURE}
+\phantomsection\label{parameters:SCF parameters/TEMPERATURE}
+\label{parameters:SCF_20parameters/TEMPERATURE}
+
+
+\index[prmindex]{TEMPERATURE}
+\index[prmindexfull]{SCF parameters!TEMPERATURE}
+{\it Value:} 500
+
+
+{\it Default:} 500.0
+
+
+{\it Description:} [Standard] Fermi-Dirac smearing temperature (in Kelvin).
+
+
+{\it Possible values:} A floating point number $v$ such that $1e-05 \leq v \leq \text{MAX\_DOUBLE}$
+\item {\it Parameter name:} {\tt TOLERANCE}
+\phantomsection\label{parameters:SCF parameters/TOLERANCE}
+\label{parameters:SCF_20parameters/TOLERANCE}
+
+
+\index[prmindex]{TOLERANCE}
+\index[prmindexfull]{SCF parameters!TOLERANCE}
+{\it Value:} 1e-8
+
+
+{\it Default:} 1e-05
+
+
+{\it Description:} [Standard] SCF iterations stopping tolerance in terms of $L_2$ norm of the electron-density difference between two successive iterations. The default tolerance of is set to a tight value of 1e-5 for accurate ionic forces and cell stresses keeping structural optimization and molecular dynamics in mind. A tolerance of 1e-4 would be accurate enough for calculations without structural optimization and dynamics. CAUTION: A tolerance close to 1e-7 or lower can deteriorate the SCF convergence due to the round-off error accumulation.
+
+
+{\it Possible values:} A floating point number $v$ such that $1e-12 \leq v \leq 1$
+\end{itemize}
+
+
+
+\subsection{Parameters in section \tt SCF parameters/Eigen-solver parameters}
+\label{parameters:SCF_20parameters/Eigen_2dsolver_20parameters}
+
+\begin{itemize}
+\item {\it Parameter name:} {\tt ALGO}
+\phantomsection\label{parameters:SCF parameters/Eigen_2dsolver parameters/ALGO}
+\label{parameters:SCF_20parameters/Eigen_2dsolver_20parameters/ALGO}
+
+
+\index[prmindex]{ALGO}
+\index[prmindexfull]{SCF parameters!Eigen-solver parameters!ALGO}
+{\it Value:} NORMAL
+
+
+{\it Default:} NORMAL
+
+
+{\it Description:} [Standard] In the FAST mode, spectrum splitting technique is used in Rayleigh-Ritz step, and mixed precision arithmetic algorithms are used in Rayleigh-Ritz and Cholesky factorization based orthogonalization step. For spectrum splitting, 85 percent of the total number of wavefunctions are taken to be core states, which holds good for most systems including metallic systems assuming NUMBER OF KOHN-SHAM WAVEFUNCTIONS to be around 10 percent more than N/2. FAST setting is strongly recommended for large-scale (> 10k electrons) system sizes. Both NORMAL and FAST setting use Chebyshev filtered subspace iteration technique. If manual options for mixed precision and spectum splitting are being used, please use NORMAL setting for ALGO. Default setting is NORMAL.
+
+
+{\it Possible values:} Any one of NORMAL, FAST
+\item {\it Parameter name:} {\tt ALLOW MULTIPLE PASSES POST FIRST SCF}
+\phantomsection\label{parameters:SCF parameters/Eigen_2dsolver parameters/ALLOW MULTIPLE PASSES POST FIRST SCF}
+\label{parameters:SCF_20parameters/Eigen_2dsolver_20parameters/ALLOW_20MULTIPLE_20PASSES_20POST_20FIRST_20SCF}
+
+
+\index[prmindex]{ALLOW MULTIPLE PASSES POST FIRST SCF}
+\index[prmindexfull]{SCF parameters!Eigen-solver parameters!ALLOW MULTIPLE PASSES POST FIRST SCF}
+{\it Value:} true
+
+
+{\it Default:} true
+
+
+{\it Description:} [Advanced] Allow multiple chebyshev filtering passes in the SCF iterations after the first one. Default setting is true.
+
+
+{\it Possible values:} A boolean value (true or false)
+\item {\it Parameter name:} {\tt CHEBYSHEV FILTER TOLERANCE}
+\phantomsection\label{parameters:SCF parameters/Eigen_2dsolver parameters/CHEBYSHEV FILTER TOLERANCE}
+\label{parameters:SCF_20parameters/Eigen_2dsolver_20parameters/CHEBYSHEV_20FILTER_20TOLERANCE}
+
+
+\index[prmindex]{CHEBYSHEV FILTER TOLERANCE}
+\index[prmindexfull]{SCF parameters!Eigen-solver parameters!CHEBYSHEV FILTER TOLERANCE}
+{\it Value:} 0.0
+
+
+{\it Default:} 0.0
+
+
+{\it Description:} [Advanced] Parameter specifying the accuracy of the occupied eigenvectors close to the Fermi-energy computed using Chebyshev filtering subspace iteration procedure. For default value of 0.0, we heuristically set the value between 1e-3 and 5e-2 depending on the MIXING METHOD used.
+
+
+{\it Possible values:} A floating point number $v$ such that $-1e-12 \leq v \leq \text{MAX\_DOUBLE}$
+\item {\it Parameter name:} {\tt CHEBYSHEV POLYNOMIAL DEGREE}
+\phantomsection\label{parameters:SCF parameters/Eigen_2dsolver parameters/CHEBYSHEV POLYNOMIAL DEGREE}
+\label{parameters:SCF_20parameters/Eigen_2dsolver_20parameters/CHEBYSHEV_20POLYNOMIAL_20DEGREE}
+
+
+\index[prmindex]{CHEBYSHEV POLYNOMIAL DEGREE}
+\index[prmindexfull]{SCF parameters!Eigen-solver parameters!CHEBYSHEV POLYNOMIAL DEGREE}
+{\it Value:} 0
+
+
+{\it Default:} 0
+
+
+{\it Description:} [Advanced] Chebyshev polynomial degree to be employed for the Chebyshev filtering subspace iteration procedure to dampen the unwanted spectrum of the Kohn-Sham Hamiltonian. If set to 0, a default value depending on the upper bound of the eigen-spectrum is used. See Phani Motamarri et.al., J. Comp. Phys. 253, 308-343 (2013).
+
+
+{\it Possible values:} An integer $n$ such that $0\leq n \leq 2000$
+\item {\it Parameter name:} {\tt CHEBYSHEV POLYNOMIAL DEGREE SCALING FACTOR FIRST SCF}
+\phantomsection\label{parameters:SCF parameters/Eigen_2dsolver parameters/CHEBYSHEV POLYNOMIAL DEGREE SCALING FACTOR FIRST SCF}
+\label{parameters:SCF_20parameters/Eigen_2dsolver_20parameters/CHEBYSHEV_20POLYNOMIAL_20DEGREE_20SCALING_20FACTOR_20FIRST_20SCF}
+
+
+\index[prmindex]{CHEBYSHEV POLYNOMIAL DEGREE SCALING FACTOR FIRST SCF}
+\index[prmindexfull]{SCF parameters!Eigen-solver parameters!CHEBYSHEV POLYNOMIAL DEGREE SCALING FACTOR FIRST SCF}
+{\it Value:} 1.34
+
+
+{\it Default:} 1.34
+
+
+{\it Description:} [Advanced] Chebyshev polynomial degree first scf scaling factor. Only activated for pseudopotential calculations.
+
+
+{\it Possible values:} A floating point number $v$ such that $0 \leq v \leq 2000$
+\item {\it Parameter name:} {\tt CHEBY WFC BLOCK SIZE}
+\phantomsection\label{parameters:SCF parameters/Eigen_2dsolver parameters/CHEBY WFC BLOCK SIZE}
+\label{parameters:SCF_20parameters/Eigen_2dsolver_20parameters/CHEBY_20WFC_20BLOCK_20SIZE}
+
+
+\index[prmindex]{CHEBY WFC BLOCK SIZE}
+\index[prmindexfull]{SCF parameters!Eigen-solver parameters!CHEBY WFC BLOCK SIZE}
+{\it Value:} 400
+
+
+{\it Default:} 400
+
+
+{\it Description:} [Advanced] Chebyshev filtering procedure involves the matrix-matrix multiplication where one matrix corresponds to the discretized Hamiltonian and the other matrix corresponds to the wavefunction matrix. The matrix-matrix multiplication is accomplished in a loop over the number of blocks of the wavefunction matrix to reduce the memory footprint of the code. This parameter specifies the block size of the wavefunction matrix to be used in the matrix-matrix multiplication. The optimum value is dependent on the computing architecture. For optimum work sharing during band parallelization (NPBAND > 1), we recommend adjusting CHEBY WFC BLOCK SIZE and NUMBER OF KOHN-SHAM WAVEFUNCTIONS such that NUMBER OF KOHN-SHAM WAVEFUNCTIONS/NPBAND/CHEBY WFC BLOCK SIZE equals an integer value. Default value is 400.
+
+
+{\it Possible values:} An integer $n$ such that $1\leq n \leq 2147483647$
+\item {\it Parameter name:} {\tt ENABLE HAMILTONIAN TIMES VECTOR OPTIM}
+\phantomsection\label{parameters:SCF parameters/Eigen_2dsolver parameters/ENABLE HAMILTONIAN TIMES VECTOR OPTIM}
+\label{parameters:SCF_20parameters/Eigen_2dsolver_20parameters/ENABLE_20HAMILTONIAN_20TIMES_20VECTOR_20OPTIM}
+
+
+\index[prmindex]{ENABLE HAMILTONIAN TIMES VECTOR OPTIM}
+\index[prmindexfull]{SCF parameters!Eigen-solver parameters!ENABLE HAMILTONIAN TIMES VECTOR OPTIM}
+{\it Value:} true
+
+
+{\it Default:} true
+
+
+{\it Description:} [Advanced] Turns on optimization for hamiltonian times vector multiplication. Operations involving data movement from global vector to finite-element cell level and vice versa are done by employing different data structures for interior nodes and surfaces nodes of a given cell and this allows reduction of memory access costs
+
+
+{\it Possible values:} A boolean value (true or false)
+\item {\it Parameter name:} {\tt NUMBER OF KOHN-SHAM WAVEFUNCTIONS}
+\phantomsection\label{parameters:SCF parameters/Eigen_2dsolver parameters/NUMBER OF KOHN_2dSHAM WAVEFUNCTIONS}
+\label{parameters:SCF_20parameters/Eigen_2dsolver_20parameters/NUMBER_20OF_20KOHN_2dSHAM_20WAVEFUNCTIONS}
+
+
+\index[prmindex]{NUMBER OF KOHN-SHAM WAVEFUNCTIONS}
+\index[prmindexfull]{SCF parameters!Eigen-solver parameters!NUMBER OF KOHN-SHAM WAVEFUNCTIONS}
+{\it Value:} 8
+
+
+{\it Default:} 0
+
+
+{\it Description:} [Standard] Number of Kohn-Sham wavefunctions to be computed. For spin-polarized calculations, this parameter denotes the number of Kohn-Sham wavefunctions to be computed for each spin. A recommended value for this parameter is to set it to N/2+Nb where N is the number of electrons. Use Nb to be 5-10 percent of N/2 for insulators and for metals use Nb to be 10-20 percent of N/2. If 5-20 percent of N/2 is less than 10 wavefunctions, set Nb to be atleast 10. Default value of 0 automatically sets the number of Kohn-Sham wavefunctions close to 20 percent more than N/2. CAUTION: use more states when using higher electronic temperature.
+
+
+{\it Possible values:} An integer $n$ such that $0\leq n \leq 2147483647$
+\item {\it Parameter name:} {\tt ORTHOGONALIZATION TYPE}
+\phantomsection\label{parameters:SCF parameters/Eigen_2dsolver parameters/ORTHOGONALIZATION TYPE}
+\label{parameters:SCF_20parameters/Eigen_2dsolver_20parameters/ORTHOGONALIZATION_20TYPE}
+
+
+\index[prmindex]{ORTHOGONALIZATION TYPE}
+\index[prmindexfull]{SCF parameters!Eigen-solver parameters!ORTHOGONALIZATION TYPE}
+{\it Value:} Auto
+
+
+{\it Default:} Auto
+
+
+{\it Description:} [Advanced] Parameter specifying the type of orthogonalization to be used: GS(Gram-Schmidt Orthogonalization using SLEPc library) and CGS(Cholesky-Gram-Schmidt Orthogonalization). Auto is the default and recommended option, which chooses GS for all-electron case and CGS for pseudopotential case. On GPUs CGS is the only route currently implemented.
+
+
+{\it Possible values:} Any one of GS, CGS, Auto
+\item {\it Parameter name:} {\tt OVERLAP COMPUTE COMMUN CHEBY}
+\phantomsection\label{parameters:SCF parameters/Eigen_2dsolver parameters/OVERLAP COMPUTE COMMUN CHEBY}
+\label{parameters:SCF_20parameters/Eigen_2dsolver_20parameters/OVERLAP_20COMPUTE_20COMMUN_20CHEBY}
+
+
+\index[prmindex]{OVERLAP COMPUTE COMMUN CHEBY}
+\index[prmindexfull]{SCF parameters!Eigen-solver parameters!OVERLAP COMPUTE COMMUN CHEBY}
+{\it Value:} true
+
+
+{\it Default:} true
+
+
+{\it Description:} [Advanced] Overlap communication and computation in Chebyshev filtering. This option can only be activated for USE GPU=true. Default setting is true.
+
+
+{\it Possible values:} A boolean value (true or false)
+\item {\it Parameter name:} {\tt OVERLAP COMPUTE COMMUN ORTHO RR}
+\phantomsection\label{parameters:SCF parameters/Eigen_2dsolver parameters/OVERLAP COMPUTE COMMUN ORTHO RR}
+\label{parameters:SCF_20parameters/Eigen_2dsolver_20parameters/OVERLAP_20COMPUTE_20COMMUN_20ORTHO_20RR}
+
+
+\index[prmindex]{OVERLAP COMPUTE COMMUN ORTHO RR}
+\index[prmindexfull]{SCF parameters!Eigen-solver parameters!OVERLAP COMPUTE COMMUN ORTHO RR}
+{\it Value:} true
+
+
+{\it Default:} true
+
+
+{\it Description:} [Advanced] Overlap communication and computation in orthogonalization and Rayleigh-Ritz. This option can only be activated for USE GPU=true. Default setting is true.
+
+
+{\it Possible values:} A boolean value (true or false)
+\item {\it Parameter name:} {\tt REUSE LANCZOS UPPER BOUND}
+\phantomsection\label{parameters:SCF parameters/Eigen_2dsolver parameters/REUSE LANCZOS UPPER BOUND}
+\label{parameters:SCF_20parameters/Eigen_2dsolver_20parameters/REUSE_20LANCZOS_20UPPER_20BOUND}
+
+
+\index[prmindex]{REUSE LANCZOS UPPER BOUND}
+\index[prmindexfull]{SCF parameters!Eigen-solver parameters!REUSE LANCZOS UPPER BOUND}
+{\it Value:} false
+
+
+{\it Default:} false
+
+
+{\it Description:} [Advanced] Reuse upper bound of unwanted spectrum computed in the first SCF iteration via Lanczos iterations. Default setting is false.
+
+
+{\it Possible values:} A boolean value (true or false)
+\item {\it Parameter name:} {\tt SCALAPACKPROCS}
+\phantomsection\label{parameters:SCF parameters/Eigen_2dsolver parameters/SCALAPACKPROCS}
+\label{parameters:SCF_20parameters/Eigen_2dsolver_20parameters/SCALAPACKPROCS}
+
+
+\index[prmindex]{SCALAPACKPROCS}
+\index[prmindexfull]{SCF parameters!Eigen-solver parameters!SCALAPACKPROCS}
+{\it Value:} 0
+
+
+{\it Default:} 0
+
+
+{\it Description:} [Advanced] Uses a processor grid of SCALAPACKPROCS times SCALAPACKPROCS for parallel distribution of the subspace projected matrix in the Rayleigh-Ritz step and the overlap matrix in the Cholesky-Gram-Schmidt step. Default value is 0 for which a thumb rule is used (see http://netlib.org/scalapack/slug/node106.html). If ELPA is used, twice the value obtained from the thumb rule is used as ELPA scales much better than ScaLAPACK.
+
+
+{\it Possible values:} An integer $n$ such that $0\leq n \leq 300$
+\item {\it Parameter name:} {\tt SCALAPACK BLOCK SIZE}
+\phantomsection\label{parameters:SCF parameters/Eigen_2dsolver parameters/SCALAPACK BLOCK SIZE}
+\label{parameters:SCF_20parameters/Eigen_2dsolver_20parameters/SCALAPACK_20BLOCK_20SIZE}
+
+
+\index[prmindex]{SCALAPACK BLOCK SIZE}
+\index[prmindexfull]{SCF parameters!Eigen-solver parameters!SCALAPACK BLOCK SIZE}
+{\it Value:} 0
+
+
+{\it Default:} 0
+
+
+{\it Description:} [Advanced] ScaLAPACK process grid block size. Also sets the block size for ELPA if linked to ELPA. Default value of zero sets a heuristic block size. Note that if ELPA GPU KERNEL is set to true and ELPA is configured to run on GPUs, the SCALAPACK BLOCK SIZE is set to a power of 2.
+
+
+{\it Possible values:} An integer $n$ such that $0\leq n \leq 300$
+\item {\it Parameter name:} {\tt SPECTRUM SPLIT CORE EIGENSTATES}
+\phantomsection\label{parameters:SCF parameters/Eigen_2dsolver parameters/SPECTRUM SPLIT CORE EIGENSTATES}
+\label{parameters:SCF_20parameters/Eigen_2dsolver_20parameters/SPECTRUM_20SPLIT_20CORE_20EIGENSTATES}
+
+
+\index[prmindex]{SPECTRUM SPLIT CORE EIGENSTATES}
+\index[prmindexfull]{SCF parameters!Eigen-solver parameters!SPECTRUM SPLIT CORE EIGENSTATES}
+{\it Value:} 0
+
+
+{\it Default:} 0
+
+
+{\it Description:} [Advanced] Number of lowest Kohn-Sham eigenstates which should not be included in the Rayleigh-Ritz diagonalization.  In other words, only the eigenvalues and eigenvectors corresponding to the higher eigenstates (Number of Kohn-Sham wavefunctions minus the specified core eigenstates) are computed in the diagonalization of the projected Hamiltonian. This value is usually chosen to be the sum of the number of core eigenstates for each atom type multiplied by number of atoms of that type. This setting is recommended for large systems (greater than 5000 electrons). Default value is 0 i.e., no core eigenstates are excluded from the Rayleigh-Ritz projection step.
+
+
+{\it Possible values:} An integer $n$ such that $0\leq n \leq 2147483647$
+\item {\it Parameter name:} {\tt SPECTRUM SPLIT STARTING SCF ITER}
+\phantomsection\label{parameters:SCF parameters/Eigen_2dsolver parameters/SPECTRUM SPLIT STARTING SCF ITER}
+\label{parameters:SCF_20parameters/Eigen_2dsolver_20parameters/SPECTRUM_20SPLIT_20STARTING_20SCF_20ITER}
+
+
+\index[prmindex]{SPECTRUM SPLIT STARTING SCF ITER}
+\index[prmindexfull]{SCF parameters!Eigen-solver parameters!SPECTRUM SPLIT STARTING SCF ITER}
+{\it Value:} 0
+
+
+{\it Default:} 0
+
+
+{\it Description:} [Advanced] SCF iteration no beyond which spectrum splitting based can be used.
+
+
+{\it Possible values:} An integer $n$ such that $0\leq n \leq 2147483647$
+\item {\it Parameter name:} {\tt SUBSPACE ROT DOFS BLOCK SIZE}
+\phantomsection\label{parameters:SCF parameters/Eigen_2dsolver parameters/SUBSPACE ROT DOFS BLOCK SIZE}
+\label{parameters:SCF_20parameters/Eigen_2dsolver_20parameters/SUBSPACE_20ROT_20DOFS_20BLOCK_20SIZE}
+
+
+\index[prmindex]{SUBSPACE ROT DOFS BLOCK SIZE}
+\index[prmindexfull]{SCF parameters!Eigen-solver parameters!SUBSPACE ROT DOFS BLOCK SIZE}
+{\it Value:} 10000
+
+
+{\it Default:} 10000
+
+
+{\it Description:} [Developer] This block size is used for memory optimization purposes in subspace rotation step in Cholesky-Gram-Schmidt orthogonalization and Rayleigh-Ritz steps. Default value is 10000.
+
+
+{\it Possible values:} An integer $n$ such that $1\leq n \leq 2147483647$
+\item {\it Parameter name:} {\tt USE ELPA}
+\phantomsection\label{parameters:SCF parameters/Eigen_2dsolver parameters/USE ELPA}
+\label{parameters:SCF_20parameters/Eigen_2dsolver_20parameters/USE_20ELPA}
+
+
+\index[prmindex]{USE ELPA}
+\index[prmindexfull]{SCF parameters!Eigen-solver parameters!USE ELPA}
+{\it Value:} true
+
+
+{\it Default:} true
+
+
+{\it Description:} [Standard] Use ELPA instead of ScaLAPACK for diagonalization of subspace projected Hamiltonian and Cholesky-Gram-Schmidt orthogonalization.  Default setting is true.
+
+
+{\it Possible values:} A boolean value (true or false)
+\item {\it Parameter name:} {\tt USE MIXED PREC CGS O}
+\phantomsection\label{parameters:SCF parameters/Eigen_2dsolver parameters/USE MIXED PREC CGS O}
+\label{parameters:SCF_20parameters/Eigen_2dsolver_20parameters/USE_20MIXED_20PREC_20CGS_20O}
+
+
+\index[prmindex]{USE MIXED PREC CGS O}
+\index[prmindexfull]{SCF parameters!Eigen-solver parameters!USE MIXED PREC CGS O}
+{\it Value:} false
+
+
+{\it Default:} false
+
+
+{\it Description:} [Advanced] Use mixed precision arithmetic in overlap matrix computation step of CGS orthogonalization, if ORTHOGONALIZATION TYPE is set to CGS. Default setting is false.
+
+
+{\it Possible values:} A boolean value (true or false)
+\item {\it Parameter name:} {\tt USE MIXED PREC CGS SR}
+\phantomsection\label{parameters:SCF parameters/Eigen_2dsolver parameters/USE MIXED PREC CGS SR}
+\label{parameters:SCF_20parameters/Eigen_2dsolver_20parameters/USE_20MIXED_20PREC_20CGS_20SR}
+
+
+\index[prmindex]{USE MIXED PREC CGS SR}
+\index[prmindexfull]{SCF parameters!Eigen-solver parameters!USE MIXED PREC CGS SR}
+{\it Value:} false
+
+
+{\it Default:} false
+
+
+{\it Description:} [Advanced] Use mixed precision arithmetic in subspace rotation step of CGS orthogonalization, if ORTHOGONALIZATION TYPE is set to CGS. Default setting is false.
+
+
+{\it Possible values:} A boolean value (true or false)
+\item {\it Parameter name:} {\tt USE MIXED PREC CHEBY}
+\phantomsection\label{parameters:SCF parameters/Eigen_2dsolver parameters/USE MIXED PREC CHEBY}
+\label{parameters:SCF_20parameters/Eigen_2dsolver_20parameters/USE_20MIXED_20PREC_20CHEBY}
+
+
+\index[prmindex]{USE MIXED PREC CHEBY}
+\index[prmindexfull]{SCF parameters!Eigen-solver parameters!USE MIXED PREC CHEBY}
+{\it Value:} false
+
+
+{\it Default:} false
+
+
+{\it Description:} [Advanced] Use mixed precision arithmetic in Chebyshev filtering. Currently this option is only available for real executable and USE ELPA=true for which DFT-FE also has to be linked to ELPA library. Default setting is false.
+
+
+{\it Possible values:} A boolean value (true or false)
+\item {\it Parameter name:} {\tt USE MIXED PREC RR\_SR}
+\phantomsection\label{parameters:SCF parameters/Eigen_2dsolver parameters/USE MIXED PREC RR_5fSR}
+\label{parameters:SCF_20parameters/Eigen_2dsolver_20parameters/USE_20MIXED_20PREC_20RR_5fSR}
+
+
+\index[prmindex]{USE MIXED PREC RR\_SR}
+\index[prmindexfull]{SCF parameters!Eigen-solver parameters!USE MIXED PREC RR\_SR}
+{\it Value:} false
+
+
+{\it Default:} false
+
+
+{\it Description:} [Advanced] Use mixed precision arithmetic in Rayleigh-Ritz subspace rotation step. Default setting is false.
+
+
+{\it Possible values:} A boolean value (true or false)
+\item {\it Parameter name:} {\tt USE MIXED PREC XTHX SPECTRUM SPLIT}
+\phantomsection\label{parameters:SCF parameters/Eigen_2dsolver parameters/USE MIXED PREC XTHX SPECTRUM SPLIT}
+\label{parameters:SCF_20parameters/Eigen_2dsolver_20parameters/USE_20MIXED_20PREC_20XTHX_20SPECTRUM_20SPLIT}
+
+
+\index[prmindex]{USE MIXED PREC XTHX SPECTRUM SPLIT}
+\index[prmindexfull]{SCF parameters!Eigen-solver parameters!USE MIXED PREC XTHX SPECTRUM SPLIT}
+{\it Value:} false
+
+
+{\it Default:} false
+
+
+{\it Description:} [Advanced] Use mixed precision arithmetic in computing subspace projected Kohn-Sham Hamiltonian when SPECTRUM SPLIT CORE EIGENSTATES>0.  Default setting is false.
+
+
+{\it Possible values:} A boolean value (true or false)
+\item {\it Parameter name:} {\tt WFC BLOCK SIZE}
+\phantomsection\label{parameters:SCF parameters/Eigen_2dsolver parameters/WFC BLOCK SIZE}
+\label{parameters:SCF_20parameters/Eigen_2dsolver_20parameters/WFC_20BLOCK_20SIZE}
+
+
+\index[prmindex]{WFC BLOCK SIZE}
+\index[prmindexfull]{SCF parameters!Eigen-solver parameters!WFC BLOCK SIZE}
+{\it Value:} 400
+
+
+{\it Default:} 400
+
+
+{\it Description:} [Advanced]  This parameter specifies the block size of the wavefunction matrix to be used for memory optimization purposes in the orthogonalization, Rayleigh-Ritz, and density computation steps. The optimum block size is dependent on the computing architecture. For optimum work sharing during band parallelization (NPBAND > 1), we recommend adjusting WFC BLOCK SIZE and NUMBER OF KOHN-SHAM WAVEFUNCTIONS such that NUMBER OF KOHN-SHAM WAVEFUNCTIONS/NPBAND/WFC BLOCK SIZE equals an integer value. Default value is 400.
+
+
+{\it Possible values:} An integer $n$ such that $1\leq n \leq 2147483647$
+\end{itemize}
+
+\subsection{Parameters in section \tt SCF parameters/LOW RANK DIELECM PRECOND}
+\label{parameters:SCF_20parameters/LOW_20RANK_20DIELECM_20PRECOND}
+
+\begin{itemize}
+\item {\it Parameter name:} {\tt ADAPTIVE RANK REL TOL}
+\phantomsection\label{parameters:SCF parameters/LOW RANK DIELECM PRECOND/ADAPTIVE RANK REL TOL}
+\label{parameters:SCF_20parameters/LOW_20RANK_20DIELECM_20PRECOND/ADAPTIVE_20RANK_20REL_20TOL}
+
+
+\index[prmindex]{ADAPTIVE RANK REL TOL}
+\index[prmindexfull]{SCF parameters!LOW RANK DIELECM PRECOND!ADAPTIVE RANK REL TOL}
+{\it Value:} 0.3
+
+
+{\it Default:} 0.3
+
+
+{\it Description:} [Standard] Relative error metric on the low rank approximation error that adaptively sets the rank in each SCF iteration step.
+
+
+{\it Possible values:} A floating point number $v$ such that $0 \leq v \leq 1$
+\item {\it Parameter name:} {\tt BETA TOL}
+\phantomsection\label{parameters:SCF parameters/LOW RANK DIELECM PRECOND/BETA TOL}
+\label{parameters:SCF_20parameters/LOW_20RANK_20DIELECM_20PRECOND/BETA_20TOL}
+
+
+\index[prmindex]{BETA TOL}
+\index[prmindexfull]{SCF parameters!LOW RANK DIELECM PRECOND!BETA TOL}
+{\it Value:} 0.1
+
+
+{\it Default:} 0.1
+
+
+{\it Description:} [Advanced] Sets tolerance on deviation of linear indicator value from the ideal value of 1.0. For METHOD SUB TYPE=ACCUMULATED\_ADAPTIVE.
+
+
+{\it Possible values:} A floating point number $v$ such that $0 \leq v \leq 100$
+\item {\it Parameter name:} {\tt ESTIMATE JAC CONDITION NO}
+\phantomsection\label{parameters:SCF parameters/LOW RANK DIELECM PRECOND/ESTIMATE JAC CONDITION NO}
+\label{parameters:SCF_20parameters/LOW_20RANK_20DIELECM_20PRECOND/ESTIMATE_20JAC_20CONDITION_20NO}
+
+
+\index[prmindex]{ESTIMATE JAC CONDITION NO}
+\index[prmindexfull]{SCF parameters!LOW RANK DIELECM PRECOND!ESTIMATE JAC CONDITION NO}
+{\it Value:} false
+
+
+{\it Default:} false
+
+
+{\it Description:} [Advanced] Estimate condition number of the Jacobian at the final SCF iteration step using a low rank approximation with ADAPTIVE RANK REL TOL=1.0e-5.
+
+
+{\it Possible values:} A boolean value (true or false)
+\item {\it Parameter name:} {\tt METHOD SUB TYPE}
+\phantomsection\label{parameters:SCF parameters/LOW RANK DIELECM PRECOND/METHOD SUB TYPE}
+\label{parameters:SCF_20parameters/LOW_20RANK_20DIELECM_20PRECOND/METHOD_20SUB_20TYPE}
+
+
+\index[prmindex]{METHOD SUB TYPE}
+\index[prmindexfull]{SCF parameters!LOW RANK DIELECM PRECOND!METHOD SUB TYPE}
+{\it Value:} ADAPTIVE
+
+
+{\it Default:} ADAPTIVE
+
+
+{\it Description:} [Advanced] Method subtype for LOW\_RANK\_DIELECM\_PRECOND.
+
+
+{\it Possible values:} Any one of ADAPTIVE, ACCUMULATED\_ADAPTIVE
+\item {\it Parameter name:} {\tt POISSON SOLVER ABS TOL}
+\phantomsection\label{parameters:SCF parameters/LOW RANK DIELECM PRECOND/POISSON SOLVER ABS TOL}
+\label{parameters:SCF_20parameters/LOW_20RANK_20DIELECM_20PRECOND/POISSON_20SOLVER_20ABS_20TOL}
+
+
+\index[prmindex]{POISSON SOLVER ABS TOL}
+\index[prmindexfull]{SCF parameters!LOW RANK DIELECM PRECOND!POISSON SOLVER ABS TOL}
+{\it Value:} 1e-6
+
+
+{\it Default:} 1e-6
+
+
+{\it Description:} [Advanced] Absolute poisson solver tolerance for electrostatic potential response computation.
+
+
+{\it Possible values:} A floating point number $v$ such that $0 \leq v \leq \text{MAX\_DOUBLE}$
+\item {\it Parameter name:} {\tt STARTING NORM LARGE DAMPING}
+\phantomsection\label{parameters:SCF parameters/LOW RANK DIELECM PRECOND/STARTING NORM LARGE DAMPING}
+\label{parameters:SCF_20parameters/LOW_20RANK_20DIELECM_20PRECOND/STARTING_20NORM_20LARGE_20DAMPING}
+
+
+\index[prmindex]{STARTING NORM LARGE DAMPING}
+\index[prmindexfull]{SCF parameters!LOW RANK DIELECM PRECOND!STARTING NORM LARGE DAMPING}
+{\it Value:} 2.0
+
+
+{\it Default:} 2.0
+
+
+{\it Description:} [Advanced] L2 norm electron density difference below which damping parameter is set to SCF parameters::MIXING PARAMETER, otherwise set to 0.1.
+
+
+{\it Possible values:} A floating point number $v$ such that $0 \leq v \leq 10$
+\item {\it Parameter name:} {\tt USE SINGLE PREC DENSITY RESPONSE}
+\phantomsection\label{parameters:SCF parameters/LOW RANK DIELECM PRECOND/USE SINGLE PREC DENSITY RESPONSE}
+\label{parameters:SCF_20parameters/LOW_20RANK_20DIELECM_20PRECOND/USE_20SINGLE_20PREC_20DENSITY_20RESPONSE}
+
+
+\index[prmindex]{USE SINGLE PREC DENSITY RESPONSE}
+\index[prmindexfull]{SCF parameters!LOW RANK DIELECM PRECOND!USE SINGLE PREC DENSITY RESPONSE}
+{\it Value:} false
+
+
+{\it Default:} false
+
+
+{\it Description:} [Advanced] Turns on single precision optimization in density response computation.
+
+
+{\it Possible values:} A boolean value (true or false)
+\end{itemize}

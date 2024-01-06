@@ -1,0 +1,110 @@
+cd /lustre/fsw/sa/prtiwari/iisc/cds/phanim/gourab/build
+
+srun -p interactive -A sa --ntasks=32 --nodes=1 -J sa-dftfe:j1 -t 00:15:00 --pty bash -i
+
+. /lustre/fsw/sa/prtiwari/iisc/cds/phanim/spackinstall/spack/share/spack/setup-env.sh
+spack load gcc@11.3.0 cuda ninja nccl gdrcopy alglib libxc numdiff spglib amdblis amdlibflame amdscalapack openmpi
+
+/lustre/fsw/sa/prtiwari/iisc/cds/phanim/gourab/dftfe/setupSelene.sh
+
+
+/////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////
+
+cmake -DCMAKE_C_COMPILER="/usr/local/openmpi/bin/mpicc" -DCMAKE_CXX_COMPILER="/usr/local/openmpi/bin/mpicxx" -DCMAKE_Fortran_COMPILER="/usr/local/openmpi/bin/mpif90" -DMPI_C_COMPILER="/usr/local/openmpi/bin/mpicc" -DMPI_CXX_COMPILER="/usr/local/openmpi/bin/mpicxx" -DMPI_Fortran_COMPILER="/usr/local/openmpi/bin/mpif90" -DCMAKE_CXX_FLAGS="-march=native" -DCMAKE_C_FLAGS="-march=native" -DDEAL_II_CXX_FLAGS_RELEASE="-O2" -DDEAL_II_COMPONENT_EXAMPLES=OFF -DDEAL_II_WITH_MPI=ON -DDEAL_II_WITH_64BIT_INDICES=ON -DDEAL_II_WITH_TBB=OFF -DDEAL_II_WITH_TASKFLOW=OFF -DDEAL_II_WITH_P4EST=ON -DP4EST_DIR="/host_pwd/dft-fe/p4est/installp4est" -DDEAL_II_WITH_LAPACK=ON -DLAPACK_DIR="/usr/lib;/usr/lib"  DLAPACK_INCLUDE_DIRS="/usr/lib/libflame.so;/usr/lib/libblis.so" -DDEAL_II_WITH_SCALAPACK=ON -DSCALAPACK_DIR="/usr/lib/" -DSCALAPACK_LIBRARIES="/usr/lib/libscalapack.so" -DCMAKE_INSTALL_PREFIX="/host_pwd/dft-fe/dealii94/installdealii94" -DDEAL_II_CUDA_FLAGS="-arch=sm_80" -DDEAL_II_WITH_CUDA=ON -DDEAL_II_MPI_WITH_CUDA_SUPPORT=ON ../dealii-9.4.0
+
+/lustre/fsw/sa/prtiwari/dftfemount/dft-fe/dealii94/installdealii94
+
+dft-fe/Buildfolder/build_multiVectorFEOperators
+
+
+/////////////////////////////////////////////////////////////////////////////
+
+
+cd /lustre/fsw/sa/prtiwari/dftfemount/dft-fe/dftfeSourcefiles/dftfe_publicOld
+cd /lustre/fsw/sa/prtiwari/dftfemount/dft-fe/Buildfolder/build_publicOld
+
+vim /lustre/fsw/sa/prtiwari/dftfemount/dft-fe/dftfeSourcefiles/dftfe_publicOld/src/dftOperator/kohnShamDFTOperatorCUDA.cu
+
+cd /host_pwd/dft-fe/Buildfolder/build_publicOld && clear && /host_pwd/dft-fe/dftfeSourcefiles/dftfe_publicOld/setupSelene.sh
+
+cd /host_pwd/dft-fe/Buildfolder/build_publicOldnoComm && clear && /host_pwd/dft-fe/dftfeSourcefiles/dftfe_publicOld/setupSelene.sh
+
+sbatch slurmSelene.sh
+
+/////////////////////////////////////////////////////////////////////////////
+
+
+vim /lustre/fsw/sa/prtiwari/dftfemount/dft-fe/dftfeSourcefiles/dftfe_multiVectorFEOperators/setupSelene.sh
+cd /lustre/fsw/sa/prtiwari/dftfemount/dft-fe/Buildfolder/build_multiVectorFEOperators_dealii94
+cd /lustre/fsw/sa/prtiwari/dftfemount/dft-fe/Buildfolder/build_multiVectorFEOperators_dealiiCustom
+cd /lustre/fsw/sa/prtiwari/dftfemount/dft-fe/Buildfolder/build_publicNew
+
+srun -p luna -A sa -N1 -J sa-dftfe:j1 -t 00:15:00 --container-mounts=//lustre/fsw/sa/prtiwari/dftfemount:/host_pwd --container-image=gitlab-master.nvidia.com/prtiwari/my-dftfe-project/dftfe_final:v1.0 --pty bash
+
+cd /host_pwd/dft-fe/Buildfolder/build_multiVectorFEOperators_dealii94 && clear && /host_pwd/dft-fe/dftfeSourcefiles/dftfe_multiVectorFEOperators/setupSelene.sh
+
+bash batchJobSelene.sh
+
+cd /host_pwd/dft-fe/Buildfolder/build_publicNew && /host_pwd/dft-fe/dftfeSourcefiles/dftfe_publicGit/setupSelene.sh
+vim /lustre/fsw/sa/prtiwari/dftfemount/dft-fe/dftfeSourcefiles/dftfe_publicGit/setupSelene.sh
+
+src/dftOperator/kohnShamDFTOperatorDevice.cc:3288:  kohnShamDFTOperatorDeviceClass<FEOrder, FEOrderElectro>::HX
+
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+srun -n $SLURM_NTASKS  --export=ALL,UCX_TLS --container-image="${CONT}" --container-mounts=/lustre/fsw/sa/prtiwari/dftfemount:/host_pwd,$SLURM_SUBMIT_DIR:/mnt1 --container-workdir /mnt1 /host_pwd/dft-fe/Buildfolder/build_multiVectorFEOperators/release/real/dftfe parameterFile_a.prm > ComputeAx_ncu/poly"$k"_cells343_gpu"$SLURM_NTASKS".txt
+
+NVIDIA A100-SXM4-80GB
+
+
+/////////////////////////////////////////////////////////////////////////////
+
+
+cd /lustre/fsw/sa/prtiwari/dftfemount/dft-fe/dftfeSourcefiles/dftfe_publicGit/setupSelene.sh
+cd /lustre/fsw/sa/prtiwari/dftfemount/dft-fe/Buildfolder/build_publicGitCUDAMPI
+cd /lustre/fsw/sa/prtiwari/dftfemount/dft-fe/Buildfolder/build_publicGitNoCUDAMPI
+/host_pwd/dft-fe/dftfeSourcefiles/dftfe_publicGit/setupSelene.sh
+
+
+/////////////////////////////////////////////////////////////////////////////
+
+grep "Chebyshev Time ComputeAX:" HX_poly8_N2.txt | cut -d ":" -f 2
+
+
+source /lustre/fsw/sa/prtiwari/dftfemount/dft-fe/hpcx/hpcx-v2.13.1-gcc-MLNX_OFED_LINUX-5-ubuntu20.04-cuda11-gdrcopy2-nccl2.12-x86_64/hpcx-init.sh
+source /host_pwd/dft-fe/hpcx/hpcx-v2.13.1-gcc-MLNX_OFED_LINUX-5-ubuntu20.04-cuda11-gdrcopy2-nccl2.12-x86_64/hpcx-init.sh
+hpcx_load
+
+
+mpirun -np 2 -H host1,host2 -x LD_LIBRARY_PATH -x UCX_NET_DEVICES=mlx5_0:1 -x CUDA_VISIBLE_DEVICES=0 -x UCX_RNDV_SCHEME=get_zcopy $HPCX_OSU_CUDA_DIR/osu_bw D D
+
+
+"/host_pwd/dft-fe/hpcx/hpcx-v2.13.1-gcc-MLNX_OFED_LINUX-5-ubuntu20.04-cuda11-gdrcopy2-nccl2.12-x86_64/ompi/tests/osu-micro-benchmarks-5.8-cuda/osu_bw" D D
+
+export LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH
+/usr/local/cuda/bin/nvcc
+
+mpirun -np 2 -x LD_LIBRARY_PATH -x UCX_NET_DEVICES=mlx5_0:1 -x CUDA_VISIBLE_DEVICES=0 -x UCX_RNDV_SCHEME=get_zcopy /host_pwd/dft-fe/hpcx/hpcx-v2.13.1-gcc-MLNX_OFED_LINUX-5-ubuntu20.04-cuda11-gdrcopy2-nccl2.12-x86_64/ompi/tests/osu-micro-benchmarks-5.8-cuda/osu_bw D D > benchmark.txt
+
+
+srun -n $SLURM_NTASKS --export=ALL,UCX_TLS --container-image="${CONT}" --container-mounts=/lustre/fsw/sa/prtiwari/dftfemount:/host_pwd,$SLURM_SUBMIT_DIR:/mnt1 --container-workdir /mnt1 /host_pwd/dft-fe/Buildfolder/build_multiVectorFEOperators_dealiiCustom/release/real/dftfe parameterFile_"$Approach"_poly"$FeOrder"_N"$SLURM_JOB_NUM_NODES".prm > benchmarks/vecMPI_"$Approach"_poly"$FeOrder"_gpu"$SLURM_JOB_NUM_NODES".txt
+
+
+
+2022
+-----------------
+ $ ../elpa-2022.11.001/configure FC=/usr/local/openmpi/bin/mpif90 CC=/usr/local/openmpi/bin/mpicc 'FCFLAGS=-fopenmp -O2 -fPIC -march=native -lstdc++' 'CFLAGS=-fopenmp -O2 -fPIC -march=native' --enable-nvidia-gpu --with-NVIDIA-GPU-compute-capability=sm_80 --enable-nvidia-sm80-gpu --enable-gpu-streams=nvidia --enable-cuda
+-aware-mpi --with-NVIDIA-gpu-support-only --with-cuda-path=/usr/local/cuda --prefix=/host_pwd/dft-fe/elpa2022.11.001/installelpa2022 'LDFLAGS=-lblis -lflame -lscalapack' --disable-avx512 --enable-c-tests=no --enable-cpp-tests=no --enable-option-checking=fatal --enable-shared --without-threading-support-check-during-build NVCCFLAGS=-I/usr/local/cuda/include
+
+
+
+ELPA: ../elpa-2021.05.002/configure --enable-option-checking=fatal  FC="/usr/local/openmpi/bin/mpif90" CC="/usr/local/openmpi/bin/mpicc"  FCFLAGS="-fopenmp -O2 -fPIC -march=native -lstdc++" CFLAGS="-fopenmp -O2 -fPIC -march=native" --enable-nvidia-gpu --with-NVIDIA-GPU-compute-capability="sm_80" --prefix="/mnt/dft-fe/elpa/installelpa" LDFLAGS=" -lblis -lflame -lscalapack" --disable-sse --disable-sse-assembly --disable-avx --disable-avx2 --disable-avx512 --enable-c-tests=no --with-NVIDIA-gpu-support-only --with-cuda-path="/usr/local/cuda" --without-threading-support-check-during-build NVCCFLAGS="-I/usr/local/cuda/include"
+
+
+
+Installing on Selene-
+--------------------------
+../elpa-2022.11.001/configure --enable-option-checking=fatal FC="/usr/local/openmpi/bin/mpif90" CC="/usr/local/openmpi/bin/mpicc" FCFLAGS="-fopenmp -O2 -fPIC -march=native -lstdc++" CFLAGS="-fopenmp -O2 -fPIC -march=native" --enable-nvidia-gpu --with-NVIDIA-GPU-compute-capability="sm_80" --prefix="/host_pwd/dft-fe/elpa2022.11.001_2021-Flags/install" LDFLAGS="-lblis -lflame -lscalapack" --disable-sse --disable-sse-assembly --disable-avx --disable-avx2 --disable-avx512 --enable-c-tests=no --enable-cpp-tests=no --with-NVIDIA-gpu-support-only --with-cuda-path="/usr/local/cuda" --without-threading-support-check-during-build NVCCFLAGS="-I/usr/local/cuda/include"
