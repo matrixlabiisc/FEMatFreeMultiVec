@@ -579,21 +579,21 @@ namespace dftfe
            operatorMatrix.getMPICommunicator()) == 0));
 
       /* Dealii */
-      dealiiVec<dataTypes::number>     XArrayCM, YArrayCM;
+      /*dealiiVec<dataTypes::number>     XArrayCM, YArrayCM;
       dealiiVec<dataTypes::numberFP32> tempFloatArrayCM;
 
       XArrayCM.reinit(
         operatorMatrix.getParallelVecSingleComponent().get_partitioner(),
         numberVectors);
-      YArrayCM.reinit(XArrayCM); //*/
+      YArrayCM.reinit(XArrayCM);
 
       if (mixedPrecOverall && dftParams.useMixedPrecCheby)
         tempFloatArrayCM.reinit(
           operatorMatrix.getParallelVecSingleComponent().get_partitioner(),
-          numberVectors);
+          numberVectors); //*/
 
       /* Multivector */
-      /*distributedDeviceVec<dataTypes::number> XArrayCM(XArray, 0),
+      distributedDeviceVec<dataTypes::number> XArrayCM(XArray, 0),
         YArrayCM(YArray, 0); //*/
 
       const unsigned int totalVectorSize = localVectorSize * numberVectors;
@@ -603,16 +603,6 @@ namespace dftfe
         dftfe::utils::makeDataTypeDeviceCompatible(XArray.begin()),
         totalVectorSize * sizeof(dataTypes::number));
 
-      /*const int           repeats = 1;
-      std::vector<double> chebyTimes(repeats);
-      double              chebyMean = 0.0, chebyStdDev = 0.0;
-
-      for (int i = 0; i < repeats; i++)
-        {
-          MPI_Barrier(operatorMatrix.getMPICommunicator());
-          cudaDeviceSynchronize();
-          auto start_cheby = getTime(); //*/
-
       double e, c, sigma, sigma1, sigma2, gamma, device_time;
       e       = (b - a) / 2.0;
       c       = (b + a) / 2.0;
@@ -621,12 +611,6 @@ namespace dftfe
       gamma   = 2.0 / sigma1;
       int inc = 1;
 
-      YArrayCM.setZero();
-      // YArray.setValue(0);
-
-      //
-      // call HX
-      //
       bool   scaleFlag = false;
       double scalar    = 1.0;
 
@@ -640,13 +624,14 @@ namespace dftfe
           cudaDeviceSynchronize();
           auto start_HX = getTime(); //*/
 
-          operatorMatrix.HX(XArrayCM,
-                            projectorKetTimesVector,
-                            localVectorSize,
-                            numberVectors,
-                            scaleFlag,
-                            scalar,
-                            YArrayCM);
+          operatorMatrix.HXCheby(YArrayCM,
+                                  tempFloatArray,
+                                  projectorKetTimesVector,
+                                  localVectorSize,
+                                  numberVectors,
+                                  XArrayCM,
+                                  mixedPrecOverall &&
+                                    dftParams.useMixedPrecCheby);
 
           cudaDeviceSynchronize();
           MPI_Barrier(operatorMatrix.getMPICommunicator());
@@ -660,7 +645,24 @@ namespace dftfe
       pcout << "HX Mean Time: " << HXMean << "\n"
             << "HX Std Dev Time: " << HXStdDev << "\n"; //*/
 
-      cudaProfilerStart();
+      const int           repeats = 1;
+      std::vector<double> chebyTimes(repeats);
+      double              chebyMean = 0.0, chebyStdDev = 0.0;
+
+      for (int i = 0; i < repeats; i++)
+        {
+          MPI_Barrier(operatorMatrix.getMPICommunicator());
+          cudaDeviceSynchronize();
+          auto start_cheby = getTime(); //*/
+
+      // YArrayCM.setZero();
+      YArrayCM.setValue(0);
+
+      //
+      // call HX
+      //
+
+      // cudaProfilerStart();
 
       operatorMatrix.HX(XArrayCM,
                         projectorKetTimesVector,
@@ -670,9 +672,9 @@ namespace dftfe
                         scalar,
                         YArrayCM);
 
-      cudaProfilerStop(); //*/
+      // cudaProfilerStop(); //*/
 
-      cudaDeviceSynchronize();
+      /*cudaDeviceSynchronize();
       MPI_Barrier(operatorMatrix.getMPICommunicator());
       exit(0); //*/
 
@@ -727,7 +729,7 @@ namespace dftfe
               // call HX
               //
               operatorMatrix.HXCheby(YArrayCM,
-                                     tempFloatArrayCM,
+                                     tempFloatArray,
                                      projectorKetTimesVector,
                                      localVectorSize,
                                      numberVectors,
@@ -815,7 +817,7 @@ namespace dftfe
               // call HX
               //
               operatorMatrix.HXCheby(YArrayCM,
-                                     tempFloatArrayCM,
+                                     tempFloatArray,
                                      projectorKetTimesVector,
                                      localVectorSize,
                                      numberVectors,
@@ -830,17 +832,17 @@ namespace dftfe
           alpha1Old = alpha1;
         }
 
-      /*cudaDeviceSynchronize();
+      cudaDeviceSynchronize();
       MPI_Barrier(operatorMatrix.getMPICommunicator());
       auto stop_cheby = getTime();
 
       chebyTimes[i] = stop_cheby - start_cheby;
     }
 
-  meanAndStdDev(chebyTimes, chebyMean, chebyStdDev);
+    meanAndStdDev(chebyTimes, chebyMean, chebyStdDev);
 
-  pcout << "Chebyshev Mean Time: " << chebyMean << "\n"
-        << "Chebyshev Std Dev Time: " << chebyStdDev << "\n"; //*/
+    pcout << "Chebyshev Mean Time: " << chebyMean << std::endl
+          << "Chebyshev Std Dev Time: " << chebyStdDev << std::endl; //*/
 
       dftfe::utils::deviceMemcpyD2D(
         dftfe::utils::makeDataTypeDeviceCompatible(YArray.begin()),
@@ -853,7 +855,7 @@ namespace dftfe
         dftfe::utils::makeDataTypeDeviceCompatible(YArray.begin()),
         totalVectorSize * sizeof(dataTypes::number));
 
-      /*cudaDeviceSynchronize();
+      cudaDeviceSynchronize();
       MPI_Barrier(operatorMatrix.getMPICommunicator());
       exit(0); //*/
 
@@ -972,17 +974,17 @@ namespace dftfe
       operatorMatrix.setupMF(numberVectors);
 
       /* Dealii */
-      dealiiVec<dataTypes::number>     XArrayMF, YArrayMF;
+      /*dealiiVec<dataTypes::number>     XArrayMF, YArrayMF;
       dealiiVec<dataTypes::numberFP32> tempFloatArrayMF;
 
       XArrayMF.reinit(operatorMatrix.getMFBatchedPartitioner(), 1);
-      YArrayMF.reinit(XArrayMF); //*/
+      YArrayMF.reinit(XArrayMF);
 
       if (mixedPrecOverall && dftParams.useMixedPrecCheby)
-        tempFloatArrayMF.reinit(operatorMatrix.getMFBatchedPartitioner(), 1);
+        tempFloatArrayMF.reinit(operatorMatrix.getMFBatchedPartitioner(), 1); //*/
 
       /* Multivector */
-      /*distributedDeviceVec<dataTypes::number> XArrayMF, YArrayMF;
+      distributedDeviceVec<dataTypes::number> XArrayMF, YArrayMF;
 
       dftfe::linearAlgebra::createMultiVectorFromDealiiPartitioner(
         operatorMatrix.getMFBatchedPartitioner(), 1, XArrayMF);
@@ -1007,16 +1009,6 @@ namespace dftfe
                                          localVectorSize,
                                          true);
 
-      /*const int           repeats = 1;
-      std::vector<double> chebyTimes(repeats);
-      double              chebyMean = 0.0, chebyStdDev = 0.0;
-
-      for (int i = 0; i < repeats; i++)
-        {
-          MPI_Barrier(operatorMatrix.getMPICommunicator());
-          cudaDeviceSynchronize();
-          auto start_cheby = getTime(); //*/
-
       double e, c, sigma, sigma1, sigma2, gamma, device_time;
       e       = (b - a) / 2.0;
       c       = (b + a) / 2.0;
@@ -1025,13 +1017,6 @@ namespace dftfe
       gamma   = 2.0 / sigma1;
       int inc = 1;
 
-      dftfe::utils::deviceMemset(YArrayMF.begin(),
-                                 0,
-                                 totalVectorSize * sizeof(dataTypes::number));
-
-      //
-      // call HX
-      //
       bool   scaleFlag = false;
       double scalar    = 1.0;
 
@@ -1045,13 +1030,14 @@ namespace dftfe
           cudaDeviceSynchronize();
           auto start_HX = getTime(); //*/
 
-          operatorMatrix.HXMF(XArrayMF,
-                              projectorKetTimesVector,
-                              localVectorSize,
-                              numberVectors,
-                              scaleFlag,
-                              scalar,
-                              YArrayMF);
+          operatorMatrix.HXChebyMF(YArrayMF,
+                                    tempFloatArray,
+                                    projectorKetTimesVector,
+                                    localVectorSize,
+                                    numberVectors,
+                                    XArrayMF,
+                                    mixedPrecOverall &&
+                                      dftParams.useMixedPrecCheby);
 
           cudaDeviceSynchronize();
           MPI_Barrier(operatorMatrix.getMPICommunicator());
@@ -1065,7 +1051,25 @@ namespace dftfe
       pcout << "HX Mean Time: " << HXMean << std::endl
             << "HX Std Dev Time: " << HXStdDev << std::endl; //*/
 
-      /*cudaProfilerStart();
+      const int           repeats = 1;
+      std::vector<double> chebyTimes(repeats);
+      double              chebyMean = 0.0, chebyStdDev = 0.0;
+
+      for (int i = 0; i < repeats; i++)
+        {
+          MPI_Barrier(operatorMatrix.getMPICommunicator());
+          cudaDeviceSynchronize();
+          auto start_cheby = getTime(); //*/
+
+      dftfe::utils::deviceMemset(YArrayMF.begin(),
+                                 0,
+                                 totalVectorSize * sizeof(dataTypes::number));
+
+      //
+      // call HX
+      //
+
+      // cudaProfilerStart();
 
       operatorMatrix.HXMF(XArrayMF,
                           projectorKetTimesVector,
@@ -1075,9 +1079,9 @@ namespace dftfe
                           scalar,
                           YArrayMF);
 
-      cudaProfilerStop(); //*/
+      // cudaProfilerStop(); //*/
 
-      cudaDeviceSynchronize();
+      /*cudaDeviceSynchronize();
       MPI_Barrier(operatorMatrix.getMPICommunicator());
       exit(0); //*/
 
@@ -1141,7 +1145,7 @@ namespace dftfe
               // call HX
               //
               operatorMatrix.HXChebyMF(YArrayMF,
-                                       tempFloatArrayMF,
+                                       tempFloatArray,
                                        projectorKetTimesVector,
                                        localVectorSize,
                                        numberVectors,
@@ -1207,7 +1211,7 @@ namespace dftfe
               // call HX
               //
               operatorMatrix.HXChebyMF(YArrayMF,
-                                       tempFloatArrayMF,
+                                       tempFloatArray,
                                        projectorKetTimesVector,
                                        localVectorSize,
                                        numberVectors,
@@ -1222,17 +1226,17 @@ namespace dftfe
           alpha1Old = alpha1;
         }
 
-      /*cudaDeviceSynchronize();
+      cudaDeviceSynchronize();
       MPI_Barrier(operatorMatrix.getMPICommunicator());
       auto stop_cheby = getTime();
 
       chebyTimes[i] = stop_cheby - start_cheby;
     }
 
-  meanAndStdDev(chebyTimes, chebyMean, chebyStdDev);
+    meanAndStdDev(chebyTimes, chebyMean, chebyStdDev);
 
-  pcout << "Chebyshev Mean Time: " << chebyMean << "\n"
-        << "Chebyshev Std Dev Time: " << chebyStdDev << "\n"; //*/
+    pcout << "Chebyshev Mean Time: " << chebyMean << std::endl
+          << "Chebyshev Std Dev Time: " << chebyStdDev << std::endl; //*/
 
       reshapeKernel<<<blocks, threads>>>(YArray.begin(),
                                          YArrayMF.begin(),
@@ -1245,7 +1249,7 @@ namespace dftfe
         dftfe::utils::makeDataTypeDeviceCompatible(YArray.begin()),
         totalVectorSize * sizeof(dataTypes::number));
 
-      /*cudaDeviceSynchronize();
+      cudaDeviceSynchronize();
       MPI_Barrier(operatorMatrix.getMPICommunicator());
       exit(0); //*/
 

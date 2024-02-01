@@ -185,11 +185,11 @@ namespace dftfe
   }
 
 
-  constexpr int maxPConstMem = 10;
+ constexpr int maxPConstMem = 10;
 
   __constant__ double constShape[maxPConstMem * maxPConstMem * 4];
 
-  template <typename Type, int M, int N, int K, int dim, int vecShared>
+  template <typename Type, int p, int q, int dim, int batchSizeMF>
   __global__ void
   computeAXKernel(Type *__restrict__ V,
                   const Type *__restrict__ U,
@@ -203,31 +203,31 @@ namespace dftfe
     // V = AU
     // gridDim.x = cells;
     // gridDim.y = batch;
-    // nVec = vecShared * batch;
-    // vecShared -> No of vectors in shared memory
+    // nVec = batchSizeMF * batch;
+    // batchSizeMF -> No of vectors in shared memory
     // First index is the fastest (Order -> x, y, z)
-    // PT(q*p), D(q*q), P(p*q), DT(q*q)
+    // P(q*p), D(q*q), PT(p*q), DT(q*q)
 
     extern __shared__ Type SMem[];
 
     constexpr int pad = 0;
 
     Type *__restrict__ sharedX = SMem;
-    Type *__restrict__ sharedY = &sharedX[vecShared * N * N * N + pad];
-    Type *__restrict__ sharedZ = &sharedY[vecShared * N * N * N + pad];
-    Type *__restrict__ sharedT = &sharedZ[vecShared * N * N * N + pad];
+    Type *__restrict__ sharedY = &sharedX[batchSizeMF * q * q * q + pad];
 
-    Type *__restrict__ constPT = &constShape[0];
-    Type *__restrict__ constD  = &constPT[N * K];
-    Type *__restrict__ constP  = &constD[N * N];
-    Type *__restrict__ constDT = &constP[K * N];
+    Type *__restrict__ constP  = &constShape[0];
+    Type *__restrict__ constD  = &constP[q * p];
+    Type *__restrict__ constPT = &constD[q * q];
+    Type *__restrict__ constDT = &constPT[p * q];
+
+    Type regX[q], regY[q], regZ[q];
 
     // New Layout - New Map
-    // const unsigned int mapOffset = blockIdx.x * M * K;
+    // const unsigned int mapOffset = blockIdx.x * p * p * p;
 
     // New Layout - Base Map
     const unsigned int mapOffset =
-      (blockIdx.x + blockIdx.y * gridDim.x) * M * K;
+      (blockIdx.x + blockIdx.y * gridDim.x) * p * p * p;
 
     //////////////////////////////////////////////////////////////////
     // Interpolation combined with Extraction
@@ -235,209 +235,210 @@ namespace dftfe
 
     // 1st GEMM of P
     // Z Direction
-    for (int i = threadIdx.y; i < M; i += blockDim.y)
+    for (int i = threadIdx.y; i < p * p; i += blockDim.y)
       {
-        Type x[N], u[K];
+        memset(regX, 0, q * sizeof(Type));
 
-        memset(x, 0, N * sizeof(Type));
-
-        for (int k = 0; k < K; k++)
+        for (int k = 0; k < p; k++)
           {
             // New Layout - New Map
-            // unsigned int dof = __ldg(&map[i + k * M + mapOffset]);
+            // unsigned int dof = __ldg(&map[i + k * p*p + mapOffset]);
 
             // unsigned int idx = getMultiVectorIdx(
             //   dof, blockIdx.y, nLocalDofs, nGhostDofs, ghostMap);
 
-            // u[k] = U[threadIdx.x + idx * vecShared];
+            // u[k] = U[threadIdx.x + idx * batchSizeMF];
 
             // New Layout - Base Map
-            unsigned int dof = __ldg(&map[i + k * M + mapOffset]);
-            u[k]             = U[threadIdx.x + dof];
+            unsigned int dof = __ldg(&map[i + k * p * p + mapOffset]);
+            regY[k]          = U[threadIdx.x + dof];
 
             // Old Layout
-            // unsigned int dof = __ldg(&map[i + k * M + blockIdx.x * M * K]);
-            // u[k] = U[threadIdx.x + blockIdx.y * vecShared + dof * gridDim.y];
+            // unsigned int dof = __ldg(&map[i + k * p*p + blockIdx.x * p*p *
+            // K]); u[k] = U[threadIdx.x + blockIdx.y * batchSizeMF + dof *
+            // gridDim.y];
 
 #pragma unroll
-            for (int j = 0; j < N; j++)
-              x[j] += constPT[j + k * N] * u[k];
+            for (int j = 0; j < q; j++)
+              regX[j] += constP[j + k * q] * regY[k];
           }
 
 #pragma unroll
-        for (int j = 0; j < N; j++)
-          sharedX[threadIdx.x + i * vecShared + j * vecShared * M] = x[j];
+        for (int j = 0; j < q; j++)
+          sharedX[threadIdx.x + i * batchSizeMF + j * batchSizeMF * p * p] =
+            regX[j];
       }
 
     __syncthreads();
 
     // 2nd GEMM of P
     // Y Direction
-    for (int i = threadIdx.y; i < K * N; i += blockDim.y)
+    for (int i = threadIdx.y; i < p * q; i += blockDim.y)
       {
-        Type y[N], x[K];
+        int a = i % p;
+        int b = i / p;
 
-        int a = i % K;
-        int b = i / K;
+        memset(regY, 0, q * sizeof(Type));
 
-        memset(y, 0, N * sizeof(Type));
-
-        for (int k = 0; k < K; k++)
+        for (int k = 0; k < p; k++)
           {
-            x[k] = sharedX[threadIdx.x + a * vecShared + k * vecShared * K +
-                           b * vecShared * M];
+            regX[k] = sharedX[threadIdx.x + a * batchSizeMF +
+                              k * batchSizeMF * p + b * batchSizeMF * p * p];
 
 #pragma unroll
-            for (int j = 0; j < N; j++)
-              y[j] += constPT[j + k * N] * x[k];
+            for (int j = 0; j < q; j++)
+              regY[j] += constP[j + k * q] * regX[k];
           }
 
 #pragma unroll
-        for (int j = 0; j < N; j++)
-          sharedY[threadIdx.x + a * vecShared + j * vecShared * K +
-                  b * vecShared * K * N] = y[j];
+        for (int j = 0; j < q; j++)
+          sharedY[threadIdx.x + a * batchSizeMF + j * batchSizeMF * p +
+                  b * batchSizeMF * p * q] = regY[j];
       }
 
     __syncthreads();
 
     // 3rd GEMM of P
     // X Direction
-    for (int i = threadIdx.y; i < N * N; i += blockDim.y)
+    for (int i = threadIdx.y; i < q * q; i += blockDim.y)
       {
-        Type x[N], y[K];
+        memset(regX, 0, q * sizeof(Type));
 
-        memset(x, 0, N * sizeof(Type));
-
-        for (int k = 0; k < K; k++)
+        for (int k = 0; k < p; k++)
           {
-            y[k] = sharedY[threadIdx.x + k * vecShared + i * vecShared * K];
+            regY[k] =
+              sharedY[threadIdx.x + k * batchSizeMF + i * batchSizeMF * p];
 
 #pragma unroll
-            for (int j = 0; j < N; j++)
-              x[j] += constPT[j + k * N] * y[k];
+            for (int j = 0; j < q; j++)
+              regX[j] += constP[j + k * q] * regY[k];
           }
 
 #pragma unroll
-        for (int j = 0; j < N; j++)
-          sharedX[threadIdx.x + j * vecShared + i * vecShared * N] = x[j];
+        for (int j = 0; j < q; j++)
+          sharedX[threadIdx.x + j * batchSizeMF + i * batchSizeMF * q] =
+            regX[j];
       }
 
     __syncthreads();
 
     //////////////////////////////////////////////////////////////////
     // Grad operation in each direction
-    // Y -> X.Dz
-    // Z -> X.Dy
-    // T -> X.Dx
+    // regZ    -> X.Dz
+    // sharedY -> X.Dy
+    // sharedX -> X.Dx
 
     // 1st GEMM of D
     // Z Direction
-    for (int i = threadIdx.y; i < N * N; i += blockDim.y)
+    for (int i = threadIdx.y; i < q * q; i += blockDim.y)
       {
-        Type y[N], x[N];
+        memset(regZ, 0, q * sizeof(Type));
 
-        memset(y, 0, N * sizeof(Type));
-
-        for (int k = 0; k < N; k++)
+        for (int k = 0; k < q; k++)
           {
-            x[k] = sharedX[threadIdx.x + i * vecShared + k * vecShared * N * N];
+            regY[k] =
+              sharedX[threadIdx.x + i * batchSizeMF + k * batchSizeMF * q * q];
 
 #pragma unroll
-            for (int j = 0; j < N; j++)
-              y[j] += constD[j + k * N] * x[k];
+            for (int j = 0; j < q; j++)
+              regZ[j] += constD[j + k * q] * regY[k];
           }
-
-#pragma unroll
-        for (int j = 0; j < N; j++)
-          sharedY[threadIdx.x + i * vecShared + j * vecShared * N * N] = y[j];
       }
 
     // 2nd GEMM of D
     // Y Direction
-    for (int i = threadIdx.y; i < N * N; i += blockDim.y)
+    for (int i = threadIdx.y; i < q * q; i += blockDim.y)
       {
-        Type z[N], x[N];
+        Type regT[q];
 
-        int a = i % N;
-        int b = i / N;
+        int a = i % q;
+        int b = i / q;
 
-        memset(z, 0, N * sizeof(Type));
+        memset(regT, 0, q * sizeof(Type));
 
-        for (int k = 0; k < N; k++)
+        for (int k = 0; k < q; k++)
           {
-            x[k] = sharedX[threadIdx.x + a * vecShared + k * vecShared * N +
-                           b * vecShared * N * N];
+            Type tempX = sharedX[threadIdx.x + a * batchSizeMF +
+                                 k * batchSizeMF * q + b * batchSizeMF * q * q];
 
 #pragma unroll
-            for (int j = 0; j < N; j++)
-              z[j] += constD[j + k * N] * x[k];
+            for (int j = 0; j < q; j++)
+              regT[j] += constD[j + k * q] * tempX;
           }
 
 #pragma unroll
-        for (int j = 0; j < N; j++)
-          sharedZ[threadIdx.x + a * vecShared + j * vecShared * N +
-                  b * vecShared * N * N] = z[j];
+        for (int j = 0; j < q; j++)
+          sharedY[threadIdx.x + a * batchSizeMF + j * batchSizeMF * q +
+                  b * batchSizeMF * q * q] = regT[j];
       }
 
     // 3rd GEMM of D
     // X Direction
-    for (int i = threadIdx.y; i < N * N; i += blockDim.y)
+    for (int i = threadIdx.y; i < q * q; i += blockDim.y)
       {
-        Type t[N], x[N];
+        Type regT[q];
 
-        memset(t, 0, N * sizeof(Type));
+        memset(regX, 0, q * sizeof(Type));
 
-        for (int k = 0; k < N; k++)
+        for (int k = 0; k < q; k++)
           {
-            x[k] = sharedX[threadIdx.x + k * vecShared + i * vecShared * N];
+            regT[k] =
+              sharedX[threadIdx.x + k * batchSizeMF + i * batchSizeMF * q];
 
 #pragma unroll
-            for (int j = 0; j < N; j++)
-              t[j] += constD[j + k * N] * x[k];
+            for (int j = 0; j < q; j++)
+              regX[j] += constD[j + k * q] * regT[k];
           }
-
-#pragma unroll
-        for (int j = 0; j < N; j++)
-          sharedT[threadIdx.x + j * vecShared + i * vecShared * N] = t[j];
       }
 
-    Type detJ;
+    __syncthreads();
+
+    for (int i = threadIdx.y; i < q * q; i += blockDim.y)
+      {
+#pragma unroll
+        for (int j = 0; j < q; j++)
+          sharedX[threadIdx.x + j * batchSizeMF + i * batchSizeMF * q] =
+            regX[j];
+      }
 
     __syncthreads();
 
     //////////////////////////////////////////////////////////////////
     // Gemm with Jacobian Action
-    // sharedT, sharedZ, sharedY have the respective gemms of X, Y, Z
+    // sharedX, sharedY, regZ have the respective gemms of X, Y, Z
     // directions
-    // J.[T Z Y]
+    // J.[X Y Z]
 
-#pragma unroll
-    for (int i = threadIdx.y; i < N * N * N; i += blockDim.y)
+    Type detJ;
+
+    // #pragma unroll
+    for (int i = threadIdx.y; i < q * q; i += blockDim.y)
       {
         Type v[3];
 
-        int jacOffset = blockIdx.x * dim * dim;
+        int jOffset = blockIdx.x * dim * dim;
 
-        v[2] = 0.5 * sharedY[threadIdx.x + i * vecShared];
-        v[1] = 0.5 * sharedZ[threadIdx.x + i * vecShared];
-        v[0] = 0.5 * sharedT[threadIdx.x + i * vecShared];
+        for (int j = 0; j < q; j++)
+          {
+            v[0] = 0.5 * sharedX[threadIdx.x + (i + j * q * q) * batchSizeMF];
+            v[1] = 0.5 * sharedY[threadIdx.x + (i + j * q * q) * batchSizeMF];
+            v[2] = 0.5 * regZ[j];
 
-        sharedY[threadIdx.x + i * vecShared] = J[6 + jacOffset] * v[0] +
-                                               J[7 + jacOffset] * v[1] +
-                                               J[8 + jacOffset] * v[2];
-        sharedZ[threadIdx.x + i * vecShared] = J[3 + jacOffset] * v[0] +
-                                               J[4 + jacOffset] * v[1] +
-                                               J[5 + jacOffset] * v[2];
-        sharedT[threadIdx.x + i * vecShared] = J[0 + jacOffset] * v[0] +
-                                               J[1 + jacOffset] * v[1] +
-                                               J[2 + jacOffset] * v[2];
+            regX[j] = J[0 + jOffset] * v[0] + J[1 + jOffset] * v[1] +
+                      J[2 + jOffset] * v[2];
+            sharedY[threadIdx.x + (i + j * q * q) * batchSizeMF] =
+              J[3 + jOffset] * v[0] + J[4 + jOffset] * v[1] +
+              J[5 + jOffset] * v[2];
+            regZ[j] = J[6 + jOffset] * v[0] + J[7 + jOffset] * v[1] +
+                      J[8 + jOffset] * v[2];
 
-        detJ = J[0 + jacOffset] * (J[4 + jacOffset] * J[8 + jacOffset] -
-                                   J[5 + jacOffset] * J[7 + jacOffset]) -
-               J[1 + jacOffset] * (J[3 + jacOffset] * J[8 + jacOffset] -
-                                   J[5 + jacOffset] * J[6 + jacOffset]) +
-               J[2 + jacOffset] * (J[3 + jacOffset] * J[7 + jacOffset] -
-                                   J[4 + jacOffset] * J[6 + jacOffset]);
+            detJ = J[0 + jOffset] * (J[4 + jOffset] * J[8 + jOffset] -
+                                     J[5 + jOffset] * J[7 + jOffset]) -
+                   J[1 + jOffset] * (J[3 + jOffset] * J[8 + jOffset] -
+                                     J[5 + jOffset] * J[6 + jOffset]) +
+                   J[2 + jOffset] * (J[3 + jOffset] * J[7 + jOffset] -
+                                     J[4 + jOffset] * J[6 + jOffset]);
+          }
       }
 
     __syncthreads();
@@ -445,36 +446,31 @@ namespace dftfe
     //////////////////////////////////////////////////////////////////
     // Integration
     // X -> detJ.Veff.Uxyz.Pz.Py.Px
-    // X -> Y.DTz + X
-    // X -> Z.DTy + X
-    // X -> T.DTx + X
+    // X -> regZ.DTz + X
+    // X -> regY.DTy + X
+    // X -> regX.DTx + X
 
     // 1st GEMM of DT
     // Z Direction
-    for (int i = threadIdx.y; i < N * N; i += blockDim.y)
+    for (int i = threadIdx.y; i < q * q; i += blockDim.y)
       {
-        Type x[N], y[N], h[N];
+        Type regT[q];
 
-        memset(x, 0, N * sizeof(Type));
+        memset(regT, 0, q * sizeof(Type));
 
-        for (int k = 0; k < N; k++)
+        for (int k = 0; k < q; k++)
           {
-            y[k] = sharedY[threadIdx.x + i * vecShared + k * vecShared * N * N];
-
 #pragma unroll
-            for (int j = 0; j < N; j++)
-              x[j] += constDT[j + k * N] * y[k];
+            for (int j = 0; j < q; j++)
+              regT[j] += constDT[j + k * q] * regZ[k];
           }
 
 #pragma unroll
-        for (int j = 0; j < N; j++)
+        for (int j = 0; j < q; j++)
           {
-            // sharedX[threadIdx.x + i * vecShared + j * vecShared * N * N] =
-            // x[j];
-
-            h[j] = sharedX[threadIdx.x + i * vecShared + j * vecShared * N * N];
-            sharedX[threadIdx.x + i * vecShared + j * vecShared * N * N] =
-              Veff[i + j * N * N + blockIdx.x * N * N * N] * detJ * h[j] + x[j];
+            sharedX[threadIdx.x + i * batchSizeMF + j * batchSizeMF * q * q] =
+              Veff[i + j * q * q + blockIdx.x * q * q * q] * detJ * regY[j] +
+              regT[j];
           }
       }
 
@@ -482,53 +478,65 @@ namespace dftfe
 
     // 2nd GEMM of DT
     // Y Direction
-    for (int i = threadIdx.y; i < N * N; i += blockDim.y)
+    for (int i = threadIdx.y; i < q * q; i += blockDim.y)
       {
-        Type y[N], z[N];
+        Type regT[q];
 
-        int a = i % N;
-        int b = i / N;
+        int a = i % q;
+        int b = i / q;
 
-        memset(y, 0, N * sizeof(Type));
+        memset(regT, 0, q * sizeof(Type));
 
-        for (int k = 0; k < N; k++)
+        for (int k = 0; k < q; k++)
           {
-            z[k] = sharedZ[threadIdx.x + a * vecShared + k * vecShared * N +
-                           b * vecShared * N * N];
+            regY[k] = sharedY[threadIdx.x + a * batchSizeMF +
+                              k * batchSizeMF * q + b * batchSizeMF * q * q];
 
 #pragma unroll
-            for (int j = 0; j < N; j++)
-              y[j] += constDT[j + k * N] * z[k];
+            for (int j = 0; j < q; j++)
+              regT[j] += constDT[j + k * q] * regY[k];
           }
 
 #pragma unroll
-        for (int j = 0; j < N; j++)
-          sharedX[threadIdx.x + a * vecShared + j * vecShared * N +
-                  b * vecShared * N * N] += y[j];
+        for (int j = 0; j < q; j++)
+          sharedX[threadIdx.x + a * batchSizeMF + j * batchSizeMF * q +
+                  b * batchSizeMF * q * q] += regT[j];
+      }
+
+    __syncthreads();
+
+    for (int i = threadIdx.y; i < q * q; i += blockDim.y)
+      {
+#pragma unroll
+        for (int j = 0; j < q; j++)
+          sharedY[threadIdx.x + i * batchSizeMF + j * batchSizeMF * q * q] =
+            regX[j];
       }
 
     __syncthreads();
 
     // 3rd GEMM of DT
     // X Direction
-    for (int i = threadIdx.y; i < N * N; i += blockDim.y)
+    for (int i = threadIdx.y; i < q * q; i += blockDim.y)
       {
-        Type z[N], t[N];
+        Type regT[q];
 
-        memset(z, 0, N * sizeof(Type));
+        memset(regT, 0, q * sizeof(Type));
 
-        for (int k = 0; k < N; k++)
+        for (int k = 0; k < q; k++)
           {
-            t[k] = sharedT[threadIdx.x + k * vecShared + i * vecShared * N];
+            regX[k] =
+              sharedY[threadIdx.x + k * batchSizeMF + i * batchSizeMF * q];
 
 #pragma unroll
-            for (int j = 0; j < N; j++)
-              z[j] += constDT[j + k * N] * t[k];
+            for (int j = 0; j < q; j++)
+              regT[j] += constDT[j + k * q] * regX[k];
           }
 
 #pragma unroll
-        for (int j = 0; j < N; j++)
-          sharedX[threadIdx.x + j * vecShared + i * vecShared * N] += z[j];
+        for (int j = 0; j < q; j++)
+          sharedX[threadIdx.x + j * batchSizeMF + i * batchSizeMF * q] +=
+            regT[j];
       }
 
     __syncthreads();
@@ -539,92 +547,89 @@ namespace dftfe
 
     // 1st GEMM of PT
     // Z Direction
-    for (int i = threadIdx.y; i < N * N; i += blockDim.y)
+    for (int i = threadIdx.y; i < q * q; i += blockDim.y)
       {
-        Type y[K], x[N];
+        memset(regY, 0, p * sizeof(Type));
 
-        memset(y, 0, K * sizeof(Type));
-
-        for (int k = 0; k < N; k++)
+        for (int k = 0; k < q; k++)
           {
-            x[k] = sharedX[threadIdx.x + i * vecShared + k * vecShared * N * N];
+            regX[k] =
+              sharedX[threadIdx.x + i * batchSizeMF + k * batchSizeMF * q * q];
 
 #pragma unroll
-            for (int j = 0; j < K; j++)
-              y[j] += constP[j + k * K] * x[k];
+            for (int j = 0; j < p; j++)
+              regY[j] += constPT[j + k * p] * regX[k];
           }
 
 #pragma unroll
-        for (int j = 0; j < K; j++)
-          sharedY[threadIdx.x + i * vecShared + j * vecShared * N * N] = y[j];
+        for (int j = 0; j < p; j++)
+          sharedY[threadIdx.x + i * batchSizeMF + j * batchSizeMF * q * q] =
+            regY[j];
       }
 
     __syncthreads();
 
     // 2nd GEMM of PT
     // Y Direction
-    for (int i = threadIdx.y; i < N * K; i += blockDim.y)
+    for (int i = threadIdx.y; i < q * p; i += blockDim.y)
       {
-        Type x[K], y[N];
+        int a = i % q;
+        int b = i / q;
 
-        int a = i % N;
-        int b = i / N;
+        memset(regX, 0, p * sizeof(Type));
 
-        memset(x, 0, K * sizeof(Type));
-
-        for (int k = 0; k < N; k++)
+        for (int k = 0; k < q; k++)
           {
-            y[k] = sharedY[threadIdx.x + a * vecShared + k * vecShared * N +
-                           b * vecShared * N * N];
+            regY[k] = sharedY[threadIdx.x + a * batchSizeMF +
+                              k * batchSizeMF * q + b * batchSizeMF * q * q];
 
 #pragma unroll
-            for (int j = 0; j < K; j++)
-              x[j] += constP[j + k * K] * y[k];
+            for (int j = 0; j < p; j++)
+              regX[j] += constPT[j + k * p] * regY[k];
           }
 
 #pragma unroll
-        for (int j = 0; j < K; j++)
-          sharedX[threadIdx.x + a * vecShared + j * vecShared * N +
-                  b * vecShared * N * K] = x[j];
+        for (int j = 0; j < p; j++)
+          sharedX[threadIdx.x + a * batchSizeMF + j * batchSizeMF * q +
+                  b * batchSizeMF * q * p] = regX[j];
       }
 
     __syncthreads();
 
     // 3rd GEMM of PT
     // X Direction
-    for (int i = threadIdx.y; i < M; i += blockDim.y)
+    for (int i = threadIdx.y; i < p * p; i += blockDim.y)
       {
-        Type y[K], x[N];
+        memset(regY, 0, p * sizeof(Type));
 
-        memset(y, 0, K * sizeof(Type));
-
-        for (int k = 0; k < N; k++)
+        for (int k = 0; k < q; k++)
           {
-            x[k] = sharedX[threadIdx.x + k * vecShared + i * vecShared * N];
+            regX[k] =
+              sharedX[threadIdx.x + k * batchSizeMF + i * batchSizeMF * q];
 
 #pragma unroll
-            for (int j = 0; j < K; j++)
-              y[j] += constP[j + k * K] * x[k];
+            for (int j = 0; j < p; j++)
+              regY[j] += constPT[j + k * p] * regX[k];
           }
 
 #pragma unroll
-        for (int j = 0; j < K; j++)
+        for (int j = 0; j < p; j++)
           {
             // New Layout - New Map
-            // unsigned int dof = __ldg(&map[j + i * K + mapOffset]);
+            // unsigned int dof = __ldg(&map[j + i * p + mapOffset]);
 
             // unsigned int idx = getMultiVectorIdx(
             //   dof, blockIdx.y, nLocalDofs, nGhostDofs, ghostMap);
 
-            // atomicAdd(&V[threadIdx.x + idx * vecShared], y[j]);
+            // atomicAdd(&V[threadIdx.x + idx * batchSizeMF], y[j]);
 
             // New Layout - Base Map
-            int dof = __ldg(&map[j + i * K + mapOffset]);
-            atomicAdd(&V[threadIdx.x + dof], y[j]);
+            int dof = __ldg(&map[j + i * p + mapOffset]);
+            atomicAdd(&V[threadIdx.x + dof], regY[j]);
 
             // Old Layout
-            // unsigned int dof = __ldg(&map[j + i * K + blockIdx.x * M * K]);
-            // atomicAdd(&V[threadIdx.x + blockIdx.y * vecShared + dof *
+            // unsigned int dof = __ldg(&map[j + i * p + blockIdx.x * M * K]);
+            // atomicAdd(&V[threadIdx.x + blockIdx.y * batchSizeMF + dof *
             // gridDim.y], y[j]);
           }
       } //*/
@@ -1128,23 +1133,23 @@ namespace dftfe
     d_mapPtr          = thrust::raw_pointer_cast(d_map.data());
     jacobianFactorPtr = thrust::raw_pointer_cast(d_jacobianFactor.data());
 
-    const size_t smem = 4 * d_batchsize * d_nQuadPointsPerCell * sizeof(double);
+    const size_t smem = 2 * d_batchsize * d_nQuadPointsPerCell * sizeof(double);
 
     const size_t smem2 =
       (4 * d_batchsize * d_nQuadPointsPerCell + 2 * p * p + 3 * 3) *
       sizeof(double);
 
-    cudaFuncSetSharedMemConfig(
-      computeAXKernel<double, p * p, q, p, dim, d_batchsize>,
-      cudaSharedMemBankSizeEightByte);
+    // cudaFuncSetSharedMemConfig(
+    //   computeAXKernel<double, p * p, q, p, dim, d_batchsize>,
+    //   cudaSharedMemBankSizeEightByte);
 
-    cudaFuncSetAttribute(computeAXKernel<double, p * p, q, p, dim, d_batchsize>,
+    cudaFuncSetAttribute(computeAXKernel<double, p, q, dim, d_batchsize>,
                          cudaFuncAttributeMaxDynamicSharedMemorySize,
                          smem);
 
-    cudaFuncSetAttribute(sharedFusedKernel<p, d_batchsize>,
-                         cudaFuncAttributeMaxDynamicSharedMemorySize,
-                         smem2);
+    // cudaFuncSetAttribute(sharedFusedKernel<p, d_batchsize>,
+    //                      cudaFuncAttributeMaxDynamicSharedMemorySize,
+    //                      smem2);
 
     cudaMemcpyToSymbol(constShape,
                        spVG.data(),
@@ -1587,23 +1592,23 @@ namespace dftfe
 
     constexpr int yThreads = (q != p ? 128 : (p < 9 ? 64 : 128));
     const int     batch    = numberWaveFunctions / d_batchsize;
-    const size_t  smem     = 4 * d_batchsize * q * q * q * sizeof(double);
+    const size_t  smem     = 2 * d_batchsize * q * q * q * sizeof(double);
 
     dim3 blocks(d_nLocalCells, batch, 1);
     dim3 threads(d_batchsize, yThreads, 1);
 
-    computeAXKernel<double, p * p, q, p, dim, d_batchsize>
+    computeAXKernel<double, p, q, dim, d_batchsize>
       <<<blocks, threads, smem>>>(Ax,
-                                  x,
-                                  VeffPtr,
-                                  jacobianFactorPtr,
-                                  d_mapPtr,
-                                  thrust::raw_pointer_cast(
-                                    ghostMapDevice.data()),
-                                  d_nLocalDofs,
-                                  d_nGhostDofs);
+                                       x,
+                                       VeffPtr,
+                                       jacobianFactorPtr,
+                                       d_mapPtr,
+                                       thrust::raw_pointer_cast(
+                                         ghostMapDevice.data()),
+                                       d_nLocalDofs,
+                                       d_nGhostDofs);
 
-    DEVICE_API_CHECK(cudaPeekAtLastError());
+    // DEVICE_API_CHECK(cudaPeekAtLastError());
 
     // <<<blocks, threads, smem>>>(Ax, x, VeffPtr, jacobianActionPtr, d_mapPtr);
     //*/

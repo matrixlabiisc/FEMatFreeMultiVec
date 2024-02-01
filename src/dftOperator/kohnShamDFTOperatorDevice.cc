@@ -3452,7 +3452,7 @@ namespace dftfe
     //
     // scale src vector with M^{-1/2}
     //
-    /*dftfe::utils::deviceKernelsGeneric::stridedBlockScale(
+    dftfe::utils::deviceKernelsGeneric::stridedBlockScale(
       numberWaveFunctions,
       localVectorSize,
       scalar,
@@ -3500,7 +3500,7 @@ namespace dftfe
     //
     // M^{-1/2}*H*M^{-1/2}*X
     //
-    /*dftfe::utils::deviceKernelsGeneric::stridedBlockScale(
+    dftfe::utils::deviceKernelsGeneric::stridedBlockScale(
       numberWaveFunctions,
       localVectorSize,
       1.0,
@@ -3727,7 +3727,7 @@ namespace dftfe
     //
     // scale src vector with M^{-1/2}
     //
-    /*blockScaleKernel<<<blocks, threads>>>(
+    blockScaleKernel<<<blocks, threads>>>(
       dftfe::utils::makeDataTypeDeviceCompatible(src.begin()),
       dftfe::utils::makeDataTypeDeviceCompatible(
         d_invSqrtMassVectorDevice.begin()),
@@ -3790,7 +3790,7 @@ namespace dftfe
     //
     // M^{-1/2}*H*M^{-1/2}*X
     //
-    /*blockScaleKernel<<<blocks, threads>>>(
+    blockScaleKernel<<<blocks, threads>>>(
       dftfe::utils::makeDataTypeDeviceCompatible(dst.begin()),
       dftfe::utils::makeDataTypeDeviceCompatible(
         d_invSqrtMassVectorDevice.begin()),

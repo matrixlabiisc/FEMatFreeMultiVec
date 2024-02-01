@@ -1,5 +1,5 @@
 #!/bin/bash
-# Nikhil script to setup and build DFT-FE.
+# script to setup and build DFT-FE.
 
 set -e
 set -o pipefail
@@ -17,20 +17,21 @@ SRC=`dirname $0` # location of source directory
 # and optimization flag
 
 #Paths for required external libraries
-dealiiDir="/nlsasfs/home/numerical/nikhilk/spack/spack/opt/spack/linux-ubuntu20.04-zen2/gcc-11.3.0/dealii-9.4.2-vi7acvmlbkezfg52kmcql4deekgl2ry2"
-alglibDir="/nlsasfs/home/numerical/nikhilk/spack/spack/opt/spack/linux-ubuntu20.04-zen2/gcc-11.3.0/alglib-3.20.0-deiq5fszrixaq3g43duxmeq4qiuhsixm"
-libxcDir="/nlsasfs/home/numerical/nikhilk/spack/spack/opt/spack/linux-ubuntu20.04-zen2/gcc-11.3.0/libxc-6.1.0-kxtajf7qw2quyywao3eyxc4ksrpdstpx"
-spglibDir="/nlsasfs/home/numerical/nikhilk/spack/spack/opt/spack/linux-ubuntu20.04-zen2/gcc-11.3.0/spglib-2.0.2-gti277mstj4vmms4xjf3epzf7cbi6g5t"
-xmlIncludeDir="/nlsasfs/home/numerical/nikhilk/spack/spack/opt/spack/linux-ubuntu20.04-zen2/gcc-11.3.0/libxml2-2.10.3-4bjhnxbs7qcx7vvntcml7z3mordvxpi6/include/libxml2"
-xmlLibDir="/nlsasfs/home/numerical/nikhilk/spack/spack/opt/spack/linux-ubuntu20.04-zen2/gcc-11.3.0/libxml2-2.10.3-4bjhnxbs7qcx7vvntcml7z3mordvxpi6/lib"
-ELPA_PATH="/nlsasfs/home/numerical/nikhilk/spack/spack/opt/spack/linux-ubuntu20.04-zen2/gcc-11.3.0/elpa-2022.11.001-bpdcr523mqsnw2idy4g6yjllsyf522w5"
-dftdpath="/nlsasfs/home/numerical/nikhilk/spack/dftd/install"
-numdiffdir="/nlsasfs/home/numerical/nikhilk/spack/spack/opt/spack/linux-ubuntu20.04-zen2/gcc-11.3.0/numdiff-5.9.0-frza6cdkjn2atzvz5rbl3uufmjnzmj32"
+dealiiDir="/nlsasfs/home/numerical/gourabp/software/dealii94/install94"
+# dealiiDir="/nlsasfs/home/numerical/kartickr/dftfesoftware2023/installDealii"
+alglibDir="/nlsasfs/home/numerical/kartickr/dftfesoftware2023/spack/opt/spack/linux-ubuntu20.04-zen2/gcc-11.3.0/alglib-3.20.0-deiq5fszrixaq3g43duxmeq4qiuhsixm"
+libxcDir="/nlsasfs/home/numerical/kartickr/dftfesoftware2023/spack/opt/spack/linux-ubuntu20.04-zen2/gcc-11.3.0/libxc-6.1.0-h47gfrzoedvo7b6jsmvhmnfqmfixmxcm"
+spglibDir="/nlsasfs/home/numerical/kartickr/dftfesoftware2023/spack/opt/spack/linux-ubuntu20.04-zen2/gcc-11.3.0/spglib-2.0.2-p4o7u6vcdz63ny6paw6jbx4libss434s"
+xmlIncludeDir="/usr/include/libxml2"
+xmlLibDir="/usr/lib/x86_64-linux-gnu"
+ELPA_PATH="/nlsasfs/home/numerical/kartickr/dftfesoftware2023/spack/opt/spack/linux-ubuntu20.04-zen2/gcc-11.3.0/elpa-2022.11.001-j64leynsfrk6i6iu3ee2f6uonfb4m25k"
+dftdpath="/nlsasfs/home/numerical/kartickr/dftfesoftware2023/installDftD4;/nlsasfs/home/numerical/kartickr/dftfesoftware2023/spack/opt/spack/linux-ubuntu20.04-zen2/gcc-11.3.0/simple-dftd3-0.7.0-fdydjxqjwtlkck4ahi2lmvx67fsbqiwh"
+numdiffdir="/nlsasfs/home/numerical/kartickr/dftfesoftware2023/spack/opt/spack/linux-ubuntu20.04-zen2/gcc-11.3.0/numdiff-5.9.0-frza6cdkjn2atzvz5rbl3uufmjnzmj32"
 
 
 #Paths for optional external libraries
 # path for NCCL/RCCL libraries
-DCCL_PATH="/nlsasfs/home/numerical/nikhilk/spack/spack/opt/spack/linux-ubuntu20.04-zen2/gcc-11.3.0/nccl-2.19.3-1-ethunrs7hudce5naltqm62e37uc2537p"
+DCCL_PATH="/nlsasfs/home/numerical/kartickr/dftfesoftware2023/spack/opt/spack/linux-ubuntu20.04-zen2/gcc-11.3.0/nccl-2.16.2-1-mczsoftguy7ijuzatxaigcy5afmi6a5d"
 mdiPath=""
 
 #Toggle GPU compilation
