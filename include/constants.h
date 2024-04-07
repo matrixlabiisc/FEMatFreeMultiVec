@@ -150,11 +150,11 @@ namespace dftfe
   }
 
   /// 1d quadrature rule order for local part of pseudopotential
-  template <unsigned int FEOrder>
+  template <unsigned int FEOrder, unsigned int FEOrderElectro>
   constexpr unsigned int
   C_num1DQuadLPSP()
   {
-    return 10;
+    return C_rhoNodalPolyOrder<FEOrder, FEOrderElectro>() + 1;
   }
 
   /// number of copies 1d quad rule local PSP

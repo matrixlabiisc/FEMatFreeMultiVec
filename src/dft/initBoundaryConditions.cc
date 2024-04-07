@@ -222,9 +222,9 @@ namespace dftfe
                            C_numCopies1DQuadNLPSP()));
     quadratureVector.push_back(dealii::QGaussLobatto<1>(
       C_rhoNodalPolyOrder<FEOrder, FEOrderElectro>() + 1));
-    quadratureVector.push_back(
-      dealii::QIterated<1>(dealii::QGauss<1>(C_num1DQuadLPSP<FEOrder>()),
-                           C_numCopies1DQuadLPSP()));
+    quadratureVector.push_back(dealii::QIterated<1>(
+      dealii::QGauss<1>(C_num1DQuadLPSP<FEOrder, FEOrderElectro>()),
+      C_numCopies1DQuadLPSP()));
     quadratureVector.push_back(dealii::QGauss<1>(C_num1DQuad<FEOrder>()));
     // SparsityPattern VEctor
     quadratureVector.push_back(dealii::QGauss<1>(8));

@@ -26,6 +26,7 @@
 #include <BLASWrapper.h>
 #include <FEBasisOperations.h>
 #include <oncvClass.h>
+#include <MatrixFree.h>
 
 namespace dftfe
 {
@@ -93,6 +94,16 @@ namespace dftfe
     getScratchFEMultivector(const unsigned int numVectors,
                             const unsigned int index);
 
+    std::shared_ptr<const dealii::Utilities::MPI::Partitioner>
+    getPartitionerBCV();
+
+    void
+    createMFVector(
+      dftfe::linearAlgebra::MultiVector<dataTypes::number, memorySpace> *
+        &BCVmultiVector);
+
+    void
+    setVeffMF();
 
     /**
      * @brief Computes effective potential involving exchange-correlation functionals
@@ -204,9 +215,15 @@ namespace dftfe
                                       dftfe::utils::MemorySpace::HOST>>
       d_basisOperationsPtrHost;
     std::shared_ptr<dftfe::oncvClass<dataTypes::number, memorySpace>>
-                                d_oncvClassPtr;
-    std::shared_ptr<excManager> d_excManagerPtr;
-    dftParameters *             d_dftParamsPtr;
+                                           d_oncvClassPtr;
+    std::shared_ptr<excManager>            d_excManagerPtr;
+    dftParameters *                        d_dftParamsPtr;
+    std::unique_ptr<dftfe::MatrixFreeBase> d_matrixFreeBasePtr;
+
+    std::shared_ptr<const dealii::Utilities::MPI::Partitioner>
+      d_batchedPartitionerBCV;
+
+    bool MFflag;
 
     std::vector<dftfe::utils::MemoryStorage<dataTypes::number, memorySpace>>
       d_cellHamiltonianMatrix;

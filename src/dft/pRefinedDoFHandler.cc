@@ -354,9 +354,9 @@ namespace dftfe
     std::vector<dealii::Quadrature<1>> quadratureVector;
     quadratureVector.push_back(dealii::QGauss<1>(
       C_num1DQuad<C_rhoNodalPolyOrder<FEOrder, FEOrderElectro>()>()));
-    quadratureVector.push_back(
-      dealii::QIterated<1>(dealii::QGauss<1>(C_num1DQuadLPSP<FEOrder>()),
-                           C_numCopies1DQuadLPSP()));
+    quadratureVector.push_back(dealii::QIterated<1>(
+      dealii::QGauss<1>(C_num1DQuadLPSP<FEOrder, FEOrderElectro>()),
+      C_numCopies1DQuadLPSP()));
     if (d_dftParamsPtr->isCellStress)
       quadratureVector.push_back(dealii::QIterated<1>(
         dealii::QGauss<1>(C_num1DQuadSmearedChargeStress()),

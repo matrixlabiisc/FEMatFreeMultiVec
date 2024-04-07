@@ -74,6 +74,14 @@ namespace dftfe
     getScratchFEMultivector(const unsigned int numVectors,
                             const unsigned int index) = 0;
 
+    virtual void
+    createMFVector(
+      dftfe::linearAlgebra::MultiVector<dataTypes::number, memorySpace> *
+        &multiVector);
+
+    virtual void
+    setVeffMF();
+
     /**
      * @brief initializes parallel layouts and index maps for HX, XtHX and creates a flattened array format for X
      *

@@ -1469,6 +1469,7 @@ namespace dftfe
             scalarCoeffAlpha,
             weights.data() + cellRange.first * nQuadsPerCell,
             tempCellValuesBlock.data());
+
           d_BLASWrapperPtr->xgemmStridedBatched(
             'N',
             'T',

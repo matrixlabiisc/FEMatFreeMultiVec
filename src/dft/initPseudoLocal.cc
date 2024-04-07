@@ -434,7 +434,7 @@ namespace dftfe
 
     dealii::FEEvaluation<3,
                          FEOrderElectro,
-                         C_num1DQuadLPSP<FEOrderElectro>() *
+                         C_num1DQuadLPSP<FEOrder, FEOrderElectro>() *
                            C_numCopies1DQuadLPSP()>
       feEvalObj(_matrix_free_data, _phiExtDofHandlerIndex, lpspQuadratureId);
     AssertThrow(

@@ -234,15 +234,26 @@ namespace dftfe
     //
     // allocate storage for eigenVectorsFlattenedArray for multiple blocks
     //
-    distributedCPUMultiVec<dataTypes::number> *eigenVectorsFlattenedArrayBlock =
-      &operatorMatrix.getScratchFEMultivector(vectorsBlockSize, 0);
+    distributedCPUMultiVec<dataTypes::number> *eigenVectorsFlattenedArrayBlock,
+      *eigenVectorsFlattenedArrayBlock2;
 
-    distributedCPUMultiVec<dataTypes::number>
-      *eigenVectorsFlattenedArrayBlock2 =
-        &operatorMatrix.getScratchFEMultivector(vectorsBlockSize, 1);
+    bool MFflag = (bool)d_dftParams.dc_d3ATM;
+
+    if (MFflag)
+      {
+        operatorMatrix.createMFVector(eigenVectorsFlattenedArrayBlock);
+        operatorMatrix.createMFVector(eigenVectorsFlattenedArrayBlock2);
+      }
+    else
+      {
+        eigenVectorsFlattenedArrayBlock =
+          &operatorMatrix.getScratchFEMultivector(vectorsBlockSize, 0);
+
+        eigenVectorsFlattenedArrayBlock2 =
+          &operatorMatrix.getScratchFEMultivector(vectorsBlockSize, 1);
+      }
+
     /// storage for cell wavefunction matrix
-    std::vector<dataTypes::number> cellWaveFunctionMatrix;
-
     int startIndexBandParal = totalNumberWaveFunctions;
     int numVectorsBandParal = 0;
     for (unsigned int jvec = 0; jvec < totalNumberWaveFunctions;
@@ -273,16 +284,49 @@ namespace dftfe
             // eigenVectorsFlattenedArray
             computing_timer.enter_subsection(
               "Copy from full to block flattened array");
-            for (unsigned int iNode = 0; iNode < localVectorSize; ++iNode)
-              std::copy(eigenVectorsFlattened +
-                          iNode * totalNumberWaveFunctions + jvec,
-                        eigenVectorsFlattened +
-                          iNode * totalNumberWaveFunctions + jvec + BVec,
-                        eigenVectorsFlattenedArrayBlock->data() + iNode * BVec);
+
+            const unsigned int SIMDWidth       = 8;
+            const unsigned int nVectorizedBVec = BVec / SIMDWidth;
+
+            if (MFflag)
+              {
+                for (unsigned int iNode = 0; iNode < localVectorSize; iNode++)
+                  for (unsigned int iBatch = 0; iBatch < BVec / SIMDWidth;
+                       iBatch++)
+                    for (unsigned int iSIMD = 0; iSIMD < SIMDWidth; iSIMD++)
+                      {
+                        *(eigenVectorsFlattenedArrayBlock->data() + iSIMD +
+                          iNode * SIMDWidth +
+                          iBatch * SIMDWidth * localVectorSize) =
+                          *(eigenVectorsFlattened + iSIMD + iBatch * SIMDWidth +
+                            jvec + iNode * totalNumberWaveFunctions);
+                      }
+
+                operatorMatrix.setVeffMF();
+              }
+            else
+              {
+                for (unsigned int iNode = 0; iNode < localVectorSize; ++iNode)
+                  std::copy(eigenVectorsFlattened +
+                              iNode * totalNumberWaveFunctions + jvec,
+                            eigenVectorsFlattened +
+                              iNode * totalNumberWaveFunctions + jvec + BVec,
+                            eigenVectorsFlattenedArrayBlock->data() +
+                              iNode * BVec);
+              }
+
             computing_timer.leave_subsection(
               "Copy from full to block flattened array");
 
 
+            operatorMatrix.HXCheby(*eigenVectorsFlattenedArrayBlock,
+                                   1,
+                                   0,
+                                   0,
+                                   *eigenVectorsFlattenedArrayBlock2);
+
+            pcout << "HXCheby Done" << std::endl;
+            exit(0);
 
             //
             // call Chebyshev filtering function only for the current block to

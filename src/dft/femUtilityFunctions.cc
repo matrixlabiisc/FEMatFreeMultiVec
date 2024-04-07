@@ -283,7 +283,8 @@ namespace dftfe
 
     dealii::FEEvaluation<3,
                          C_rhoNodalPolyOrder<FEOrder, FEOrderElectro>(),
-                         C_num1DQuadLPSP<FEOrder>() * C_numCopies1DQuadLPSP(),
+                         C_num1DQuadLPSP<FEOrder, FEOrderElectro>() *
+                           C_numCopies1DQuadLPSP(),
                          1,
                          double>
       feEvalObj(basisOperationsPtr->matrixFreeData(),

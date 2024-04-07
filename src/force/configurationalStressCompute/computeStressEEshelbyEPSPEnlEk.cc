@@ -1360,7 +1360,7 @@ namespace dftfe
 
     dealii::FEEvaluation<3,
                          1,
-                         C_num1DQuadLPSP<FEOrderElectro>() *
+                         C_num1DQuadLPSP<FEOrder, FEOrderElectro>() *
                            C_numCopies1DQuadLPSP(),
                          3>
       forceEvalElectroLpsp(matrixFreeDataElectro,
@@ -1374,7 +1374,7 @@ namespace dftfe
       dealii::update_values | dealii::update_quadrature_points);
 
     dealii::QIterated<3 - 1> faceQuadrature(
-      dealii::QGauss<1>(C_num1DQuadLPSP<FEOrderElectro>()),
+      dealii::QGauss<1>(C_num1DQuadLPSP<FEOrder, FEOrderElectro>()),
       C_numCopies1DQuadLPSP());
     dealii::FEFaceValues<3> feFaceValuesElectro(
       dftPtr->d_dofHandlerRhoNodal.get_fe(),

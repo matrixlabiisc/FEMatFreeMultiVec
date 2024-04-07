@@ -820,16 +820,10 @@ namespace dftfe
     {
       const std::pair<global_size_type, global_size_type> &locallyOwnedRange =
         partitioner->local_range();
-      // std::cout<<locallyOwnedRange.first<<"
-      // "<<locallyOwnedRange.second<<std::endl;
+
       std::vector<global_size_type> ghostIndices;
       (partitioner->ghost_indices()).fill_index_vector(ghostIndices);
 
-      // for (unsigned int i=0;i<ghostIndices.size();++i)
-      // if (ghostIndices.size()>0)
-      // std::cout<<ghostIndices.back()<<std::endl;
-
-      // std::sort(ghostIndices.begin(),ghostIndices.end());
       std::shared_ptr<dftfe::utils::mpi::MPIPatternP2P<memorySpace>>
         mpiPatternP2PPtr =
           std::make_shared<dftfe::utils::mpi::MPIPatternP2P<memorySpace>>(

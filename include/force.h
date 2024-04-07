@@ -403,7 +403,8 @@ namespace dftfe
       dealii::FEFaceValues<3> &            feFaceValues,
       dealii::FEEvaluation<3,
                            1,
-                           C_num1DQuadLPSP<FEOrder>() * C_numCopies1DQuadLPSP(),
+                           C_num1DQuadLPSP<FEOrder, FEOrderElectro>() *
+                             C_numCopies1DQuadLPSP(),
                            3> &            forceEval,
       const dealii::MatrixFree<3, double> &matrixFreeData,
       const unsigned int                   phiTotDofHandlerIndexElectro,
@@ -653,7 +654,8 @@ namespace dftfe
       dealii::FEFaceValues<3> &            feFaceValues,
       dealii::FEEvaluation<3,
                            1,
-                           C_num1DQuadLPSP<FEOrder>() * C_numCopies1DQuadLPSP(),
+                           C_num1DQuadLPSP<FEOrder, FEOrderElectro>() *
+                             C_numCopies1DQuadLPSP(),
                            3> &            forceEval,
       const dealii::MatrixFree<3, double> &matrixFreeData,
       const unsigned int                   phiTotDofHandlerIndexElectro,
