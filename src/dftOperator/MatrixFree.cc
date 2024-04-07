@@ -767,7 +767,8 @@ namespace dftfe
           {
             nodalShapeFunctionValuesAtQuadPoints[iDoF * nQuadPointsPerDim +
                                                  iQuad] =
-              shapeData.shape_values[iDoF * nQuadPointsPerDim + iQuad][0];
+              shapeData.shape_values[iDoF * nQuadPointsPerDim + iQuad][0] *
+              std::sqrt(shapeData.quadrature.weight(iQuad));
           }
       }
 
@@ -778,7 +779,9 @@ namespace dftfe
             quadShapeFunctionGradientsAtQuadPoints[iQuad1 * nQuadPointsPerDim +
                                                    iQuad2] =
               shapeData.shape_gradients_collocation[iQuad1 * nQuadPointsPerDim +
-                                                    iQuad2][0];
+                                                    iQuad2][0] *
+              std::sqrt(shapeData.quadrature.weight(iQuad2)) /
+              std::sqrt(shapeData.quadrature.weight(iQuad1));
           }
       }
 
@@ -868,8 +871,7 @@ namespace dftfe
                             .jacobians[0][cellOffsets[iCellBatch]][d][f][0] *
                           mappingData
                             .jacobians[0][cellOffsets[iCellBatch]][e][f][0] *
-                          mappingData.JxW_values[cellOffsets[iCellBatch]][0] *
-                          0.5;
+                          mappingData.JxW_values[cellOffsets[iCellBatch]][0];
                         // jacobianDeterminants[cellCount] =
                         //   mappingData.JxW_values[cellOffsets[iCellBatch]][0];
                       }
