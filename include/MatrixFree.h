@@ -135,11 +135,7 @@ namespace dftfe
       dftfe::linearAlgebra::MultiVector<dataTypes::number,
                                         dftfe::utils::MemorySpace::HOST> &Ax,
       dftfe::linearAlgebra::MultiVector<dataTypes::number,
-                                        dftfe::utils::MemorySpace::HOST> &x,
-      std::shared_ptr<
-        dftfe::linearAlgebra::BLASWrapper<dftfe::utils::MemorySpace::HOST>>
-        d_BLASWrapperPtr);
-
+                                        dftfe::utils::MemorySpace::HOST> &x);
 
     void
     setVeffMF(

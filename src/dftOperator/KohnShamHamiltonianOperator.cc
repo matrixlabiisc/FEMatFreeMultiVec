@@ -209,12 +209,10 @@ namespace dftfe
         // Setup MatrixFree
         unsigned int blockSize = d_dftParamsPtr->chebyWfcBlockSize;
 
-        d_matrixFreeBasePtr =
-          std::make_unique<dftfe::MatrixFree<4, 4, 8>>(d_mpiCommDomain,
-                                                       d_basisOperationsPtrHost,
-                                                       blockSize);
+        d_matrixFreeBasePtr = std::make_unique<dftfe::MatrixFree<8, 10, 8>>(
+          d_mpiCommDomain, d_basisOperationsPtrHost, blockSize);
 
-        d_matrixFreeBasePtr->reinit(d_feOrderPlusOneQuadratureID);
+        d_matrixFreeBasePtr->reinit(d_densityQuadratureID);
 
         d_batchedPartitionerBCV = getPartitionerBCV();
       }
@@ -400,7 +398,7 @@ namespace dftfe
   void
   KohnShamHamiltonianOperator<memorySpace>::setVeffMF()
   {
-    d_matrixFreeBasePtr->setVeffMF(d_VeffJxW, d_VeffExtPotJxW);
+    d_matrixFreeBasePtr->setVeffMF(d_VeffJxWMF, d_VeffExtPotJxW);
   }
 
   template <dftfe::utils::MemorySpace memorySpace>
@@ -428,6 +426,7 @@ namespace dftfe
       d_basisOperationsPtrHost->nCells();
     const unsigned int numberQuadraturePoints =
       d_basisOperationsPtrHost->nQuadsPerCell();
+
 #if defined(DFTFE_WITH_DEVICE)
     dftfe::utils::MemoryStorage<double, dftfe::utils::MemorySpace::HOST>
       d_VeffJxWHost;
@@ -441,6 +440,8 @@ namespace dftfe
     d_VeffJxWHost.resize(totalLocallyOwnedCells * numberQuadraturePoints, 0.0);
     d_invJacderExcWithSigmaTimesGradRhoJxWHost.resize(
       isGGA ? totalLocallyOwnedCells * numberQuadraturePoints * 3 : 0, 0.0);
+
+    d_VeffJxWMF.resize(totalLocallyOwnedCells * numberQuadraturePoints, 0.0);
 
     // allocate storage for exchange potential
     std::vector<double> exchangePotentialVal(numberQuadraturePoints *
@@ -619,19 +620,25 @@ namespace dftfe
           outputDerCorrEnergy);
         auto cellJxWPtr = d_basisOperationsPtrHost->JxWBasisData().data() +
                           iCell * numberQuadraturePoints;
+
         for (unsigned int iQuad = 0; iQuad < numberQuadraturePoints; ++iQuad)
           {
             if (spinPolarizedFactor == 1)
               d_VeffJxWHost[iCell * numberQuadraturePoints + iQuad] =
-                (tempPhi[iQuad] + exchangePotentialVal[iQuad] +
-                 corrPotentialVal[iQuad]) *
+                // (tempPhi[iQuad] + exchangePotentialVal[iQuad] +
+                //  corrPotentialVal[iQuad]) *
                 cellJxWPtr[iQuad];
             else
               d_VeffJxWHost[iCell * numberQuadraturePoints + iQuad] =
                 (tempPhi[iQuad] + exchangePotentialVal[2 * iQuad + spinIndex] +
                  corrPotentialVal[2 * iQuad + spinIndex]) *
                 cellJxWPtr[iQuad];
+
+            d_VeffJxWMF[iCell * numberQuadraturePoints + iQuad] =
+              tempPhi[iQuad] + exchangePotentialVal[iQuad] +
+              corrPotentialVal[iQuad];
           }
+
         if (isGGA)
           {
             if (spinPolarizedFactor == 1)
@@ -757,7 +764,7 @@ namespace dftfe
           }
       }
 
-    d_VeffJxW.setValue(0);
+      // d_VeffJxW.setValue(1);
 
 #if defined(DFTFE_WITH_DEVICE)
     d_VeffJxW.resize(d_VeffJxWHost.size());
@@ -1213,9 +1220,9 @@ namespace dftfe
 
         pcout << "MF Enter" << std::endl;
 
-        d_matrixFreeBasePtr->computeAX(dst, src, d_BLASWrapperPtr);
+        d_matrixFreeBasePtr->computeAX(dst, src);
 
-        pcout << "MF Exit" << std::endl;
+        pcout << "MF Exit" << std::endl << std::endl;
 
         d_BLASWrapperPtr->xnrm2(dst.localSize() * dst.numVectors(),
                                 dst.data(),
@@ -1232,26 +1239,24 @@ namespace dftfe
         pcout << "numCells: " << numCells << std::endl;
         pcout << "numDoFsPerCell: " << numDoFsPerCell << std::endl;
         pcout << "batchSize: " << batchSize << std::endl;
-        pcout << "numberWavefunctions: " << numberWavefunctions << std::endl;
+        pcout << "numberWavefunctions: " << numberWavefunctions << std::endl
+              << std::endl;
 
-        pcout << "dst.localSize(): " << dst.localSize() << std::endl;
-        pcout << "dst.numVectors(): " << dst.numVectors() << std::endl;
         pcout << "src.localSize(): " << src.localSize() << std::endl;
         pcout << "src.numVectors(): " << src.numVectors() << std::endl;
+        pcout << "dst.localSize(): " << dst.localSize() << std::endl;
+        pcout << "dst.numVectors(): " << dst.numVectors() << std::endl
+              << std::endl;
 
         pcout << "dst Norm: " << dstNorm << std::endl;
-        pcout << "src Norm: " << srcNorm << std::endl;
+        pcout << "src Norm: " << srcNorm << std::endl << std::endl;
       }
     else
       {
-        pcout << "CM Enter" << std::endl;
-
         double dstNorm;
         double srcNorm;
-        double srcCellNorm;
-        double dstCellNorm;
-        double srcAllCellNorm;
-        double dstAllCellNorm;
+
+        pcout << "CM Enter" << std::endl;
 
         if (d_numVectorsInternal != numberWavefunctions)
           reinitNumberWavefunctions(numberWavefunctions);
@@ -1283,16 +1288,7 @@ namespace dftfe
              ->getTotalNonLocalElementsInCurrentProcessor() > 0) &&
           !onlyHPrimePartForFirstOrderDensityMatResponse; //*/
 
-        d_BLASWrapperPtr->xnrm2(src.localSize() * src.numVectors(),
-                                src.data(),
-                                1,
-                                d_mpiCommDomain,
-                                &srcNorm);
 
-        pcout << "numberWavefunctions: " << numberWavefunctions << std::endl;
-        pcout << "src.localSize(): " << src.localSize() << std::endl;
-        pcout << "src.numVectors(): " << src.numVectors() << std::endl;
-        pcout << "src Norm: " << srcNorm << std::endl;
 
         for (unsigned int iCell = 0; iCell < numCells;
              iCell += d_cellsBlockSizeHX)
@@ -1310,50 +1306,12 @@ namespace dftfe
                   .data() +
                 cellRange.first * numDoFsPerCell);
 
-            d_BLASWrapperPtr->xnrm2(numberWavefunctions * numDoFsPerCell,
-                                    d_cellWaveFunctionMatrixSrc.data() +
-                                      iCell * numberWavefunctions *
-                                        numDoFsPerCell,
-                                    1,
-                                    d_mpiCommDomain,
-                                    &srcCellNorm);
-
-            pcout << "iCell: " << iCell
-                  << ", d_cellWaveFunctionMatrixSrc Norm: " << srcCellNorm
-                  << std::endl;
-
-            if (iCell == 0)
-              {
-                for (unsigned int iDoF = 0; iDoF < numDoFsPerCell; iDoF++)
-                  {
-                    pcout << "iDoF: " << iDoF << std::endl;
-                    for (auto iSIMD = 0; iSIMD < numberWavefunctions; iSIMD++)
-                      {
-                        pcout
-                          << iSIMD << ", "
-                          << d_cellWaveFunctionMatrixSrc[iSIMD +
-                                                         iDoF *
-                                                           numberWavefunctions]
-                          << " ";
-                      }
-                    pcout << std::endl;
-                  }
-              }
-
             /*if (hasNonlocalComponents)
               d_ONCVnonLocalOperator->applyCconjtransOnX(
                 d_cellWaveFunctionMatrixSrc.data() +
                   cellRange.first * numDoFsPerCell * numberWavefunctions,
                 cellRange); //*/
           }
-
-        d_BLASWrapperPtr->xnrm2(d_cellWaveFunctionMatrixSrc.size(),
-                                d_cellWaveFunctionMatrixSrc.data(),
-                                1,
-                                d_mpiCommDomain,
-                                &srcAllCellNorm);
-
-        pcout << "AllCellSrc Norm: " << srcAllCellNorm << std::endl;
 
         /*if (d_dftParamsPtr->isPseudopotential &&
             !onlyHPrimePartForFirstOrderDensityMatResponse)
@@ -1367,9 +1325,6 @@ namespace dftfe
               d_ONCVNonLocalProjectorTimesVectorBlock,
               true);
           } //*/
-
-        std::vector<double> dstVector(numDoFsPerCell * numCells *
-                                      numberWavefunctions);
 
         for (unsigned int iCell = 0; iCell < numCells;
              iCell += d_cellsBlockSizeHX)
@@ -1398,20 +1353,6 @@ namespace dftfe
               numDoFsPerCell * numberWavefunctions,
               cellRange.second - cellRange.first);
 
-            for (auto i = 0; i < d_cellWaveFunctionMatrixDst.size(); i++)
-              dstVector[i + iCell * d_cellWaveFunctionMatrixDst.size()] =
-                d_cellWaveFunctionMatrixDst[i];
-
-            d_BLASWrapperPtr->xnrm2(numberWavefunctions * numDoFsPerCell,
-                                    d_cellWaveFunctionMatrixDst.data(),
-                                    1,
-                                    d_mpiCommDomain,
-                                    &dstCellNorm);
-
-            pcout << "iCell: " << iCell
-                  << ", d_cellWaveFunctionMatrixDst Norm: " << dstCellNorm
-                  << std::endl;
-
             /*if (hasNonlocalComponents)
               d_ONCVnonLocalOperator->applyCOnVCconjtransX(
                 d_cellWaveFunctionMatrixDst.data(), cellRange); //*/
@@ -1438,42 +1379,15 @@ namespace dftfe
         dst.accumulateAddLocallyOwned();
         dst.zeroOutGhosts(); //*/
 
-        d_BLASWrapperPtr->xnrm2(dstVector.size(),
-                                dstVector.data(),
+        pcout << "CM Exit" << std::endl << std::endl;
+
+        d_BLASWrapperPtr->xnrm2(src.localSize() * src.numVectors(),
+                                src.data(),
                                 1,
                                 d_mpiCommDomain,
-                                &dstAllCellNorm);
+                                &srcNorm);
 
-        pcout << "AllCellDst Norm: " << dstAllCellNorm << std::endl;
 
-        pcout << "CM Exit" << std::endl;
-
-        /*for (auto iCell = 0; iCell < numCells; iCell++)
-          {
-            d_BLASWrapperPtr->xnrm2(numberWavefunctions * numDoFsPerCell,
-                                    d_cellWaveFunctionMatrixSrc.data() +
-                                      numberWavefunctions * numDoFsPerCell +
-                                      iCell * numberWavefunctions *
-                                        numDoFsPerCell,
-                                    1,
-                                    d_mpiCommDomain,
-                                    &srcNorm);
-
-            d_BLASWrapperPtr->xnrm2(numberWavefunctions * numDoFsPerCell,
-                                    dstVector.data() +
-                                      numberWavefunctions * numDoFsPerCell +
-                                      iCell * numberWavefunctions *
-                                        numDoFsPerCell,
-                                    1,
-                                    d_mpiCommDomain,
-                                    &dstNorm);
-
-            pcout << "iCell: " << iCell
-                  << ", d_cellWaveFunctionMatrixSrc Norm: " << srcNorm
-                  << std::endl;
-            pcout << "iCell: " << iCell << ", dstVector Norm: " << dstNorm
-                  << std::endl;
-          } //*/
 
         d_BLASWrapperPtr->xnrm2(dst.localSize() * dst.numVectors(),
                                 dst.data(),
@@ -1481,9 +1395,19 @@ namespace dftfe
                                 d_mpiCommDomain,
                                 &dstNorm);
 
+        pcout << "numCells: " << numCells << std::endl;
+        pcout << "numDoFsPerCell: " << numDoFsPerCell << std::endl;
+        pcout << "numberWavefunctions: " << numberWavefunctions << std::endl
+              << std::endl;
+
+        pcout << "src.localSize(): " << src.localSize() << std::endl;
+        pcout << "src.numVectors(): " << src.numVectors() << std::endl;
         pcout << "dst.localSize(): " << dst.localSize() << std::endl;
-        pcout << "dst.numVectors(): " << dst.numVectors() << std::endl;
+        pcout << "dst.numVectors(): " << dst.numVectors() << std::endl
+              << std::endl;
+
         pcout << "dst Norm: " << dstNorm << std::endl;
+        pcout << "src Norm: " << srcNorm << std::endl << std::endl;
       }
   }
 
