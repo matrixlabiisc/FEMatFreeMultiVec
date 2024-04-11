@@ -1,9 +1,9 @@
 set VERBOSITY=0
 set REPRODUCIBLE OUTPUT=true
 set USE GPU = true
+set MEM OPT MODE = true
 subsection GPU 
   set AUTO GPU BLOCK SIZES=false
-  set GPU MEM OPT MODE=true
 end
 subsection Geometry
   set NATOMS=2

@@ -289,11 +289,24 @@ namespace dftfe
     }
 
     deviceError_t
-    deviceStreamCreate(deviceStream_t *pStream)
+    deviceStreamCreate(deviceStream_t *pStream, const bool nonBlocking)
     {
-      deviceError_t err = hipStreamCreate(pStream);
-      DEVICE_API_CHECK(err);
-      return err;
+      if (!nonBlocking)
+        {
+          deviceError_t err = hipStreamCreate(pStream);
+          DEVICE_API_CHECK(err);
+          return err;
+        }
+      else
+        {
+          int priority;
+          hipDeviceGetStreamPriorityRange(NULL, &priority);
+          deviceError_t err = hipStreamCreateWithPriority(pStream,
+                                                          hipStreamNonBlocking,
+                                                          priority);
+          DEVICE_API_CHECK(err);
+          return err;
+        }
     }
 
     deviceError_t

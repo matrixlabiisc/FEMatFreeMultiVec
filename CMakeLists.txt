@@ -51,6 +51,7 @@ SET(TARGET_SRC
   ./src/dft/energyCalculator.cc
   ./src/dft/densityCalculator.cc
   ./src/dft/densityFirstOrderResponseCalculator.cc
+  ./src/dft/applyMultipoleDirichletBC.cc
   ./src/excManager/excDensityBaseClass.cpp
   ./src/excManager/excDensityLDAClass.cpp
   ./src/excManager/excWavefunctionBaseClass.cpp

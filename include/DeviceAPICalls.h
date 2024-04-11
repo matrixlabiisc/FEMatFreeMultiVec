@@ -144,7 +144,7 @@ namespace dftfe
 
 
     deviceError_t
-    deviceStreamCreate(deviceStream_t *pStream);
+    deviceStreamCreate(deviceStream_t *pStream, const bool nonBlocking = false);
 
     deviceError_t
     deviceStreamDestroy(deviceStream_t stream);

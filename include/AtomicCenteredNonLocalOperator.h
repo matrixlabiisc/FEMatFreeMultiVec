@@ -232,8 +232,7 @@ namespace dftfe
     applyAllReduceOnCconjtransX(
       dftfe::linearAlgebra::MultiVector<ValueType, memorySpace>
         &        sphericalFunctionKetTimesVectorParFlattened,
-      const bool skip1 = false,
-      const bool skip2 = false);
+      const bool skipComm = false);
 
     /**
      * @brief computes the results of CconjtransX on the cells of interst specied by cellRange

@@ -25,6 +25,7 @@
 #include <dftUtils.h>
 #include <linearAlgebraOperationsDevice.h>
 #include <linearAlgebraOperationsInternal.h>
+#include <linearAlgebraOperations.h>
 #include <vectorUtilities.h>
 
 
@@ -334,203 +335,160 @@ namespace dftfe
     } // namespace
 
 
-    //
-    // evaluate upper bound of the spectrum using k-step Lanczos iteration
-    //
-    // std::pair<double, double>
-    // lanczosLowerUpperBoundEigenSpectrum(
-    //   operatorDFTClass<dftfe::utils::MemorySpace::DEVICE> &operatorMatrix,
-    //   distributedDeviceVec<dataTypes::number> &            Xb,
-    //   distributedDeviceVec<dataTypes::number> &            Yb,
-    //   distributedDeviceVec<dataTypes::number> &projectorKetTimesVector,
-    //   const unsigned int                       blockSize,
-    //   const dftParameters &                    dftParams)
-    // {
-    //   //       const unsigned int this_mpi_process =
-    //   //         dealii::Utilities::MPI::this_mpi_process(
-    //   //           operatorMatrix.getMPICommunicatorDomain());
-
-    //   //       const unsigned int lanczosIterations =
-    //   //         dftParams.reproducible_output ? 40 : 20;
-    //   //       double beta;
-
-
-    //   //       dataTypes::number alpha, alphaNeg;
-
-    //   //       //
-    //   //       // generate random vector v
-    //   //       //
-    //   //       distributedCPUVec<dataTypes::number> vVector, fVector,
-    //   v0Vector;
-    //   //       vVector.reinit(operatorMatrix.getScratchFEMultivector(1,0));
-    //   //       fVector.reinit(vVector);
-
-    //   //       vVector = dataTypes::number(0), fVector =
-    //   dataTypes::number(0);
-    //   //       std::srand(this_mpi_process);
-    //   //       const unsigned int local_size = vVector.local_size();
-
-    //   //       for (unsigned int i = 0; i < local_size; i++)
-    //   //         vVector.local_element(i) = ((double)std::rand()) /
-    //   //         ((double)RAND_MAX);
-
-    //   //
-    //   operatorMatrix.getOverloadedConstraintMatrixHost()->set_zero(vVector,
-    //   //       1); vVector.update_ghost_values();
-
-    //   //       //
-    //   //       // evaluate l2 norm
-    //   //       //
-    //   //       vVector /= vVector.l2_norm();
-    //   //       // vVector.update_ghost_values();
-
-    //   //       //
-    //   //       // call matrix times X
-    //   //       //
-    //   //       std::vector<distributedCPUVec<dataTypes::number>> v(1), f(1);
-    //   //       v[0] = vVector;
-    //   //       f[0] = fVector;
-
-    //   //       distributedCPUVec<dataTypes::number> &vvec = v[0];
-
-    //   //       dftfe::utils::deviceMemcpyH2D_2D(
-    //   //         dftfe::utils::makeDataTypeDeviceCompatible(Xb.begin()),
-    //   //         blockSize * sizeof(dataTypes::number),
-    //   //         vvec.begin(),
-    //   //         1 * sizeof(dataTypes::number),
-    //   //         1 * sizeof(dataTypes::number),
-    //   //         local_size);
-
-    //   //       Yb.setValue(0);
-    //   //       operatorMatrix.HX(
-    //   //         Xb, 1.0, 0.0, 0.0, Yb);
-
-    //   //       distributedCPUVec<dataTypes::number> &fvec = f[0];
-    //   //       dftfe::utils::deviceMemcpyD2H_2D(
-    //   //         fvec.begin(),
-    //   //         1 * sizeof(dataTypes::number),
-    //   //         dftfe::utils::makeDataTypeDeviceCompatible(Yb.begin()),
-    //   //         blockSize * sizeof(dataTypes::number),
-    //   //         1 * sizeof(dataTypes::number),
-    //   //         local_size);
-
-    //   // operatorMatrix.getOverloadedConstraintMatrixHost()->set_zero(v[0],
-    //   //       1); fVector = f[0];
-
-    //   //       alpha = fVector * vVector;
-    //   //       fVector.add(-1.0 * alpha, vVector);
-    //   //       std::vector<dataTypes::number> Tlanczos(lanczosIterations *
-    //   //                                                 lanczosIterations,
-    //   //                                               0);
-
-    //   //       Tlanczos[0]    = alpha;
-    //   //       unsigned index = 0;
-
-    //   //       // filling only lower triangular part
-    //   //       for (unsigned int j = 1; j < lanczosIterations; j++)
-    //   //         {
-    //   //           beta     = fVector.l2_norm();
-    //   //           v0Vector = vVector;
-    //   //           vVector.equ(1.0 / beta, fVector);
-    //   //           v[0] = vVector, f[0] = fVector;
-    //   //           // operatorMatrix.HX(v,f);
-
-    //   //           distributedCPUVec<dataTypes::number> &vvec = v[0];
-    //   //           dftfe::utils::deviceMemcpyH2D_2D(
-    //   //             dftfe::utils::makeDataTypeDeviceCompatible(Xb.begin()),
-    //   //             blockSize * sizeof(dataTypes::number),
-    //   //             vvec.begin(),
-    //   //             1 * sizeof(dataTypes::number),
-    //   //             1 * sizeof(dataTypes::number),
-    //   //             local_size);
-
-    //   //           Yb.setValue(0);
-    //   //           operatorMatrix.HX(
-    //   //             Xb, 1.0, 0.0, 0.0, Yb);
-
-    //   //           distributedCPUVec<dataTypes::number> &fvec = f[0];
-    //   //           dftfe::utils::deviceMemcpyD2H_2D(
-    //   //             fvec.begin(),
-    //   //             1 * sizeof(dataTypes::number),
-    //   //             dftfe::utils::makeDataTypeDeviceCompatible(Yb.begin()),
-    //   //             blockSize * sizeof(dataTypes::number),
-    //   //             1 * sizeof(dataTypes::number),
-    //   //             local_size);
-
-    //   // operatorMatrix.getOverloadedConstraintMatrixHost()->set_zero(v[0],
-    //   //           1); fVector = f[0]; fVector.add(-1.0 * beta, v0Vector); //
-    //   //           beta is real alpha = fVector * vVector; fVector.add(-1.0 *
-    //   //           alpha, vVector); index += 1; Tlanczos[index] = beta; index
-    //   +=
-    //   //           lanczosIterations; Tlanczos[index] = alpha;
-    //   //         }
-
-    //   //       // eigen decomposition to find max eigen value of T matrix
-    //   //       std::vector<double> eigenValuesT(lanczosIterations);
-    //   //       char                jobz = 'N', uplo = 'L';
-    //   //       const unsigned int  n = lanczosIterations, lda =
-    //   //       lanczosIterations; int                 info; const unsigned
-    //   int
-    //   //       lwork = 1 + 6 * n + 2 * n * n, liwork = 3 + 5 * n;
-    //   //       std::vector<int>    iwork(liwork, 0);
-
-    //   // #ifdef USE_COMPLEX
-    //   //       const unsigned int                lrwork = 1 + 5 * n + 2 * n *
-    //   n;
-    //   //       std::vector<double>               rwork(lrwork, 0);
-    //   //       std::vector<std::complex<double>> work(lwork);
-    //   //       zheevd_(&jobz,
-    //   //               &uplo,
-    //   //               &n,
-    //   //               &Tlanczos[0],
-    //   //               &lda,
-    //   //               &eigenValuesT[0],
-    //   //               &work[0],
-    //   //               &lwork,
-    //   //               &rwork[0],
-    //   //               &lrwork,
-    //   //               &iwork[0],
-    //   //               &liwork,
-    //   //               &info);
-    //   // #else
-    //   //       std::vector<double> work(lwork, 0);
-    //   //       dsyevd_(&jobz,
-    //   //               &uplo,
-    //   //               &n,
-    //   //               &Tlanczos[0],
-    //   //               &lda,
-    //   //               &eigenValuesT[0],
-    //   //               &work[0],
-    //   //               &lwork,
-    //   //               &iwork[0],
-    //   //               &liwork,
-    //   //               &info);
-    //   // #endif
+    void
+    chebyshevFilterOverlapComputeCommunication(
+      operatorDFTClass<dftfe::utils::MemorySpace::DEVICE> &operatorMatrix,
+      dftfe::linearAlgebra::MultiVector<dataTypes::number,
+                                        dftfe::utils::MemorySpace::DEVICE> &X1,
+      dftfe::linearAlgebra::MultiVector<dataTypes::number,
+                                        dftfe::utils::MemorySpace::DEVICE> &Y1,
+      dftfe::linearAlgebra::MultiVector<dataTypes::number,
+                                        dftfe::utils::MemorySpace::DEVICE> &X2,
+      dftfe::linearAlgebra::MultiVector<dataTypes::number,
+                                        dftfe::utils::MemorySpace::DEVICE> &Y2,
+      const unsigned int                                                    m,
+      const double                                                          a,
+      const double                                                          b,
+      const double                                                          a0)
+    {
+      double e, c, sigma, sigma1, sigma2, gamma, alpha1Old, alpha2Old;
+      e      = (b - a) / 2.0;
+      c      = (b + a) / 2.0;
+      sigma  = e / (a0 - c);
+      sigma1 = sigma;
+      gamma  = 2.0 / sigma1;
 
 
-    //   //       for (unsigned int i = 0; i < eigenValuesT.size(); i++)
-    //   //         {
-    //   //           eigenValuesT[i] = eigenValuesT[i];
-    //   //         }
-    //   //       std::sort(eigenValuesT.begin(), eigenValuesT.end());
-    //   //       //
-    //   //       const double fvectorNorm = fVector.l2_norm();
-    //   //       if (dftParams.verbosity >= 5 && this_mpi_process == 0)
-    //   //         {
-    //   //           std::cout << "bUp1: " << eigenValuesT[lanczosIterations -
-    //   1]
-    //   //                     << ", fvector norm: " << fvectorNorm <<
-    //   std::endl;
-    //   //           std::cout << "aLow: " << eigenValuesT[0] << std::endl;
-    //   //         }
+      //
+      // create YArray
+      // initialize to zeros.
+      // x
+      Y1.setValue(dataTypes::number(0.0));
+      Y2.setValue(dataTypes::number(0.0));
 
-    //   //       double lowerBound = std::floor(eigenValuesT[0]);
-    //   //       double upperBound = std::ceil(
-    //   //         eigenValuesT[lanczosIterations - 1] +
-    //   //         (dftParams.reproducible_output ? fvectorNorm : fvectorNorm /
-    //   //         10));
-    //   //       return (std::make_pair(lowerBound, upperBound));
-    // }
+
+      //
+      // call HX
+      //
+
+
+      double alpha1 = sigma1 / e, alpha2 = -c;
+      operatorMatrix.HXCheby(X1, alpha1, 0.0, alpha1 * alpha2, Y1);
+      X2.updateGhostValues();
+      operatorMatrix.HXCheby(
+        X2, alpha1, 0.0, alpha1 * alpha2, Y2, false, false, true, true);
+      //
+      // polynomial loop
+      //
+      for (unsigned int degree = 2; degree < m + 1; ++degree)
+        {
+          sigma2    = 1.0 / (gamma - sigma);
+          alpha1Old = alpha1, alpha2Old = alpha2;
+          alpha1 = 2.0 * sigma2 / e, alpha2 = -(sigma * sigma2);
+
+          if (degree == 2)
+            {
+              operatorMatrix.HXCheby(X2,
+                                     alpha1Old,
+                                     0.0,
+                                     alpha1Old * alpha2Old,
+                                     Y2,
+                                     false,
+                                     true,
+                                     false,
+                                     true);
+              Y1.updateGhostValuesBegin();
+              operatorMatrix.HXCheby(X2,
+                                     alpha1Old,
+                                     0.0,
+                                     alpha1Old * alpha2Old,
+                                     Y2,
+                                     false,
+                                     true,
+                                     true,
+                                     false);
+              Y1.updateGhostValuesEnd();
+              Y2.accumulateAddLocallyOwnedBegin();
+            }
+          else
+            {
+              operatorMatrix.HXCheby(Y2,
+                                     alpha1Old,
+                                     alpha2Old,
+                                     -c * alpha1Old,
+                                     X2,
+                                     false,
+                                     true,
+                                     false,
+                                     true);
+              Y1.updateGhostValuesBegin();
+              operatorMatrix.HXCheby(Y2,
+                                     alpha1Old,
+                                     alpha2Old,
+                                     -c * alpha1Old,
+                                     X2,
+                                     false,
+                                     true,
+                                     true,
+                                     false);
+              Y1.updateGhostValuesEnd();
+              X2.accumulateAddLocallyOwnedBegin();
+            }
+
+
+          //
+          // call HX
+          //
+          operatorMatrix.HXCheby(
+            Y1, alpha1, alpha2, -c * alpha1, X1, false, false, true, true);
+          if (degree == 2)
+            {
+              Y2.accumulateAddLocallyOwnedEnd();
+              Y2.zeroOutGhosts();
+            }
+          else
+            {
+              X2.accumulateAddLocallyOwnedEnd();
+              X2.zeroOutGhosts();
+              X2.swap(Y2);
+            }
+
+          operatorMatrix.HXCheby(
+            Y1, alpha1, alpha2, -c * alpha1, X1, false, true, false, true);
+          Y2.updateGhostValuesBegin();
+          operatorMatrix.HXCheby(
+            Y1, alpha1, alpha2, -c * alpha1, X1, false, true, true, false);
+          Y2.updateGhostValuesEnd();
+          X1.accumulateAddLocallyOwnedBegin();
+          operatorMatrix.HXCheby(
+            Y2, alpha1, alpha2, -c * alpha1, X2, false, false, true, true);
+          X1.accumulateAddLocallyOwnedEnd();
+          X1.zeroOutGhosts();
+
+          //
+          // XArray = YArray
+          //
+          X1.swap(Y1);
+
+          if (degree == m)
+            {
+              operatorMatrix.HXCheby(
+                Y2, alpha1, alpha2, -c * alpha1, X2, false, true, false, false);
+              X2.accumulateAddLocallyOwned();
+              X2.zeroOutGhosts();
+              X2.swap(Y2);
+            }
+
+          //
+          // YArray = YNewArray
+          //
+          sigma = sigma2;
+        }
+
+      // copy back YArray to XArray
+      X1 = Y1;
+      X2 = Y2;
+    }
 
 
     void
@@ -3703,16 +3661,16 @@ namespace dftfe
       dataTypes::number *                                  X,
       distributedDeviceVec<dataTypes::number> &            XBlock,
       distributedDeviceVec<dataTypes::number> &            HXBlock,
-      distributedDeviceVec<dataTypes::number> &projectorKetTimesVector,
-      const unsigned int                       M,
-      const unsigned int                       N,
-      const std::vector<double> &              eigenValues,
-      const MPI_Comm &                         mpiCommDomain,
-      const MPI_Comm &                         interBandGroupComm,
-      dftfe::utils::deviceBlasHandle_t &       handle,
-      std::vector<double> &                    residualNorm,
-      const dftParameters &                    dftParams,
-      const bool                               useBandParal)
+      const unsigned int                                   M,
+      const unsigned int                                   N,
+      const std::vector<double> &                          eigenValues,
+      const MPI_Comm &                                     mpiCommParent,
+      const MPI_Comm &                                     mpiCommDomain,
+      const MPI_Comm &                                     interBandGroupComm,
+      dftfe::utils::deviceBlasHandle_t &                   handle,
+      std::vector<double> &                                residualNorm,
+      const dftParameters &                                dftParams,
+      const bool                                           useBandParal)
     {
       // band group parallelization data structures
       const unsigned int numberBandGroups =
@@ -3844,8 +3802,23 @@ namespace dftfe
                       interBandGroupComm);
 
 
+      if (dftParams.verbosity >= 4)
+        {
+          if (dealii::Utilities::MPI::this_mpi_process(mpiCommParent) == 0)
+            std::cout << "L-2 Norm of residue   :" << std::endl;
+        }
       for (unsigned int iWave = 0; iWave < N; ++iWave)
         residualNorm[iWave] = std::sqrt(residualNorm[iWave]);
+
+      if (dftParams.verbosity >= 4 &&
+          dealii::Utilities::MPI::this_mpi_process(mpiCommParent) == 0)
+        for (unsigned int iWave = 0; iWave < N; ++iWave)
+          std::cout << "eigen vector " << iWave << ": " << residualNorm[iWave]
+                    << std::endl;
+
+      if (dftParams.verbosity >= 4)
+        if (dealii::Utilities::MPI::this_mpi_process(mpiCommParent) == 0)
+          std::cout << std::endl;
     }
 
     // X^{T}*HConj*XConj
@@ -3854,12 +3827,11 @@ namespace dftfe
          const dataTypes::number *                            X,
          distributedDeviceVec<dataTypes::number> &            XBlock,
          distributedDeviceVec<dataTypes::number> &            HXBlock,
-         distributedDeviceVec<dataTypes::number> &projectorKetTimesVector,
-         const unsigned int                       M,
-         const unsigned int                       N,
-         dftfe::utils::deviceBlasHandle_t &       handle,
-         const std::shared_ptr<const dftfe::ProcessGrid> &processGrid,
-         dftfe::ScaLAPACKMatrix<dataTypes::number> &      projHamPar,
+         const unsigned int                                   M,
+         const unsigned int                                   N,
+         dftfe::utils::deviceBlasHandle_t &                   handle,
+         const std::shared_ptr<const dftfe::ProcessGrid> &    processGrid,
+         dftfe::ScaLAPACKMatrix<dataTypes::number> &          projHamPar,
          utils::DeviceCCLWrapper &devicecclMpiCommDomain,
          const MPI_Comm &         mpiCommDomain,
          const MPI_Comm &         interBandGroupComm,
@@ -4015,17 +3987,16 @@ namespace dftfe
       const dataTypes::number *                            X,
       distributedDeviceVec<dataTypes::number> &            XBlock,
       distributedDeviceVec<dataTypes::number> &            HXBlock,
-      distributedDeviceVec<dataTypes::number> &        projectorKetTimesVector,
-      const unsigned int                               M,
-      const unsigned int                               N,
-      dftfe::utils::deviceBlasHandle_t &               handle,
-      const std::shared_ptr<const dftfe::ProcessGrid> &processGrid,
-      dftfe::ScaLAPACKMatrix<dataTypes::number> &      projHamPar,
-      utils::DeviceCCLWrapper &                        devicecclMpiCommDomain,
-      const MPI_Comm &                                 mpiCommDomain,
-      const MPI_Comm &                                 interBandGroupComm,
-      const dftParameters &                            dftParams,
-      const bool onlyHPrimePartForFirstOrderDensityMatResponse)
+      const unsigned int                                   M,
+      const unsigned int                                   N,
+      dftfe::utils::deviceBlasHandle_t &                   handle,
+      const std::shared_ptr<const dftfe::ProcessGrid> &    processGrid,
+      dftfe::ScaLAPACKMatrix<dataTypes::number> &          projHamPar,
+      utils::DeviceCCLWrapper &devicecclMpiCommDomain,
+      const MPI_Comm &         mpiCommDomain,
+      const MPI_Comm &         interBandGroupComm,
+      const dftParameters &    dftParams,
+      const bool               onlyHPrimePartForFirstOrderDensityMatResponse)
     {
       /////////////PSEUDO CODE for the implementation below for Overlapping
       /// compute and communication/////////////////
@@ -4401,20 +4372,18 @@ namespace dftfe
       operatorDFTClass<dftfe::utils::MemorySpace::DEVICE> &operatorMatrix,
       const dataTypes::number *                            X,
       distributedDeviceVec<dataTypes::number> &            XBlock,
-      distributedDeviceVec<dataTypes::numberFP32> &        tempFloatBlock,
       distributedDeviceVec<dataTypes::number> &            HXBlock,
-      distributedDeviceVec<dataTypes::number> &        projectorKetTimesVector,
-      const unsigned int                               M,
-      const unsigned int                               N,
-      const unsigned int                               Noc,
-      dftfe::utils::deviceBlasHandle_t &               handle,
-      const std::shared_ptr<const dftfe::ProcessGrid> &processGrid,
-      dftfe::ScaLAPACKMatrix<dataTypes::number> &      projHamPar,
-      utils::DeviceCCLWrapper &                        devicecclMpiCommDomain,
-      const MPI_Comm &                                 mpiCommDomain,
-      const MPI_Comm &                                 interBandGroupComm,
-      const dftParameters &                            dftParams,
-      const bool onlyHPrimePartForFirstOrderDensityMatResponse)
+      const unsigned int                                   M,
+      const unsigned int                                   N,
+      const unsigned int                                   Noc,
+      dftfe::utils::deviceBlasHandle_t &                   handle,
+      const std::shared_ptr<const dftfe::ProcessGrid> &    processGrid,
+      dftfe::ScaLAPACKMatrix<dataTypes::number> &          projHamPar,
+      utils::DeviceCCLWrapper &devicecclMpiCommDomain,
+      const MPI_Comm &         mpiCommDomain,
+      const MPI_Comm &         interBandGroupComm,
+      const dftParameters &    dftParams,
+      const bool               onlyHPrimePartForFirstOrderDensityMatResponse)
     {
       std::unordered_map<unsigned int, unsigned int> globalToLocalColumnIdMap;
       std::unordered_map<unsigned int, unsigned int> globalToLocalRowIdMap;
@@ -4937,18 +4906,17 @@ namespace dftfe
       const dataTypes::number *                            X,
       distributedDeviceVec<dataTypes::number> &            XBlock,
       distributedDeviceVec<dataTypes::number> &            HXBlock,
-      distributedDeviceVec<dataTypes::number> &        projectorKetTimesVector,
-      const unsigned int                               M,
-      const unsigned int                               N,
-      const unsigned int                               Noc,
-      dftfe::utils::deviceBlasHandle_t &               handle,
-      const std::shared_ptr<const dftfe::ProcessGrid> &processGrid,
-      dftfe::ScaLAPACKMatrix<dataTypes::number> &      projHamPar,
-      utils::DeviceCCLWrapper &                        devicecclMpiCommDomain,
-      const MPI_Comm &                                 mpiCommDomain,
-      const MPI_Comm &                                 interBandGroupComm,
-      const dftParameters &                            dftParams,
-      const bool onlyHPrimePartForFirstOrderDensityMatResponse)
+      const unsigned int                                   M,
+      const unsigned int                                   N,
+      const unsigned int                                   Noc,
+      dftfe::utils::deviceBlasHandle_t &                   handle,
+      const std::shared_ptr<const dftfe::ProcessGrid> &    processGrid,
+      dftfe::ScaLAPACKMatrix<dataTypes::number> &          projHamPar,
+      utils::DeviceCCLWrapper &devicecclMpiCommDomain,
+      const MPI_Comm &         mpiCommDomain,
+      const MPI_Comm &         interBandGroupComm,
+      const dftParameters &    dftParams,
+      const bool               onlyHPrimePartForFirstOrderDensityMatResponse)
     {
       /////////////PSEUDO CODE for the implementation below for Overlapping
       /// compute and communication/////////////////

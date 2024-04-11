@@ -1732,8 +1732,7 @@ namespace dftfe
     applyAllReduceOnCconjtransX(
       dftfe::linearAlgebra::MultiVector<ValueType, memorySpace>
         &        sphericalFunctionKetTimesVectorParFlattened,
-      const bool skip1,
-      const bool skip2)
+      const bool skipComm)
   {
     if constexpr (dftfe::utils::MemorySpace::HOST == memorySpace)
       {
@@ -1778,23 +1777,25 @@ namespace dftfe
                 //   inc);
               }
           }
-        sphericalFunctionKetTimesVectorParFlattened.accumulateAddLocallyOwned(
-          1);
-        sphericalFunctionKetTimesVectorParFlattened.updateGhostValues(1);
+        if (!skipComm)
+          {
+            sphericalFunctionKetTimesVectorParFlattened
+              .accumulateAddLocallyOwned(1);
+            sphericalFunctionKetTimesVectorParFlattened.updateGhostValues(1);
+          }
       }
 #if defined(DFTFE_WITH_DEVICE)
     else
       {
-        if (!skip1)
-          dftfe::AtomicCenteredNonLocalOperatorKernelsDevice::
-            copyToDealiiParallelNonLocalVec(
-              d_numberWaveFunctions,
-              d_totalNonLocalEntries,
-              d_sphericalFnTimesWavefunctionMatrix.begin(),
-              sphericalFunctionKetTimesVectorParFlattened.begin(),
-              d_sphericalFnIdsParallelNumberingMapDevice.begin());
+        dftfe::AtomicCenteredNonLocalOperatorKernelsDevice::
+          copyToDealiiParallelNonLocalVec(
+            d_numberWaveFunctions,
+            d_totalNonLocalEntries,
+            d_sphericalFnTimesWavefunctionMatrix.begin(),
+            sphericalFunctionKetTimesVectorParFlattened.begin(),
+            d_sphericalFnIdsParallelNumberingMapDevice.begin());
 
-        if (!skip1 && !skip2)
+        if (!skipComm)
           {
             sphericalFunctionKetTimesVectorParFlattened
               .accumulateAddLocallyOwned(1);

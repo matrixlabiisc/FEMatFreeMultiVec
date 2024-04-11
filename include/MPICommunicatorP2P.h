@@ -28,12 +28,13 @@
 #include <MemoryStorage.h>
 #include <DataTypeOverloads.h>
 #include <dftfeDataTypes.h>
-#if defined(DFTFE_WITH_CUDA_NCCL)
-#  include <nccl.h>
+#ifdef DFTFE_WITH_DEVICE
 #  include <DeviceTypeConfig.h>
-#elif defined(DFTFE_WITH_HIP_RCCL)
-#  include <rccl.h>
-#  include <DeviceTypeConfig.h>
+#  if defined(DFTFE_WITH_CUDA_NCCL)
+#    include <nccl.h>
+#  elif defined(DFTFE_WITH_HIP_RCCL)
+#    include <rccl.h>
+#  endif
 #endif
 
 
@@ -160,8 +161,8 @@ namespace dftfe
         std::vector<MPI_Request> d_requestsUpdateGhostValues;
         std::vector<MPI_Request> d_requestsAccumulateAddLocallyOwned;
         MPI_Comm                 d_mpiCommunicator;
-#if defined(DFTFE_WITH_CUDA_NCCL) || defined(DFTFE_WITH_HIP_RCCL)
-        dftfe::utils::deviceStream_t ncclCommStream;
+#ifdef DFTFE_WITH_DEVICE
+        dftfe::utils::deviceStream_t d_deviceCommStream;
 #endif
         communicationProtocol  d_commProtocol;
         communicationPrecision d_commPrecision;

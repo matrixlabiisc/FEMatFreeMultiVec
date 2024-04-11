@@ -65,17 +65,11 @@ namespace dftfe
       const MPI_Comm &            mpi_comm_domain);
 
     void
-    init();
-
-    void
-    reinit(const std::vector<double> &kPointCoordinates,
-           const std::vector<double> &kPointWeights);
+    init(const std::vector<double> &kPointCoordinates,
+         const std::vector<double> &kPointWeights);
 
     void
     resetExtPotHamFlag();
-
-    dftfe::linearAlgebra::MultiVector<dataTypes::number, memorySpace> &
-    getParallelProjectorKetTimesBlockVector();
 
     const MPI_Comm &
     getMPICommunicatorDomain();
@@ -190,7 +184,10 @@ namespace dftfe
       const double scalarY,
       const double scalarX,
       dftfe::linearAlgebra::MultiVector<dataTypes::number, memorySpace> &dst,
-      const bool onlyHPrimePartForFirstOrderDensityMatResponse = false);
+      const bool onlyHPrimePartForFirstOrderDensityMatResponse = false,
+      const bool skip1                                         = false,
+      const bool skip2                                         = false,
+      const bool skip3                                         = false);
 
     void
     HXRR(

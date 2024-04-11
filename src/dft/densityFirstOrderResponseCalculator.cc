@@ -453,6 +453,7 @@ namespace dftfe
                                       vectorsBlockSize +
                                     iQuad * vectorsBlockSize + iWave];
             rhoResponseHam[iCell * nQuadsPerCell + iQuad] +=
+              onesVec[iWave] *
               dftfe::utils::realPart(psi * dftfe::utils::complexConj(psiPrime));
 
             rhoResponseFermiEnergy[iCell * nQuadsPerCell + iQuad] +=

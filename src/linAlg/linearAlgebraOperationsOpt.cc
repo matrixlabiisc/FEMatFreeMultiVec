@@ -2813,11 +2813,10 @@ namespace dftfe
       //
       operatorMatrix.HX(X, 1.0, 0.0, 0.0, Y);
 
-      // evaluate fVector^{H}*vVector
       BLASWrapperPtr->xdot(local_size,
-                           Y.data(),
-                           1,
                            X.data(),
+                           1,
+                           Y.data(),
                            1,
                            operatorMatrix.getMPICommunicatorDomain(),
                            &alpha);
@@ -2848,9 +2847,9 @@ namespace dftfe
             local_size, &alphaNeg, Z.data(), 1, Y.data(), 1);
 
           BLASWrapperPtr->xdot(local_size,
-                               Y.data(),
-                               1,
                                X.data(),
+                               1,
+                               Y.data(),
                                1,
                                operatorMatrix.getMPICommunicatorDomain(),
                                &alpha);

@@ -557,6 +557,37 @@ namespace dftfe
                         const bool meshOnlyDeformed,
                         const bool vselfPerturbationUpdateForStress = false);
 
+
+    void
+    updatePRefinedConstraints();
+
+    /**
+     *@brief Sets inhomegeneous dirichlet boundary conditions upto quadrupole for total potential constraints on
+     * non-periodic boundary (boundary id==0).
+     *
+     * @param[in] dofHandler
+     * @param[out] constraintMatrix dealii::AffineConstraints<double> object
+     *with inhomogeneous Dirichlet boundary condition entries added
+     */
+    void
+    applyMultipoleDirichletBC(
+      const dealii::DoFHandler<3> &            _dofHandler,
+      const dealii::AffineConstraints<double> &onlyHangingNodeConstraints,
+      dealii::AffineConstraints<double> &      constraintMatrix);
+
+
+    void
+    computeMultipoleMoments(
+      const std::shared_ptr<
+        dftfe::basis::
+          FEBasisOperations<double, double, dftfe::utils::MemorySpace::HOST>>
+        &                basisOperationsPtr,
+      const unsigned int densityQuadratureId,
+      const dftfe::utils::MemoryStorage<double, dftfe::utils::MemorySpace::HOST>
+        &                                                  rhoQuadValues,
+      const std::map<dealii::CellId, std::vector<double>> *bQuadValues);
+
+
     /**
      *@brief interpolate rho nodal data to quadrature data using FEEvaluation
      *
@@ -1176,6 +1207,7 @@ namespace dftfe
     unsigned int                  d_lpspQuadratureIdElectro;
     unsigned int                  d_gllQuadratureId;
     unsigned int                  d_phiTotDofHandlerIndexElectro;
+    unsigned int                  d_phiPrimeDofHandlerIndexElectro;
     unsigned int                  d_phiTotAXQuadratureIdElectro;
     unsigned int                  d_helmholtzDofHandlerIndexElectro;
     unsigned int                  d_binsStartDofHandlerIndexElectro;
@@ -1254,9 +1286,14 @@ namespace dftfe
     elpaScalaManager *d_elpaScala;
 
     poissonSolverProblem<FEOrder, FEOrderElectro> d_phiTotalSolverProblem;
+
+    poissonSolverProblem<FEOrder, FEOrderElectro> d_phiPrimeSolverProblem;
 #ifdef DFTFE_WITH_DEVICE
     poissonSolverProblemDevice<FEOrder, FEOrderElectro>
       d_phiTotalSolverProblemDevice;
+
+    poissonSolverProblemDevice<FEOrder, FEOrderElectro>
+      d_phiPrimeSolverProblemDevice;
 #endif
 
     bool d_kohnShamDFTOperatorsInitialized;
@@ -1306,6 +1343,8 @@ namespace dftfe
       d_noConstraints;
 
     dealii::AffineConstraints<double> d_constraintsForTotalPotentialElectro;
+
+    dealii::AffineConstraints<double> d_constraintsForPhiPrimeElectro;
 
     dealii::AffineConstraints<double> d_constraintsForHelmholtzRhoNodal;
 
@@ -1396,6 +1435,14 @@ namespace dftfe
       d_densityTotalOutValuesLpspQuad, d_densityTotalInValuesLpspQuad,
       d_gradDensityTotalOutValuesLpspQuad, d_gradDensityTotalInValuesLpspQuad;
 
+    // For multipole boundary conditions
+    double              d_monopole;
+    std::vector<double> d_dipole;
+    std::vector<double> d_quadrupole;
+    std::vector<double> d_smearedChargeMoments;
+    bool                d_smearedChargeMomentsComputed;
+
+
     /// for low rank jacobian inverse approximation
     std::deque<distributedCPUVec<double>> d_vcontainerVals;
     std::deque<distributedCPUVec<double>> d_fvcontainerVals;
@@ -1428,6 +1475,11 @@ namespace dftfe
     // storage for total electrostatic potential solution vector corresponding
     // to output scf electron density
     distributedCPUVec<double> d_phiTotRhoOut;
+
+    // storage for electrostatic potential Gateaux derivate corresponding
+    // to electron number preserving electron-density peturbation (required for
+    // LRDM)
+    distributedCPUVec<double> d_phiPrime;
 
     // storage for sum of nuclear electrostatic potential
     distributedCPUVec<double> d_phiExt;

@@ -36,6 +36,8 @@ namespace dftfe
       d_phiTotRhoIn, d_phiTotDofHandlerIndexElectro);
     d_phiTotRhoOut.reinit(d_phiTotRhoIn);
     d_matrixFreeDataPRefined.initialize_dof_vector(
+      d_phiPrime, d_phiPrimeDofHandlerIndexElectro);
+    d_matrixFreeDataPRefined.initialize_dof_vector(
       d_phiExt, d_phiExtDofHandlerIndexElectro);
 
     d_densityInNodalValues.resize(d_dftParamsPtr->spinPolarized == 1 ? 2 : 1);

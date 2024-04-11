@@ -216,14 +216,17 @@ namespace dftfe
         const MemoryStorage<size_type, utils::MemorySpace::DEVICE>
           &             ownedLocalIndicesForTargetProcs,
         const size_type blockSize,
-        MemoryStorage<ValueTypeComm, utils::MemorySpace::DEVICE> &sendBuffer)
+        MemoryStorage<ValueTypeComm, utils::MemorySpace::DEVICE> &sendBuffer,
+        dftfe::utils::deviceStream_t deviceCommStream)
     {
 #  ifdef DFTFE_WITH_DEVICE_LANG_CUDA
       gatherSendBufferDeviceKernel<<<(ownedLocalIndicesForTargetProcs.size() *
                                       blockSize) /
                                          dftfe::utils::DEVICE_BLOCK_SIZE +
                                        1,
-                                     dftfe::utils::DEVICE_BLOCK_SIZE>>>(
+                                     dftfe::utils::DEVICE_BLOCK_SIZE,
+                                     0,
+                                     deviceCommStream>>>(
         ownedLocalIndicesForTargetProcs.size() * blockSize,
         blockSize,
         dftfe::utils::makeDataTypeDeviceCompatible(dataArray.data()),
@@ -238,7 +241,7 @@ namespace dftfe
           1,
         dftfe::utils::DEVICE_BLOCK_SIZE,
         0,
-        0,
+        deviceCommStream,
         ownedLocalIndicesForTargetProcs.size() * blockSize,
         blockSize,
         dftfe::utils::makeDataTypeDeviceCompatible(dataArray.data()),
@@ -260,14 +263,17 @@ namespace dftfe
         const size_type blockSize,
         const size_type locallyOwnedSize,
         const size_type ghostSize,
-        MemoryStorage<ValueType, dftfe::utils::MemorySpace::DEVICE> &dataArray)
+        MemoryStorage<ValueType, dftfe::utils::MemorySpace::DEVICE> &dataArray,
+        dftfe::utils::deviceStream_t deviceCommStream)
     {
 #  ifdef DFTFE_WITH_DEVICE_LANG_CUDA
       accumAddFromRecvBufferDeviceKernel<<<
         (ownedLocalIndicesForTargetProcs.size() * blockSize) /
             dftfe::utils::DEVICE_BLOCK_SIZE +
           1,
-        dftfe::utils::DEVICE_BLOCK_SIZE>>>(
+        dftfe::utils::DEVICE_BLOCK_SIZE,
+        0,
+        deviceCommStream>>>(
         ownedLocalIndicesForTargetProcs.size() * blockSize,
         blockSize,
         dftfe::utils::makeDataTypeDeviceCompatible(recvBuffer.data()),
@@ -282,7 +288,7 @@ namespace dftfe
           1,
         dftfe::utils::DEVICE_BLOCK_SIZE,
         0,
-        0,
+        deviceCommStream,
         ownedLocalIndicesForTargetProcs.size() * blockSize,
         blockSize,
         dftfe::utils::makeDataTypeDeviceCompatible(recvBuffer.data()),
@@ -295,12 +301,14 @@ namespace dftfe
     template <typename ValueType1, typename ValueType2>
     void
     MPICommunicatorP2PKernels<ValueType, utils::MemorySpace::DEVICE>::
-      copyValueType1ArrToValueType2Arr(const size_type   blockSize,
-                                       const ValueType1 *type1Array,
-                                       ValueType2 *      type2Array)
+      copyValueType1ArrToValueType2Arr(
+        const size_type              blockSize,
+        const ValueType1 *           type1Array,
+        ValueType2 *                 type2Array,
+        dftfe::utils::deviceStream_t deviceCommStream)
     {
       dftfe::utils::deviceKernelsGeneric::copyValueType1ArrToValueType2Arr(
-        blockSize, type1Array, type2Array);
+        blockSize, type1Array, type2Array, deviceCommStream);
     }
 
     template class MPICommunicatorP2PKernels<double,
@@ -318,7 +326,8 @@ namespace dftfe
         const MemoryStorage<size_type, utils::MemorySpace::DEVICE>
           &             ownedLocalIndicesForTargetProcs,
         const size_type blockSize,
-        MemoryStorage<double, utils::MemorySpace::DEVICE> &sendBuffer);
+        MemoryStorage<double, utils::MemorySpace::DEVICE> &sendBuffer,
+        dftfe::utils::deviceStream_t                       deviceCommStream);
 
     template void
     MPICommunicatorP2PKernels<double, utils::MemorySpace::DEVICE>::
@@ -327,7 +336,8 @@ namespace dftfe
         const MemoryStorage<size_type, utils::MemorySpace::DEVICE>
           &             ownedLocalIndicesForTargetProcs,
         const size_type blockSize,
-        MemoryStorage<float, utils::MemorySpace::DEVICE> &sendBuffer);
+        MemoryStorage<float, utils::MemorySpace::DEVICE> &sendBuffer,
+        dftfe::utils::deviceStream_t                      deviceCommStream);
 
     template void
     MPICommunicatorP2PKernels<float, utils::MemorySpace::DEVICE>::
@@ -336,7 +346,8 @@ namespace dftfe
         const MemoryStorage<size_type, utils::MemorySpace::DEVICE>
           &             ownedLocalIndicesForTargetProcs,
         const size_type blockSize,
-        MemoryStorage<float, utils::MemorySpace::DEVICE> &sendBuffer);
+        MemoryStorage<float, utils::MemorySpace::DEVICE> &sendBuffer,
+        dftfe::utils::deviceStream_t                      deviceCommStream);
 
     template void
     MPICommunicatorP2PKernels<std::complex<double>,
@@ -348,7 +359,8 @@ namespace dftfe
           &             ownedLocalIndicesForTargetProcs,
         const size_type blockSize,
         MemoryStorage<std::complex<double>, utils::MemorySpace::DEVICE>
-          &sendBuffer);
+          &                          sendBuffer,
+        dftfe::utils::deviceStream_t deviceCommStream);
 
     template void
     MPICommunicatorP2PKernels<std::complex<double>,
@@ -360,7 +372,8 @@ namespace dftfe
           &             ownedLocalIndicesForTargetProcs,
         const size_type blockSize,
         MemoryStorage<std::complex<float>, utils::MemorySpace::DEVICE>
-          &sendBuffer);
+          &                          sendBuffer,
+        dftfe::utils::deviceStream_t deviceCommStream);
 
     template void
     MPICommunicatorP2PKernels<std::complex<float>, utils::MemorySpace::DEVICE>::
@@ -371,7 +384,8 @@ namespace dftfe
           &             ownedLocalIndicesForTargetProcs,
         const size_type blockSize,
         MemoryStorage<std::complex<float>, utils::MemorySpace::DEVICE>
-          &sendBuffer);
+          &                          sendBuffer,
+        dftfe::utils::deviceStream_t deviceCommStream);
 
     template void
     MPICommunicatorP2PKernels<double, utils::MemorySpace::DEVICE>::
@@ -382,7 +396,8 @@ namespace dftfe
         const size_type blockSize,
         const size_type locallyOwnedSize,
         const size_type ghostSize,
-        MemoryStorage<double, dftfe::utils::MemorySpace::DEVICE> &dataArray);
+        MemoryStorage<double, dftfe::utils::MemorySpace::DEVICE> &dataArray,
+        dftfe::utils::deviceStream_t deviceCommStream);
 
     template void
     MPICommunicatorP2PKernels<double, utils::MemorySpace::DEVICE>::
@@ -393,7 +408,8 @@ namespace dftfe
         const size_type blockSize,
         const size_type locallyOwnedSize,
         const size_type ghostSize,
-        MemoryStorage<double, dftfe::utils::MemorySpace::DEVICE> &dataArray);
+        MemoryStorage<double, dftfe::utils::MemorySpace::DEVICE> &dataArray,
+        dftfe::utils::deviceStream_t deviceCommStream);
 
     template void
     MPICommunicatorP2PKernels<float, utils::MemorySpace::DEVICE>::
@@ -404,7 +420,8 @@ namespace dftfe
         const size_type blockSize,
         const size_type locallyOwnedSize,
         const size_type ghostSize,
-        MemoryStorage<float, dftfe::utils::MemorySpace::DEVICE> &dataArray);
+        MemoryStorage<float, dftfe::utils::MemorySpace::DEVICE> &dataArray,
+        dftfe::utils::deviceStream_t deviceCommStream);
 
     template void
     MPICommunicatorP2PKernels<std::complex<double>,
@@ -418,7 +435,8 @@ namespace dftfe
         const size_type locallyOwnedSize,
         const size_type ghostSize,
         MemoryStorage<std::complex<double>, dftfe::utils::MemorySpace::DEVICE>
-          &dataArray);
+          &                          dataArray,
+        dftfe::utils::deviceStream_t deviceCommStream);
 
     template void
     MPICommunicatorP2PKernels<std::complex<double>,
@@ -432,7 +450,8 @@ namespace dftfe
         const size_type locallyOwnedSize,
         const size_type ghostSize,
         MemoryStorage<std::complex<double>, dftfe::utils::MemorySpace::DEVICE>
-          &dataArray);
+          &                          dataArray,
+        dftfe::utils::deviceStream_t deviceCommStream);
 
     template void
     MPICommunicatorP2PKernels<std::complex<float>, utils::MemorySpace::DEVICE>::
@@ -445,44 +464,57 @@ namespace dftfe
         const size_type locallyOwnedSize,
         const size_type ghostSize,
         MemoryStorage<std::complex<float>, dftfe::utils::MemorySpace::DEVICE>
-          &dataArray);
+          &                          dataArray,
+        dftfe::utils::deviceStream_t deviceCommStream);
     template void
     MPICommunicatorP2PKernels<double, dftfe::utils::MemorySpace::DEVICE>::
-      copyValueType1ArrToValueType2Arr(const size_type blockSize,
-                                       const double *  type1Array,
-                                       float *         type2Array);
+      copyValueType1ArrToValueType2Arr(
+        const size_type              blockSize,
+        const double *               type1Array,
+        float *                      type2Array,
+        dftfe::utils::deviceStream_t deviceCommStream);
 
     template void
     MPICommunicatorP2PKernels<double, dftfe::utils::MemorySpace::DEVICE>::
-      copyValueType1ArrToValueType2Arr(const size_type blockSize,
-                                       const float *   type1Array,
-                                       double *        type2Array);
+      copyValueType1ArrToValueType2Arr(
+        const size_type              blockSize,
+        const float *                type1Array,
+        double *                     type2Array,
+        dftfe::utils::deviceStream_t deviceCommStream);
 
     template void
     MPICommunicatorP2PKernels<std::complex<double>,
                               dftfe::utils::MemorySpace::DEVICE>::
-      copyValueType1ArrToValueType2Arr(const size_type             blockSize,
-                                       const std::complex<double> *type1Array,
-                                       std::complex<float> *       type2Array);
+      copyValueType1ArrToValueType2Arr(
+        const size_type              blockSize,
+        const std::complex<double> * type1Array,
+        std::complex<float> *        type2Array,
+        dftfe::utils::deviceStream_t deviceCommStream);
 
     template void
     MPICommunicatorP2PKernels<std::complex<double>,
                               dftfe::utils::MemorySpace::DEVICE>::
-      copyValueType1ArrToValueType2Arr(const size_type            blockSize,
-                                       const std::complex<float> *type1Array,
-                                       std::complex<double> *     type2Array);
+      copyValueType1ArrToValueType2Arr(
+        const size_type              blockSize,
+        const std::complex<float> *  type1Array,
+        std::complex<double> *       type2Array,
+        dftfe::utils::deviceStream_t deviceCommStream);
     template void
     MPICommunicatorP2PKernels<float, dftfe::utils::MemorySpace::DEVICE>::
-      copyValueType1ArrToValueType2Arr(const size_type blockSize,
-                                       const float *   type1Array,
-                                       float *         type2Array);
+      copyValueType1ArrToValueType2Arr(
+        const size_type              blockSize,
+        const float *                type1Array,
+        float *                      type2Array,
+        dftfe::utils::deviceStream_t deviceCommStream);
 
     template void
     MPICommunicatorP2PKernels<std::complex<float>,
                               dftfe::utils::MemorySpace::DEVICE>::
-      copyValueType1ArrToValueType2Arr(const size_type            blockSize,
-                                       const std::complex<float> *type1Array,
-                                       std::complex<float> *      type2Array);
+      copyValueType1ArrToValueType2Arr(
+        const size_type              blockSize,
+        const std::complex<float> *  type1Array,
+        std::complex<float> *        type2Array,
+        dftfe::utils::deviceStream_t deviceCommStream);
 
   } // namespace utils
 } // namespace dftfe

@@ -145,22 +145,6 @@ namespace dftfe
     const dftParameters &d_dftParams;
 
     //
-    // temporary parallel vectors needed for Chebyshev filtering
-    //
-    distributedDeviceVec<dataTypes::number> d_YArray;
-
-    distributedDeviceVec<dataTypes::numberFP32>
-      d_deviceFlattenedFloatArrayBlock;
-
-    distributedDeviceVec<dataTypes::number> d_deviceFlattenedArrayBlock2;
-
-    distributedDeviceVec<dataTypes::number> d_YArray2;
-
-    distributedDeviceVec<dataTypes::number> d_projectorKetTimesVector2;
-
-    bool d_isTemporaryParallelVectorsCreated;
-
-    //
     // variables for printing out and timing
     //
     dealii::ConditionalOStream pcout;

@@ -981,24 +981,70 @@ namespace dftfe
       const double                            fermiEnergy)
   {
     double maxHighestOccupiedStateResNorm = -1e+6;
-    for (int kPoint = 0; kPoint < eigenValuesAllkPoints.size(); ++kPoint)
+    if (d_dftParamsPtr->reproducible_output)
       {
-        unsigned int highestOccupiedState = 0;
-
-        for (unsigned int i = 0; i < eigenValuesAllkPoints[kPoint].size(); i++)
+        for (int kPoint = 0; kPoint < eigenValuesAllkPoints.size(); ++kPoint)
           {
-            const double factor =
-              (eigenValuesAllkPoints[kPoint][i] - fermiEnergy) /
-              (C_kb * d_dftParamsPtr->TVal);
-            if (factor < 0)
-              highestOccupiedState = i;
+            unsigned int highestOccupiedState = 0;
+
+            for (unsigned int i = 0; i < eigenValuesAllkPoints[kPoint].size();
+                 i++)
+              {
+                const double factor =
+                  (eigenValuesAllkPoints[kPoint][i] - fermiEnergy) /
+                  (C_kb * d_dftParamsPtr->TVal);
+                if (factor < 0)
+                  highestOccupiedState = i;
+              }
+
+            if (residualNormWaveFunctionsAllkPoints[kPoint]
+                                                   [highestOccupiedState] >
+                maxHighestOccupiedStateResNorm)
+              {
+                maxHighestOccupiedStateResNorm =
+                  residualNormWaveFunctionsAllkPoints[kPoint]
+                                                     [highestOccupiedState];
+              }
           }
-
-        if (residualNormWaveFunctionsAllkPoints[kPoint][highestOccupiedState] >
-            maxHighestOccupiedStateResNorm)
+      }
+    else
+      {
+        for (int kPoint = 0; kPoint < eigenValuesAllkPoints.size(); ++kPoint)
           {
-            maxHighestOccupiedStateResNorm =
-              residualNormWaveFunctionsAllkPoints[kPoint][highestOccupiedState];
+            unsigned int highestOccupiedState = 0;
+
+            for (unsigned int i = 0; i < eigenValuesAllkPoints[kPoint].size();
+                 i++)
+              {
+                const double factor =
+                  (eigenValuesAllkPoints[kPoint][i] - fermiEnergy) /
+                  (C_kb * d_dftParamsPtr->TVal);
+                double functionValue;
+                if (factor <= 0.0)
+                  {
+                    double temp2  = 1.0 / (1.0 + exp(factor));
+                    functionValue = (2.0 - d_dftParamsPtr->spinPolarized) *
+                                    d_kPointWeights[kPoint] * temp2;
+                  }
+                else
+                  {
+                    double temp2  = 1.0 / (1.0 + exp(-factor));
+                    functionValue = (2.0 - d_dftParamsPtr->spinPolarized) *
+                                    d_kPointWeights[kPoint] * exp(-factor) *
+                                    temp2;
+                  }
+                if (functionValue > 1e-3)
+                  highestOccupiedState = i;
+              }
+            for (unsigned int i = 0; i < highestOccupiedState; i++)
+              {
+                if (residualNormWaveFunctionsAllkPoints[kPoint][i] >
+                    maxHighestOccupiedStateResNorm)
+                  {
+                    maxHighestOccupiedStateResNorm =
+                      residualNormWaveFunctionsAllkPoints[kPoint][i];
+                  }
+              }
           }
       }
     maxHighestOccupiedStateResNorm =

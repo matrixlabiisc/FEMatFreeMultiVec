@@ -487,7 +487,8 @@ namespace dftfe
     constraintMatrixInfoDevice::initialize(
       const std::shared_ptr<const dealii::Utilities::MPI::Partitioner>
         &                                      partitioner,
-      const dealii::AffineConstraints<double> &constraintMatrixData)
+      const dealii::AffineConstraints<double> &constraintMatrixData,
+      const bool                               useInhomogeneties)
 
     {
       clear();
@@ -505,8 +506,11 @@ namespace dftfe
             {
               const dealii::types::global_dof_index lineDof = *it;
               d_rowIdsLocal.push_back(partitioner->global_to_local(lineDof));
-              d_inhomogenities.push_back(
-                constraintMatrixData.get_inhomogeneity(lineDof));
+              if (useInhomogeneties)
+                d_inhomogenities.push_back(
+                  constraintMatrixData.get_inhomogeneity(lineDof));
+              else
+                d_inhomogenities.push_back(0.0);
               const std::vector<
                 std::pair<dealii::types::global_dof_index, double>> *rowData =
                 constraintMatrixData.get_constraint_entries(lineDof);
@@ -537,8 +541,11 @@ namespace dftfe
             {
               const dealii::types::global_dof_index lineDof = *it;
               d_rowIdsLocal.push_back(partitioner->global_to_local(lineDof));
-              d_inhomogenities.push_back(
-                constraintMatrixData.get_inhomogeneity(lineDof));
+              if (useInhomogeneties)
+                d_inhomogenities.push_back(
+                  constraintMatrixData.get_inhomogeneity(lineDof));
+              else
+                d_inhomogenities.push_back(0.0);
               const std::vector<
                 std::pair<dealii::types::global_dof_index, double>> *rowData =
                 constraintMatrixData.get_constraint_entries(lineDof);
@@ -591,11 +598,11 @@ namespace dftfe
 
       const unsigned int blockSize = fieldVector.numVectors();
 #ifdef DFTFE_WITH_DEVICE_LANG_CUDA
-      distributeKernel<<<
-        min((blockSize + (dftfe::utils::DEVICE_BLOCK_SIZE - 1)) /
-              dftfe::utils::DEVICE_BLOCK_SIZE * d_numConstrainedDofs,
-            30000),
-        dftfe::utils::DEVICE_BLOCK_SIZE>>>(
+      distributeKernel<<<min((blockSize * d_numConstrainedDofs +
+                              (dftfe::utils::DEVICE_BLOCK_SIZE - 1)) /
+                               dftfe::utils::DEVICE_BLOCK_SIZE,
+                             30000),
+                         dftfe::utils::DEVICE_BLOCK_SIZE>>>(
         blockSize,
         dftfe::utils::makeDataTypeDeviceCompatible(fieldVector.begin()),
         d_rowIdsLocalDevice.begin(),
@@ -606,23 +613,24 @@ namespace dftfe
         d_columnValuesDevice.begin(),
         d_inhomogenitiesDevice.begin());
 #elif DFTFE_WITH_DEVICE_LANG_HIP
-      hipLaunchKernelGGL(
-        distributeKernel,
-        min((blockSize + (dftfe::utils::DEVICE_BLOCK_SIZE - 1)) /
-              dftfe::utils::DEVICE_BLOCK_SIZE * d_numConstrainedDofs,
-            30000),
-        dftfe::utils::DEVICE_BLOCK_SIZE,
-        0,
-        0,
-        blockSize,
-        dftfe::utils::makeDataTypeDeviceCompatible(fieldVector.begin()),
-        d_rowIdsLocalDevice.begin(),
-        d_numConstrainedDofs,
-        d_rowSizesDevice.begin(),
-        d_rowSizesAccumulatedDevice.begin(),
-        d_columnIdsLocalDevice.begin(),
-        d_columnValuesDevice.begin(),
-        d_inhomogenitiesDevice.begin());
+      hipLaunchKernelGGL(distributeKernel,
+                         min((blockSize * d_numConstrainedDofs +
+                              (dftfe::utils::DEVICE_BLOCK_SIZE - 1)) /
+                               dftfe::utils::DEVICE_BLOCK_SIZE,
+                             30000),
+                         dftfe::utils::DEVICE_BLOCK_SIZE,
+                         0,
+                         0,
+                         blockSize,
+                         dftfe::utils::makeDataTypeDeviceCompatible(
+                           fieldVector.begin()),
+                         d_rowIdsLocalDevice.begin(),
+                         d_numConstrainedDofs,
+                         d_rowSizesDevice.begin(),
+                         d_rowSizesAccumulatedDevice.begin(),
+                         d_columnIdsLocalDevice.begin(),
+                         d_columnValuesDevice.begin(),
+                         d_inhomogenitiesDevice.begin());
 #endif
     }
 
@@ -680,8 +688,9 @@ namespace dftfe
       const unsigned int blockSize = fieldVector.numVectors();
 #ifdef DFTFE_WITH_DEVICE_LANG_CUDA
       distributeSlaveToMasterKernelAtomicAdd<<<
-        min((blockSize + (dftfe::utils::DEVICE_BLOCK_SIZE - 1)) /
-              dftfe::utils::DEVICE_BLOCK_SIZE * d_numConstrainedDofs,
+        min((blockSize * d_numConstrainedDofs +
+             (dftfe::utils::DEVICE_BLOCK_SIZE - 1)) /
+              dftfe::utils::DEVICE_BLOCK_SIZE,
             30000),
         dftfe::utils::DEVICE_BLOCK_SIZE>>>(
         blockSize,
@@ -693,22 +702,23 @@ namespace dftfe
         d_columnIdsLocalDevice.begin(),
         d_columnValuesDevice.begin());
 #elif DFTFE_WITH_DEVICE_LANG_HIP
-      hipLaunchKernelGGL(
-        distributeSlaveToMasterKernelAtomicAdd,
-        min((blockSize + (dftfe::utils::DEVICE_BLOCK_SIZE - 1)) /
-              dftfe::utils::DEVICE_BLOCK_SIZE * d_numConstrainedDofs,
-            30000),
-        dftfe::utils::DEVICE_BLOCK_SIZE,
-        0,
-        0,
-        blockSize,
-        dftfe::utils::makeDataTypeDeviceCompatible(fieldVector.begin()),
-        d_rowIdsLocalDevice.begin(),
-        d_numConstrainedDofs,
-        d_rowSizesDevice.begin(),
-        d_rowSizesAccumulatedDevice.begin(),
-        d_columnIdsLocalDevice.begin(),
-        d_columnValuesDevice.begin());
+      hipLaunchKernelGGL(distributeSlaveToMasterKernelAtomicAdd,
+                         min((blockSize * d_numConstrainedDofs +
+                              (dftfe::utils::DEVICE_BLOCK_SIZE - 1)) /
+                               dftfe::utils::DEVICE_BLOCK_SIZE,
+                             30000),
+                         dftfe::utils::DEVICE_BLOCK_SIZE,
+                         0,
+                         0,
+                         blockSize,
+                         dftfe::utils::makeDataTypeDeviceCompatible(
+                           fieldVector.begin()),
+                         d_rowIdsLocalDevice.begin(),
+                         d_numConstrainedDofs,
+                         d_rowSizesDevice.begin(),
+                         d_rowSizesAccumulatedDevice.begin(),
+                         d_columnIdsLocalDevice.begin(),
+                         d_columnValuesDevice.begin());
 #endif
     }
 
@@ -723,8 +733,9 @@ namespace dftfe
       const unsigned int blockSize = fieldVector.numVectors();
 #ifdef DFTFE_WITH_DEVICE_LANG_CUDA
       distributeSlaveToMasterKernelAtomicAdd<<<
-        min((blockSize + (dftfe::utils::DEVICE_BLOCK_SIZE - 1)) /
-              dftfe::utils::DEVICE_BLOCK_SIZE * d_numConstrainedDofs,
+        min((blockSize * d_numConstrainedDofs +
+             (dftfe::utils::DEVICE_BLOCK_SIZE - 1)) /
+              dftfe::utils::DEVICE_BLOCK_SIZE,
             30000),
         dftfe::utils::DEVICE_BLOCK_SIZE>>>(
         blockSize,
@@ -736,22 +747,23 @@ namespace dftfe
         d_columnIdsLocalDevice.begin(),
         d_columnValuesDevice.begin());
 #elif DFTFE_WITH_DEVICE_LANG_HIP
-      hipLaunchKernelGGL(
-        distributeSlaveToMasterKernelAtomicAdd,
-        min((blockSize + (dftfe::utils::DEVICE_BLOCK_SIZE - 1)) /
-              dftfe::utils::DEVICE_BLOCK_SIZE * d_numConstrainedDofs,
-            30000),
-        dftfe::utils::DEVICE_BLOCK_SIZE,
-        0,
-        0,
-        blockSize,
-        dftfe::utils::makeDataTypeDeviceCompatible(fieldVector.begin()),
-        d_rowIdsLocalDevice.begin(),
-        d_numConstrainedDofs,
-        d_rowSizesDevice.begin(),
-        d_rowSizesAccumulatedDevice.begin(),
-        d_columnIdsLocalDevice.begin(),
-        d_columnValuesDevice.begin());
+      hipLaunchKernelGGL(distributeSlaveToMasterKernelAtomicAdd,
+                         min((blockSize * d_numConstrainedDofs +
+                              (dftfe::utils::DEVICE_BLOCK_SIZE - 1)) /
+                               dftfe::utils::DEVICE_BLOCK_SIZE,
+                             30000),
+                         dftfe::utils::DEVICE_BLOCK_SIZE,
+                         0,
+                         0,
+                         blockSize,
+                         dftfe::utils::makeDataTypeDeviceCompatible(
+                           fieldVector.begin()),
+                         d_rowIdsLocalDevice.begin(),
+                         d_numConstrainedDofs,
+                         d_rowSizesDevice.begin(),
+                         d_rowSizesAccumulatedDevice.begin(),
+                         d_columnIdsLocalDevice.begin(),
+                         d_columnValuesDevice.begin());
 #endif
     }
 
@@ -767,9 +779,9 @@ namespace dftfe
       const unsigned int blockSize          = fieldVector.numVectors();
       const unsigned int numConstrainedDofs = d_rowIdsLocal.size();
 #ifdef DFTFE_WITH_DEVICE_LANG_CUDA
-      setzeroKernel<<<min((blockSize + (dftfe::utils::DEVICE_BLOCK_SIZE - 1)) /
-                            dftfe::utils::DEVICE_BLOCK_SIZE *
-                            numConstrainedDofs,
+      setzeroKernel<<<min((blockSize * numConstrainedDofs +
+                           (dftfe::utils::DEVICE_BLOCK_SIZE - 1)) /
+                            dftfe::utils::DEVICE_BLOCK_SIZE,
                           30000),
                       dftfe::utils::DEVICE_BLOCK_SIZE>>>(
         blockSize,
@@ -777,18 +789,19 @@ namespace dftfe
         d_rowIdsLocalDevice.begin(),
         numConstrainedDofs);
 #elif DFTFE_WITH_DEVICE_LANG_HIP
-      hipLaunchKernelGGL(
-        setzeroKernel,
-        min((blockSize + (dftfe::utils::DEVICE_BLOCK_SIZE - 1)) /
-              dftfe::utils::DEVICE_BLOCK_SIZE * numConstrainedDofs,
-            30000),
-        dftfe::utils::DEVICE_BLOCK_SIZE,
-        0,
-        0,
-        blockSize,
-        dftfe::utils::makeDataTypeDeviceCompatible(fieldVector.begin()),
-        d_rowIdsLocalDevice.begin(),
-        numConstrainedDofs);
+      hipLaunchKernelGGL(setzeroKernel,
+                         min((blockSize * numConstrainedDofs +
+                              (dftfe::utils::DEVICE_BLOCK_SIZE - 1)) /
+                               dftfe::utils::DEVICE_BLOCK_SIZE,
+                             30000),
+                         dftfe::utils::DEVICE_BLOCK_SIZE,
+                         0,
+                         0,
+                         blockSize,
+                         dftfe::utils::makeDataTypeDeviceCompatible(
+                           fieldVector.begin()),
+                         d_rowIdsLocalDevice.begin(),
+                         numConstrainedDofs);
 #endif
     }
 

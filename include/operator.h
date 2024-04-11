@@ -62,14 +62,6 @@ namespace dftfe
     using constraintInfoClass = dftUtils::constraintMatrixInfo;
 #endif
 
-    /**
-     * @brief initialize operatorClass
-     *
-     */
-    virtual void
-    init() = 0;
-
-
     virtual dftfe::linearAlgebra::MultiVector<dataTypes::number, memorySpace> &
     getScratchFEMultivector(const unsigned int numVectors,
                             const unsigned int index) = 0;
@@ -82,21 +74,9 @@ namespace dftfe
     virtual void
     setVeffMF();
 
-    /**
-     * @brief initializes parallel layouts and index maps for HX, XtHX and creates a flattened array format for X
-     *
-     * @param wavefunBlockSize number of wavefunction vector (block size of X).
-     * @param flag controls the creation of flattened array format and index maps or only index maps
-     *
-     * @return X format to store a multi-vector array
-     * in a flattened format with all the wavefunction values corresponding to a
-     * given node being stored contiguously
-     *
-     */
-
     virtual void
-    reinit(const std::vector<double> &kPointCoordinates,
-           const std::vector<double> &kPointWeights) = 0;
+    init(const std::vector<double> &kPointCoordinates,
+         const std::vector<double> &kPointWeights) = 0;
 
     virtual void
     reinitkPointSpinIndex(const unsigned int kPointIndex,
@@ -104,7 +84,6 @@ namespace dftfe
 
     virtual void
     reinitNumberWavefunctions(const unsigned int numWfc) = 0;
-
 
     virtual void
     HX(dftfe::linearAlgebra::MultiVector<dataTypes::number, memorySpace> &src,
@@ -121,26 +100,16 @@ namespace dftfe
       const double scalarY,
       const double scalarX,
       dftfe::linearAlgebra::MultiVector<dataTypes::number, memorySpace> &dst,
-      const bool onlyHPrimePartForFirstOrderDensityMatResponse = false) = 0;
+      const bool onlyHPrimePartForFirstOrderDensityMatResponse = false,
+      const bool skip1                                         = false,
+      const bool skip2                                         = false,
+      const bool skip3                                         = false) = 0;
 
-
-    /**
-     * @brief Get constraint matrix eigen
-     *
-     * @return pointer to constraint matrix eigen
-     */
     virtual dftUtils::constraintMatrixInfo *
     getOverloadedConstraintMatrixHost() const = 0;
 
     virtual constraintInfoClass *
     getOverloadedConstraintMatrix() const = 0;
-    /**
-     * @brief Get index map of flattened array to cell based numbering
-     *
-     * @return pointer to constraint matrix eigen
-     */
-    virtual dftfe::linearAlgebra::MultiVector<dataTypes::number, memorySpace> &
-    getParallelProjectorKetTimesBlockVector() = 0;
 
     virtual const MPI_Comm &
     getMPICommunicatorDomain() = 0;

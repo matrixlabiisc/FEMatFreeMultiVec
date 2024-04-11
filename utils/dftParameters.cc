@@ -51,9 +51,10 @@ namespace dftfe
 
       prm.declare_entry(
         "MEM OPT MODE",
-        "true",
+        "false",
         dealii::Patterns::Bool(),
-        "[Adavanced] Uses algorithms which have lower peak memory but with a marginal performance degradation. Default: true.");
+        "[Adavanced] Uses algorithms which have lower peak memory but with a marginal performance degradation. Default: true.",
+        true);
 
 
       prm.enter_subsection("GPU");
@@ -91,16 +92,16 @@ namespace dftfe
           R"([Adavanced] Use GPUDIRECT MPI\_Allreduce. This route will only work if DFT-FE is either compiled with NVIDIA NCCL library or withGPUAwareMPI=ON. Both these routes require GPU Aware MPI library to be available as well relevant hardware. If both NVIDIA NCCL library and withGPUAwareMPI modes are toggled on, the NCCL mode takes precedence. Also note that one MPI rank per GPU can be used when using this option. Default: false.)");
 
         prm.declare_entry(
+          "USE DCCL",
+          "false",
+          dealii::Patterns::Bool(),
+          R"([Adavanced] Use NCCL/RCCL for GPUDIRECT communications. Default: false.)");
+
+        prm.declare_entry(
           "USE ELPA GPU KERNEL",
           "false",
           dealii::Patterns::Bool(),
           "[Advanced] If DFT-FE is linked to ELPA eigensolver library configured to run on GPUs, this parameter toggles the use of ELPA GPU kernels for dense symmetric matrix diagonalization calls in DFT-FE. ELPA version>=2020.11.001 is required for this feature. Default: false.");
-
-        prm.declare_entry(
-          "GPU MEM OPT MODE",
-          "true",
-          dealii::Patterns::Bool(),
-          "[Adavanced] Uses algorithms which have lower peak memory on GPUs but with a marginal performance degradation. Recommended when using more than 100k degrees of freedom per GPU. Default: true.");
       }
       prm.leave_subsection();
 
@@ -403,6 +404,12 @@ namespace dftfe
           "[Developer] Flag to set point wise dirichlet constraints to eliminate null-space associated with the discretized Poisson operator subject to periodic BCs.");
 
         prm.declare_entry(
+          "MULTIPOLE BOUNDARY CONDITIONS",
+          "false",
+          dealii::Patterns::Bool(),
+          "[Standard] Flag to set point wise multipole boundary conditions (upto quadrupole term) for non-periodic systems.");
+
+        prm.declare_entry(
           "CONSTRAINTS PARALLEL CHECK",
           "false",
           dealii::Patterns::Bool(),
@@ -642,6 +649,12 @@ namespace dftfe
 
 
         prm.declare_entry(
+          "NET CHARGE",
+          "0.0",
+          dealii::Patterns::Double(),
+          "[Standard] Net charge of the system in Hartree units, positive quantity implies addition of electrons. In case of non-periodic boundary conditions, this capability is implemented using multipole Dirichlet inhomogeneous boundary conditions for the electrostatics. In case of periodic and semi-periodic conditions a uniform background charge is used to create a neutral system.");
+
+        prm.declare_entry(
           "SPIN POLARIZATION",
           "0",
           dealii::Patterns::Integer(0, 1),
@@ -739,6 +752,12 @@ namespace dftfe
           "0.0",
           dealii::Patterns::Double(-1e-12, 1.0),
           "[Standard] Mixing parameter to be used in density mixing schemes. For default value of 0.0, it is heuristically set for different mixing schemes (0.2 for Anderson, and 0.5 for Kerker and LRD.");
+
+        prm.declare_entry(
+          "SPIN MIXING ENHANCEMENT FACTOR",
+          "4.0",
+          dealii::Patterns::Double(-1e-12, 10.0),
+          "[Standard] Scales the mixing parameter for the spin densities as SPIN MIXING ENHANCEMENT FACTOR times MIXING PARAMETER. This parameter is not used for LOW\_RANK\_DIELECM\_PRECOND mixing method.");
 
         prm.declare_entry(
           "ADAPT ANDERSON MIXING PARAMETER",
@@ -882,13 +901,6 @@ namespace dftfe
             "0.0",
             dealii::Patterns::Double(-1.0e-12),
             "[Advanced] Parameter specifying the accuracy of the occupied eigenvectors close to the Fermi-energy computed using Chebyshev filtering subspace iteration procedure. For default value of 0.0, we heuristically set the value between 1e-3 and 5e-2 depending on the MIXING METHOD used.");
-
-          prm.declare_entry(
-            "ENABLE HAMILTONIAN TIMES VECTOR OPTIM",
-            "false",
-            dealii::Patterns::Bool(),
-            "[Advanced] Turns on optimization for hamiltonian times vector multiplication. Operations involving data movement from global vector to finite-element cell level and vice versa are done by employing different data structures for interior nodes and surfaces nodes of a given cell and this allows reduction of memory access costs");
-
 
           prm.declare_entry(
             "ORTHOGONALIZATION TYPE",
@@ -1041,6 +1053,11 @@ namespace dftfe
                           "false",
                           dealii::Patterns::Bool(),
                           "[Advanced] Toggle GPU MODE in Poisson solve.");
+
+        prm.declare_entry("VSELF GPU MODE",
+                          "false",
+                          dealii::Patterns::Bool(),
+                          "[Advanced] Toggle GPU MODE in vself Poisson solve.");
       }
       prm.leave_subsection();
 
@@ -1155,6 +1172,7 @@ namespace dftfe
 
     radiusAtomBall                    = 0.0;
     mixingParameter                   = 0.5;
+    spinMixingEnhancementFactor       = 4.0;
     absLinearSolverTolerance          = 1e-10;
     selfConsistentSolverTolerance     = 1e-10;
     TVal                              = 500;
@@ -1271,15 +1289,16 @@ namespace dftfe
     useDensityMatrixPerturbationRankUpdates        = false;
     smearedNuclearCharges                          = false;
     floatingNuclearCharges                         = false;
+    multipoleBoundaryConditions                    = false;
     nonLinearCoreCorrection                        = false;
     maxLineSearchIterCGPRP                         = 5;
     atomicMassesFile                               = "";
     useDeviceDirectAllReduce                       = false;
     pspCutoffImageCharges                          = 15.0;
+    netCharge                                      = 0;
     reuseLanczosUpperBoundFromFirstCall            = false;
     allowMultipleFilteringPassesAfterFirstScf      = true;
     useELPADeviceKernel                            = false;
-    deviceMemOptMode                               = false;
     // New Paramters for moleculardyynamics class
     startingTempBOMD           = 300;
     thermostatTimeConstantBOMD = 100;
@@ -1341,7 +1360,11 @@ namespace dftfe
     reproducible_output = prm.get_bool("REPRODUCIBLE OUTPUT");
     keepScratchFolder   = prm.get_bool("KEEP SCRATCH FOLDER");
     restartFolder       = restartFilesPath;
-    memOptMode          = prm.get_bool("MEM OPT MODE");
+    auto entriesNotSet  = prm.get_entries_wrongly_not_set();
+    if (auto memOptSet = entriesNotSet.find("MEM_20OPT_20MODE");
+        memOptSet != entriesNotSet.end())
+      prm.set("MEM OPT MODE", solverMode == "NSCF");
+    memOptMode = prm.get_bool("MEM OPT MODE");
     writeStructreEnergyForcesFileForPostProcess =
       prm.get_bool("WRITE STRUCTURE ENERGY FORCES DATA POST PROCESS");
 
@@ -1355,8 +1378,8 @@ namespace dftfe
       autoDeviceBlockSizes = useDevice && prm.get_bool("AUTO GPU BLOCK SIZES");
       useDeviceDirectAllReduce =
         useDevice && prm.get_bool("USE GPUDIRECT MPI ALL REDUCE");
+      useDCCL             = useDevice && prm.get_bool("USE DCCL");
       useELPADeviceKernel = useDevice && prm.get_bool("USE ELPA GPU KERNEL");
-      deviceMemOptMode    = prm.get_bool("GPU MEM OPT MODE");
     }
     prm.leave_subsection();
 
@@ -1447,6 +1470,8 @@ namespace dftfe
       pinnedNodeForPBC       = prm.get_bool("POINT WISE DIRICHLET CONSTRAINT");
       smearedNuclearCharges  = prm.get_bool("SMEARED NUCLEAR CHARGES");
       floatingNuclearCharges = prm.get_bool("FLOATING NUCLEAR CHARGES");
+      multipoleBoundaryConditions =
+        prm.get_bool("MULTIPOLE BOUNDARY CONDITIONS");
     }
     prm.leave_subsection();
 
@@ -1526,6 +1551,7 @@ namespace dftfe
       modelXCInputFile      = prm.get("MODEL XC INPUT FILE");
       start_magnetization   = prm.get_double("START MAGNETIZATION");
       pspCutoffImageCharges = prm.get_double("PSP CUTOFF IMAGE CHARGES");
+      netCharge             = prm.get_double("NET CHARGE");
     }
     prm.leave_subsection();
 
@@ -1536,6 +1562,8 @@ namespace dftfe
       selfConsistentSolverTolerance = prm.get_double("TOLERANCE");
       mixingHistory                 = prm.get_integer("MIXING HISTORY");
       mixingParameter               = prm.get_double("MIXING PARAMETER");
+      spinMixingEnhancementFactor =
+        prm.get_double("SPIN MIXING ENHANCEMENT FACTOR");
       adaptAndersonMixingParameter =
         prm.get_bool("ADAPT ANDERSON MIXING PARAMETER");
       kerkerParameter         = prm.get_double("KERKER MIXING PARAMETER");
@@ -1613,6 +1641,7 @@ namespace dftfe
       maxLinearSolverIterations = prm.get_integer("MAXIMUM ITERATIONS");
       absLinearSolverTolerance  = prm.get_double("TOLERANCE");
       poissonGPU                = prm.get_bool("GPU MODE");
+      vselfGPU                  = prm.get_bool("VSELF GPU MODE");
     }
     prm.leave_subsection();
 
@@ -1675,6 +1704,7 @@ namespace dftfe
         (writeLdosFile || writePdosFile)),
       dealii::ExcMessage(
         "DFT-FE Error: LOCAL DENSITY OF STATES and PROJECTED DENSITY OF STATES are currently not implemented in the case of periodic and semi-periodic boundary conditions."));
+
 
     if (floatingNuclearCharges)
       AssertThrow(
@@ -1933,8 +1963,12 @@ namespace dftfe
           scalapackBlockSize = 32;
       }
 
-#if !defined(DFTFE_WITH_CUDA_NCCL) && !defined(DFTFE_WITH_DEVICE_AWARE_MPI)
+#if !defined(DFTFE_WITH_CUDA_NCCL) && !defined(DFTFE_WITH_HIP_RCCL) && \
+  !defined(DFTFE_WITH_DEVICE_AWARE_MPI)
     useDeviceDirectAllReduce = false;
+#endif
+#if !defined(DFTFE_WITH_CUDA_NCCL) && !defined(DFTFE_WITH_HIP_RCCL)
+    useDCCL = false;
 #endif
 
     if (useMixedPrecCheby)
@@ -1968,6 +2002,16 @@ namespace dftfe
           mixingParameter = 0.5;
         else
           mixingParameter = 0.2;
+      }
+
+    if (std::fabs(netCharge - 0.0) > 1.0e-12 &&
+        !(periodicX || periodicY || periodicZ))
+      {
+        multipoleBoundaryConditions = true;
+      }
+    if (reproducible_output)
+      {
+        spinMixingEnhancementFactor = 1.0;
       }
   }
 
