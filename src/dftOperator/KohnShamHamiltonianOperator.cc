@@ -618,8 +618,8 @@ namespace dftfe
           {
             if (spinPolarizedFactor == 1)
               d_VeffJxWHost[iCell * numberQuadraturePoints + iQuad] =
-                // (tempPhi[iQuad] + exchangePotentialVal[iQuad] +
-                //  corrPotentialVal[iQuad]) *
+                (tempPhi[iQuad] + exchangePotentialVal[iQuad] +
+                 corrPotentialVal[iQuad]) *
                 cellJxWPtr[iQuad];
             else
               d_VeffJxWHost[iCell * numberQuadraturePoints + iQuad] =
@@ -756,8 +756,6 @@ namespace dftfe
               }
           }
       }
-
-      // d_VeffJxW.setValue(1);
 
 #if defined(DFTFE_WITH_DEVICE)
     d_VeffJxW.resize(d_VeffJxWHost.size());

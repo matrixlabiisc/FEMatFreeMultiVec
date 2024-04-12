@@ -1103,15 +1103,134 @@ namespace dftfe
     dftfe::utils::MemoryStorage<dataTypes::number,
                                 dftfe::utils::MemorySpace::HOST> &VeffExtPotJxW)
   {
+    const dealii::MatrixFree<3, double> *d_matrixFreeDataPtr =
+      &(d_basisOperationsPtrHost->matrixFreeData());
+
+    auto d_nMacroCells = d_matrixFreeDataPtr->n_cell_batches();
+    auto d_nCells      = d_matrixFreeDataPtr->n_physical_cells();
+    auto d_nDofsPerCell =
+      d_matrixFreeDataPtr
+        ->get_dof_handler(d_basisOperationsPtrHost->d_dofHandlerID)
+        .get_fe()
+        .dofs_per_cell;
+
+    std::vector<unsigned int> cellIndexToMacroCellSubCellIndexMap(d_nCells);
+
+    auto cellPtr = d_matrixFreeDataPtr
+                     ->get_dof_handler(d_basisOperationsPtrHost->d_dofHandlerID)
+                     .begin_active();
+    auto endcPtr = d_matrixFreeDataPtr
+                     ->get_dof_handler(d_basisOperationsPtrHost->d_dofHandlerID)
+                     .end();
+
+    std::map<dealii::CellId, size_type> cellIdToCellIndexMap;
     d_VeffJxW.resize(VeffJxW.size());
 
-    for (auto i = 0; i < d_VeffJxW.size(); i++)
-      *(d_VeffJxW.data() + i) =
-        *(VeffJxW.data() + i) + *(VeffExtPotJxW.data() + i);
+    unsigned int iCell = 0;
+    for (; cellPtr != endcPtr; ++cellPtr)
+      if (cellPtr->is_locally_owned())
+        {
+          cellIdToCellIndexMap[cellPtr->id()] = iCell;
+          pcout << "cellPtr->id(): " << cellPtr->id() << ", iCell: " << iCell << std::endl;
+          ++iCell;
+        }
+
+    iCell = 0;
+    for (unsigned int iMacroCell = 0; iMacroCell < d_nMacroCells; ++iMacroCell)
+      {
+        const unsigned int numberSubCells =
+          d_matrixFreeDataPtr->n_components_filled(iMacroCell);
+        for (unsigned int iSubCell = 0; iSubCell < numberSubCells; ++iSubCell)
+          {
+            cellPtr = d_matrixFreeDataPtr->get_cell_iterator(
+              iMacroCell, iSubCell, d_basisOperationsPtrHost->d_dofHandlerID);
+            size_type cellIndex = cellIdToCellIndexMap[cellPtr->id()];
+            cellIndexToMacroCellSubCellIndexMap[cellIndex] = iCell;
+            std::cout << "iMacroCell: " << iMacroCell
+                      << ", iSubCell: " << iSubCell
+                      << ", cellIndex: " << cellIndex << ", iCell: " << iCell
+                      << std::endl;
+            ++iCell;
+          }
+      }
+
+    /*typename dealii::DoFHandler<3>::active_cell_iterator cellPtr;
+    typename dealii::DoFHandler<3>::active_cell_iterator
+      cell = d_basisOperationsPtrHost->matrixFreeData()
+               .get_dof_handler(d_basisOperationsPtrHost->d_dofHandlerID)
+               .begin_active(),
+      endc = d_basisOperationsPtrHost->matrixFreeData()
+               .get_dof_handler(d_basisOperationsPtrHost->d_dofHandlerID)
+               .end();
+
+    std::vector<unsigned int> normalCellIdToMacroCellIdMap(d_nCells);
+
+    const unsigned int numberMacroCells =
+      d_basisOperationsPtrHost->matrixFreeData().n_macro_cells();
+    unsigned int iElemNormal = 0;
+
+    for (; cell != endc; ++cell)
+      {
+        if (cell->is_locally_owned())
+          {
+            bool         isFound        = false;
+            unsigned int iElemMacroCell = 0;
+            for (unsigned int iMacroCell = 0; iMacroCell < numberMacroCells;
+                 ++iMacroCell)
+              {
+                const unsigned int n_sub_cells =
+                  d_basisOperationsPtrHost->matrixFreeData()
+                    .n_components_filled(iMacroCell);
+
+                for (unsigned int iCell = 0; iCell < n_sub_cells; ++iCell)
+                  {
+                    cellPtr = d_basisOperationsPtrHost->matrixFreeData()
+                                .get_cell_iterator(
+                                  iMacroCell,
+                                  iCell,
+                                  d_basisOperationsPtrHost->d_dofHandlerID);
+
+                    if (cell->id() == cellPtr->id())
+                      {
+                        normalCellIdToMacroCellIdMap[iElemNormal] =
+                          iElemMacroCell;
+                        isFound = true;
+                        break;
+                      }
+
+                    iElemMacroCell++;
+                  }
+
+                if (isFound)
+                  break;
+              }
+
+            iElemNormal++;
+          }
+      } //*/
+
+    pcout << "d_nMacroCells: " << d_nMacroCells << std::endl
+          << "d_nCells: " << d_nCells << std::endl
+          << "d_nDofsPerCell: " << d_nDofsPerCell << std::endl
+          << "d_nQuadsPerCell: " << d_nQuadsPerCell << std::endl;
+
+    pcout << "cellIndexToMacroCellSubCellIndexMap" << std::endl;
+
+    for (int i = 0; i < d_nCells; i++)
+      pcout << "i: " << i
+            << ", Value: " << cellIndexToMacroCellSubCellIndexMap[i]
+            << std::endl;
 
     for (auto iCell = 0; iCell < d_nCells; ++iCell)
-      for (auto q = 0; q < d_nQuadsPerCell; ++q)
-        d_VeffJxW[q + iCell * d_nQuadsPerCell] = jacobianDeterminants[iCell];
+      {
+        for (auto iQuad = 0; iQuad < d_nQuadsPerCell; ++iQuad)
+          d_VeffJxW[iQuad + cellIndexToMacroCellSubCellIndexMap[iCell] *
+                              d_nQuadsPerCell] =
+            VeffJxW[iQuad + iCell * d_nQuadsPerCell] *
+            jacobianDeterminants[cellIndexToMacroCellSubCellIndexMap[iCell]];
+        //     d_VeffJxW[iQuad + iCell * d_nQuadsPerCell] =
+        //     jacobianDeterminants[iCell];
+      } //*/
   }
 
 
