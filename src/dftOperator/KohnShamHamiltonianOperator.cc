@@ -391,7 +391,7 @@ namespace dftfe
   void
   KohnShamHamiltonianOperator<memorySpace>::setVeffMF()
   {
-    d_matrixFreeBasePtr->setVeffMF(d_VeffJxWMF, d_VeffExtPotJxW);
+    d_matrixFreeBasePtr->setVeffMF(d_VeffJxWHost, d_VeffExtPotJxW);
   }
 
   template <dftfe::utils::MemorySpace memorySpace>
@@ -459,6 +459,11 @@ namespace dftfe
         }
       return sum;
     };
+
+    pcout << "VEff totalLocallyOwnedCells: " << totalLocallyOwnedCells
+          << std::endl
+          << "VEff numberQuadraturePoints: " << numberQuadraturePoints
+          << std::endl;
 
     for (unsigned int iCell = 0; iCell < totalLocallyOwnedCells; ++iCell)
       {
@@ -618,18 +623,20 @@ namespace dftfe
           {
             if (spinPolarizedFactor == 1)
               d_VeffJxWHost[iCell * numberQuadraturePoints + iQuad] =
-                (tempPhi[iQuad] + exchangePotentialVal[iQuad] +
-                 corrPotentialVal[iQuad]) *
-                cellJxWPtr[iQuad];
+                iQuad * cellJxWPtr[iQuad];
+            // (tempPhi[iQuad] + exchangePotentialVal[iQuad] +
+            //  corrPotentialVal[iQuad]) *
+            // cellJxWPtr[iQuad];
             else
               d_VeffJxWHost[iCell * numberQuadraturePoints + iQuad] =
-                (tempPhi[iQuad] + exchangePotentialVal[2 * iQuad + spinIndex] +
-                 corrPotentialVal[2 * iQuad + spinIndex]) *
-                cellJxWPtr[iQuad];
+                iQuad * cellJxWPtr[iQuad];
+            // (tempPhi[iQuad] + exchangePotentialVal[2 * iQuad + spinIndex] +
+            //  corrPotentialVal[2 * iQuad + spinIndex]) *
+            // cellJxWPtr[iQuad];
 
-            d_VeffJxWMF[iCell * numberQuadraturePoints + iQuad] =
-              tempPhi[iQuad] + exchangePotentialVal[iQuad] +
-              corrPotentialVal[iQuad];
+            d_VeffJxWMF[iCell * numberQuadraturePoints + iQuad] = iQuad;
+            // tempPhi[iQuad] + exchangePotentialVal[iQuad] +
+            // corrPotentialVal[iQuad];
           }
 
         if (isGGA)
@@ -1213,7 +1220,7 @@ namespace dftfe
 
         pcout << "MF Enter" << std::endl;
 
-        d_matrixFreeBasePtr->computeAX(dst, src);
+        d_matrixFreeBasePtr->computeAX(dst, src, d_BLASWrapperPtr);
 
         pcout << "MF Exit" << std::endl << std::endl;
 
@@ -1249,6 +1256,11 @@ namespace dftfe
         double dstNorm;
         double srcNorm;
 
+        double srcCellNorm;
+        double dstCellNorm;
+        double srcAllCellNorm;
+        double dstAllCellNorm;
+
         pcout << "CM Enter" << std::endl;
 
         if (d_numVectorsInternal != numberWavefunctions)
@@ -1260,6 +1272,12 @@ namespace dftfe
                                        d_densityQuadratureID,
                                        false,
                                        false);
+
+        const unsigned int numberQuadraturePoints =
+          d_basisOperationsPtrHost->nQuadsPerCell();
+
+        std::cout << "HXCheby numberQuadraturePoints: "
+                  << numberQuadraturePoints << std::endl;
 
         /*const bool hasNonlocalComponents =
           d_dftParamsPtr->isPseudopotential &&
@@ -1298,6 +1316,18 @@ namespace dftfe
                       ->d_flattenedCellDofIndexToProcessDofIndexMap.data() +
                     cellRange.first * numDoFsPerCell);
 
+                d_BLASWrapperPtr->xnrm2(numberWavefunctions * numDoFsPerCell,
+                                        d_cellWaveFunctionMatrixSrc.data() +
+                                          iCell * numberWavefunctions *
+                                            numDoFsPerCell,
+                                        1,
+                                        d_mpiCommDomain,
+                                        &srcCellNorm);
+
+                pcout << "iCell: " << iCell
+                      << ", d_cellWaveFunctionMatrixSrc Norm: " << srcCellNorm
+                      << std::endl;
+
                 /*if (hasNonlocalComponents)
                   d_ONCVnonLocalOperator->applyCconjtransOnX(
                     d_cellWaveFunctionMatrixSrc.data() +
@@ -1305,6 +1335,51 @@ namespace dftfe
                     cellRange); //*/
               }
           }
+
+        const dealii::MatrixFree<3, double> &matrixFreeData =
+          d_basisOperationsPtrHost->matrixFreeData();
+
+        const dealii::Quadrature<3> &quadrature =
+          matrixFreeData.get_quadrature(d_densityQuadratureID);
+
+        dealii::FEValues<3> fe_values(
+          matrixFreeData
+            .get_dof_handler(d_basisOperationsPtrHost->d_dofHandlerID)
+            .get_fe(),
+          quadrature,
+          dealii::update_values);
+
+        typename dealii::DoFHandler<3>::active_cell_iterator
+          cell = matrixFreeData
+                   .get_dof_handler(d_basisOperationsPtrHost->d_dofHandlerID)
+                   .begin_active(),
+          endc = matrixFreeData
+                   .get_dof_handler(d_basisOperationsPtrHost->d_dofHandlerID)
+                   .end();
+
+        fe_values.reinit(cell);
+
+        std::vector<double> cellDst(numberQuadraturePoints * batchSize, 0.0);
+
+        for (unsigned int iSIMD = 0; iSIMD < batchSize; iSIMD++)
+          for (unsigned int iDoF = 0; iDoF < numDoFsPerCell; ++iDoF)
+            for (unsigned int iQuad = 0; iQuad < numberQuadraturePoints;
+                 ++iQuad)
+              {
+                cellDst[iQuad + iSIMD * numberQuadraturePoints] +=
+                  fe_values.shape_value(iDoF, iQuad) *
+                  d_cellWaveFunctionMatrixSrc[iSIMD + iDoF * batchSize];
+              }
+
+        std::cout << "CM Interpolation" << std::endl;
+
+        for (unsigned int j = 0; j < batchSize; j++)
+          for (unsigned int i = 0; i < numberQuadraturePoints; i++)
+            {
+              std::cout << "batchSize: " << j << std::endl;
+              std::cout << "i: " << i << ", cellDst[i]: "
+                        << cellDst[i + j * numberQuadraturePoints] << std::endl;
+            }
 
         if (!skip2)
           {
@@ -1376,6 +1451,16 @@ namespace dftfe
                   numberWavefunctions,
                   numDoFsPerCell * numberWavefunctions,
                   cellRange.second - cellRange.first);
+
+                d_BLASWrapperPtr->xnrm2(numberWavefunctions * numDoFsPerCell,
+                                        d_cellWaveFunctionMatrixDst.data(),
+                                        1,
+                                        d_mpiCommDomain,
+                                        &dstCellNorm);
+
+                pcout << "iCell: " << iCell
+                      << ", d_cellWaveFunctionMatrixDst Norm: " << dstCellNorm
+                      << std::endl;
 
                 /*if (hasNonlocalComponents)
                   d_ONCVnonLocalOperator->applyCOnVCconjtransX(
