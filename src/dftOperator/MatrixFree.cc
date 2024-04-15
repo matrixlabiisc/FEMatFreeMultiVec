@@ -72,13 +72,6 @@ namespace dftfe
                         else
                           tempCo += tempAo[q] * B[q + j * ko];
                       }
-                    // if (k % 2 == 1)
-                    //   {
-                    //     if (trans)
-                    //       tempCe += tempAe[ko] * B[j + ko * no];
-                    //     else
-                    //       tempCe += tempAe[ko] * B[ko + j * ke + ko * ne];
-                    //   }
                     if (add)
                       {
                         C[i + m * j + m * n * b] += tempCe + tempCo;
@@ -158,9 +151,6 @@ namespace dftfe
                         else
                           tempCe += tempAe[q] * B[q + j * ke];
                       }
-                    //   }
-                    // for (auto j = 0; j < no; ++j)
-                    //   {
                     if (trans)
                       tempCo = tempAo[0] * B[j + ke * ne];
                     else
@@ -172,9 +162,6 @@ namespace dftfe
                         else
                           tempCo += tempAo[q] * B[q + j * ko + ke * ne];
                       }
-                    //   }
-                    // for (auto j = 0; j < no; ++j)
-                    //   {
                     if (add)
                       {
                         C[i + m * j + m * n * b] += tempCe + tempCo;
@@ -226,69 +213,26 @@ namespace dftfe
               {
                 for (auto q = 0; q < k; ++q)
                   {
-                    // tempA[q].load(A+i+q*m+m*k*b);
                     tempA[q] = A[i + q * m + m * k * b];
                   }
                 for (auto j = 0; j < n; ++j)
                   {
-                    // if(add)
-                    //   {
-                    //     // temp.load(C+i+m*j+m*n*b);
-                    //     // temp+= trans ? tempA[0]*B[j]: tempA[0]*B[j*k];
-                    //     temp=C[i+m*j+m*n*b] + (trans ? tempA[0]*B[j]:
-                    //     tempA[0]*B[j*k]);
-                    //   }
-                    // else
-                    //   temp=trans ? tempA[0]*B[j]: tempA[0]*B[j*k];
                     temp = trans ? tempA[0] * B[j] : tempA[0] * B[j * k];
-                    // C[i+m*j]=A[i]*B[j];
                     for (auto q = 1; q < k; ++q)
                       {
-                        // tempA.load(A+i+q*m);
                         if (trans)
                           temp += tempA[q] * B[j + q * n];
                         else
                           temp += tempA[q] * B[q + j * k];
                       }
-                    // temp.store(C+i+m*j+m*n*b);
                     if (add)
                       C[i + m * j + m * n * b] += temp;
                     else
                       C[i + m * j + m * n * b] = temp;
-                    // if(add)
-                    // C[i+m*j]+=temp;
-                    // else
-                    // C[i+m*j]=temp;
                   }
               }
-            //  A += m * k;
-            //  C += m * n;
           }
       }
-    // constexpr int c=dealii::Utilities::pow(k, (2 - direction));
-    // constexpr int m=dealii::Utilities::pow(k, direction)*batchSize;
-    //   for (auto b = 0; b < c; ++b)
-    //   {
-    //       for(auto j=0;j<n;++j)
-    //       {
-    //         for(auto i=0;i<m;++i)
-    //         {
-    //             C[i+m*j]=A[i]*B[j];
-    //         }
-    //       }
-    //     for(auto q=1;q<k;++q)
-    //     {
-    //       for(auto j=0;j<n;++j)
-    //       {
-    //         for(auto i=0;i<m;++i)
-    //         {
-    //             C[i+m*j]+=A[i+q*m]*B[j+q*n];
-    //         }
-    //       }
-    //     }
-    //      A += m * k;
-    //      C += m * n;
-    //   }
   }
 
   template <int m, int n, int k, int c, bool constcoeff, bool trans, int type>
@@ -343,13 +287,6 @@ namespace dftfe
                         else
                           tempCo += tempAo[q] * B[q + j * ko];
                       }
-                    // if (k % 2 == 1)
-                    //   {
-                    //     if (trans)
-                    //       tempCe += tempAe[ko] * B[j + ko * no];
-                    //     else
-                    //       tempCe += tempAe[ko] * B[ko + j * ke + ko * ne];
-                    //   }
                     if (constcoeff)
                       {
                         C[i + m * j + m * n * b] =
@@ -362,11 +299,12 @@ namespace dftfe
                     else
                       {
                         C[i + m * j + m * n * b] =
-                          C[i + m * j + m * n * b] * coeffs[i + m * j] +
+                          C[i + m * j + m * n * b] *
+                            coeffs[i + m * j + m * n * b] +
                           tempCe + tempCo;
                         C[i + m * (n - 1 - j) + m * n * b] =
                           C[i + m * (n - 1 - j) + m * n * b] *
-                            coeffs[i + m * (n - 1 - j)] +
+                            coeffs[i + m * (n - 1 - j) + m * n * b] +
                           tempCo - tempCe;
                       }
                   }
@@ -387,11 +325,13 @@ namespace dftfe
                       {
                         if (trans)
                           C[i + m * no + m * n * b] =
-                            C[i + m * no + m * n * b] * coeffs[i + m * no] +
+                            C[i + m * no + m * n * b] *
+                              coeffs[i + m * no + m * n * b] +
                             tempAo[0] * B[no + ke * no];
                         else
                           C[i + m * no + m * n * b] =
-                            C[i + m * no + m * n * b] * coeffs[i + m * no] +
+                            C[i + m * no + m * n * b] *
+                              coeffs[i + m * no + m * n * b] +
                             tempAo[0] * B[no * ko];
                       }
 
@@ -442,9 +382,6 @@ namespace dftfe
                         else
                           tempCe += tempAe[q] * B[q + j * ke];
                       }
-                    //   }
-                    // for (auto j = 0; j < no; ++j)
-                    //   {
                     if (trans)
                       tempCo = tempAo[0] * B[j + ke * ne];
                     else
@@ -456,9 +393,6 @@ namespace dftfe
                         else
                           tempCo += tempAo[q] * B[q + j * ko + ke * ne];
                       }
-                    //   }
-                    // for (auto j = 0; j < no; ++j)
-                    //   {
                     if (constcoeff)
                       {
                         C[i + m * j + m * n * b] =
@@ -471,11 +405,12 @@ namespace dftfe
                     else
                       {
                         C[i + m * j + m * n * b] =
-                          C[i + m * j + m * n * b] * coeffs[i + m * j] +
+                          C[i + m * j + m * n * b] *
+                            coeffs[i + m * j + m * n * b] +
                           tempCe + tempCo;
                         C[i + m * (n - 1 - j) + m * n * b] =
                           C[i + m * (n - 1 - j) + m * n * b] *
-                            coeffs[i + m * (n - 1 - j)] +
+                            coeffs[i + m * (n - 1 - j) + m * n * b] +
                           tempCe - tempCo;
                       }
                   }
@@ -496,11 +431,13 @@ namespace dftfe
                       {
                         if (trans)
                           C[i + m * no + m * n * b] =
-                            C[i + m * no + m * n * b] * coeffs[i + m * no] +
+                            C[i + m * no + m * n * b] *
+                              coeffs[i + m * no + m * n * b] +
                             tempAe[0] * B[no];
                         else
                           C[i + m * no + m * n * b] =
-                            C[i + m * no + m * n * b] * coeffs[i + m * no] +
+                            C[i + m * no + m * n * b] *
+                              coeffs[i + m * no + m * n * b] +
                             tempAe[0] * B[no * ke];
                       }
 
@@ -527,71 +464,30 @@ namespace dftfe
               {
                 for (auto q = 0; q < k; ++q)
                   {
-                    // tempA[q].load(A+i+q*m+m*k*b);
                     tempA[q] = A[i + q * m + m * k * b];
                   }
                 for (auto j = 0; j < n; ++j)
                   {
-                    // if(add)
-                    //   {
-                    //     // temp.load(C+i+m*j+m*n*b);
-                    //     // temp+= trans ? tempA[0]*B[j]: tempA[0]*B[j*k];
-                    //     temp=C[i+m*j+m*n*b] + (trans ? tempA[0]*B[j]:
-                    //     tempA[0]*B[j*k]);
-                    //   }
-                    // else
-                    //   temp=trans ? tempA[0]*B[j]: tempA[0]*B[j*k];
                     temp = trans ? tempA[0] * B[j] : tempA[0] * B[j * k];
-                    // C[i+m*j]=A[i]*B[j];
                     for (auto q = 1; q < k; ++q)
                       {
-                        // tempA.load(A+i+q*m);
                         if (trans)
                           temp += tempA[q] * B[j + q * n];
                         else
                           temp += tempA[q] * B[q + j * k];
                       }
-                    // temp.store(C+i+m*j+m*n*b);
                     if (constcoeff)
                       C[i + m * j + m * n * b] =
                         C[i + m * j + m * n * b] * coeffs[0] + temp;
                     else
                       C[i + m * j + m * n * b] =
-                        C[i + m * j + m * n * b] * coeffs[i + m * j] + temp;
-                    // if(add)
-                    // C[i+m*j]+=temp;
-                    // else
-                    // C[i+m*j]=temp;
+                        C[i + m * j + m * n * b] *
+                          coeffs[i + m * j + m * n * b] +
+                        temp;
                   }
               }
-            //  A += m * k;
-            //  C += m * n;
           }
       }
-    // constexpr int c=dealii::Utilities::pow(k, (2 - direction));
-    // constexpr int m=dealii::Utilities::pow(k, direction)*batchSize;
-    //   for (auto b = 0; b < c; ++b)
-    //   {
-    //       for(auto j=0;j<n;++j)
-    //       {
-    //         for(auto i=0;i<m;++i)
-    //         {
-    //             C[i+m*j]=A[i]*B[j];
-    //         }
-    //       }
-    //     for(auto q=1;q<k;++q)
-    //     {
-    //       for(auto j=0;j<n;++j)
-    //       {
-    //         for(auto i=0;i<m;++i)
-    //         {
-    //             C[i+m*j]+=A[i+q*m]*B[j+q*n];
-    //         }
-    //       }
-    //     }
-    //      A += m * k;
-    //      C += m * n;
-    //   }
   }
 
 
@@ -765,8 +661,8 @@ namespace dftfe
           {
             nodalShapeFunctionValuesAtQuadPoints[iDoF * nQuadPointsPerDim +
                                                  iQuad] =
-              shapeData.shape_values[iDoF * nQuadPointsPerDim + iQuad][0];
-            //  *               std::sqrt(shapeData.quadrature.weight(iQuad));
+              shapeData.shape_values[iDoF * nQuadPointsPerDim + iQuad][0] *
+              std::sqrt(shapeData.quadrature.weight(iQuad));
           }
       }
 
@@ -1149,83 +1045,19 @@ namespace dftfe
           }
       }
 
-    /*typename dealii::DoFHandler<3>::active_cell_iterator cellPtr;
-    typename dealii::DoFHandler<3>::active_cell_iterator
-      cell = d_basisOperationsPtrHost->matrixFreeData()
-               .get_dof_handler(d_basisOperationsPtrHost->d_dofHandlerID)
-               .begin_active(),
-      endc = d_basisOperationsPtrHost->matrixFreeData()
-               .get_dof_handler(d_basisOperationsPtrHost->d_dofHandlerID)
-               .end();
-
-    std::vector<unsigned int> normalCellIdToMacroCellIdMap(d_nCells);
-
-    const unsigned int numberMacroCells =
-      d_basisOperationsPtrHost->matrixFreeData().n_macro_cells();
-    unsigned int iElemNormal = 0;
-
-    for (; cell != endc; ++cell)
-      {
-        if (cell->is_locally_owned())
-          {
-            bool         isFound        = false;
-            unsigned int iElemMacroCell = 0;
-            for (unsigned int iMacroCell = 0; iMacroCell < numberMacroCells;
-                 ++iMacroCell)
-              {
-                const unsigned int n_sub_cells =
-                  d_basisOperationsPtrHost->matrixFreeData()
-                    .n_components_filled(iMacroCell);
-
-                for (unsigned int iCell = 0; iCell < n_sub_cells; ++iCell)
-                  {
-                    cellPtr = d_basisOperationsPtrHost->matrixFreeData()
-                                .get_cell_iterator(
-                                  iMacroCell,
-                                  iCell,
-                                  d_basisOperationsPtrHost->d_dofHandlerID);
-
-                    if (cell->id() == cellPtr->id())
-                      {
-                        normalCellIdToMacroCellIdMap[iElemNormal] =
-                          iElemMacroCell;
-                        isFound = true;
-                        break;
-                      }
-
-                    iElemMacroCell++;
-                  }
-
-                if (isFound)
-                  break;
-              }
-
-            iElemNormal++;
-          }
-      } //*/
-
     pcout << "d_nMacroCells: " << d_nMacroCells << std::endl
           << "d_nCells: " << d_nCells << std::endl
           << "d_nDofsPerCell: " << d_nDofsPerCell << std::endl
           << "d_nQuadsPerCell: " << d_nQuadsPerCell << std::endl;
-
-    pcout << "cellIndexToMacroCellSubCellIndexMap" << std::endl;
-
-    for (int i = 0; i < d_nCells; i++)
-      pcout << "i: " << i
-            << ", Value: " << cellIndexToMacroCellSubCellIndexMap[i]
-            << std::endl;
 
     for (auto iCell = 0; iCell < d_nCells; ++iCell)
       {
         for (auto iQuad = 0; iQuad < d_nQuadsPerCell; ++iQuad)
           d_VeffJxW[iQuad + cellIndexToMacroCellSubCellIndexMap[iCell] *
                               d_nQuadsPerCell] =
-            VeffJxW[iQuad + iCell * d_nQuadsPerCell];
-            // *             jacobianDeterminants[cellIndexToMacroCellSubCellIndexMap[iCell]];
-        //     d_VeffJxW[iQuad + iCell * d_nQuadsPerCell] =
-        //     jacobianDeterminants[iCell];
-      } //*/
+            VeffJxW[iQuad + iCell * d_nQuadsPerCell] *
+            jacobianDeterminants[cellIndexToMacroCellSubCellIndexMap[iCell]];
+      }
   }
 
 
@@ -1316,7 +1148,7 @@ namespace dftfe
 
             pcout << "iCell: " << iCell << ", iBatch: " << iBatch
                   << ", cellWaveFunctionMatrixSrc Norm: " << srcCellNorm
-                  << std::endl;
+                  << std::endl; //*/
 
             evaluateTensorContractions(iCell);
 
@@ -1326,9 +1158,7 @@ namespace dftfe
                   cellWaveFunctionMatrixDst.data() + iDoF * batchSize +
                   iCell * d_nDofsPerCell * batchSize +
                   iBatch * batchSize * d_nDofsPerCell * d_nCells);
-              }
-
-
+              } //*/
 
             // Assembly
             for (auto i = 0; i < d_nDofsPerCell; ++i)
@@ -1402,7 +1232,7 @@ namespace dftfe
             pcout << "iCell: " << iCell << ", iBatch: " << iBatch
                   << ", cellWaveFunctionMatrixDst Norm: " << dstCellNorm
                   << std::endl;
-          }
+          } //*/
 
         /*d_constraintsInfomf.distribute_slave_to_master(Ax, batchSize, iBatch);
          * //*/
@@ -1487,7 +1317,7 @@ namespace dftfe
                       nodalShapeFunctionValuesAtQuadPointsEO.data(),
                       temp20v);
 
-    if (iCell == 0)
+    /*if (iCell == 0)
       {
         std::vector<double> cellDst(nQuadPointsPerDim * nQuadPointsPerDim *
                                       nQuadPointsPerDim * batchSize,
@@ -1512,7 +1342,7 @@ namespace dftfe
                         << ", cellDst[i]: " << cellDst[j + i * batchSize]
                         << std::endl;
             }
-      }
+      } //*/
 
     matmulEOdealii<(batchSize / 8) * nQuadPointsPerDim * nQuadPointsPerDim,
                    nQuadPointsPerDim,

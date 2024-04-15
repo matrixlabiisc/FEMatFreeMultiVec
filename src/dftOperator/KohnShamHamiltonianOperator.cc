@@ -391,7 +391,7 @@ namespace dftfe
   void
   KohnShamHamiltonianOperator<memorySpace>::setVeffMF()
   {
-    d_matrixFreeBasePtr->setVeffMF(d_VeffJxWHost, d_VeffExtPotJxW);
+    d_matrixFreeBasePtr->setVeffMF(d_VeffJxWMF, d_VeffExtPotJxW);
   }
 
   template <dftfe::utils::MemorySpace memorySpace>
@@ -623,20 +623,18 @@ namespace dftfe
           {
             if (spinPolarizedFactor == 1)
               d_VeffJxWHost[iCell * numberQuadraturePoints + iQuad] =
-                iQuad * cellJxWPtr[iQuad];
-            // (tempPhi[iQuad] + exchangePotentialVal[iQuad] +
-            //  corrPotentialVal[iQuad]) *
-            // cellJxWPtr[iQuad];
+                (tempPhi[iQuad] + exchangePotentialVal[iQuad] +
+                 corrPotentialVal[iQuad]) *
+                cellJxWPtr[iQuad];
             else
               d_VeffJxWHost[iCell * numberQuadraturePoints + iQuad] =
-                iQuad * cellJxWPtr[iQuad];
-            // (tempPhi[iQuad] + exchangePotentialVal[2 * iQuad + spinIndex] +
-            //  corrPotentialVal[2 * iQuad + spinIndex]) *
-            // cellJxWPtr[iQuad];
+                (tempPhi[iQuad] + exchangePotentialVal[2 * iQuad + spinIndex] +
+                 corrPotentialVal[2 * iQuad + spinIndex]) *
+                cellJxWPtr[iQuad];
 
-            d_VeffJxWMF[iCell * numberQuadraturePoints + iQuad] = iQuad;
-            // tempPhi[iQuad] + exchangePotentialVal[iQuad] +
-            // corrPotentialVal[iQuad];
+            d_VeffJxWMF[iCell * numberQuadraturePoints + iQuad] =
+              tempPhi[iQuad] + exchangePotentialVal[iQuad] +
+              corrPotentialVal[iQuad];
           }
 
         if (isGGA)
@@ -1273,12 +1271,6 @@ namespace dftfe
                                        false,
                                        false);
 
-        const unsigned int numberQuadraturePoints =
-          d_basisOperationsPtrHost->nQuadsPerCell();
-
-        std::cout << "HXCheby numberQuadraturePoints: "
-                  << numberQuadraturePoints << std::endl;
-
         /*const bool hasNonlocalComponents =
           d_dftParamsPtr->isPseudopotential &&
           (d_ONCVnonLocalOperator
@@ -1336,7 +1328,7 @@ namespace dftfe
               }
           }
 
-        const dealii::MatrixFree<3, double> &matrixFreeData =
+        /*const dealii::MatrixFree<3, double> &matrixFreeData =
           d_basisOperationsPtrHost->matrixFreeData();
 
         const dealii::Quadrature<3> &quadrature =
@@ -1379,7 +1371,7 @@ namespace dftfe
               std::cout << "batchSize: " << j << std::endl;
               std::cout << "i: " << i << ", cellDst[i]: "
                         << cellDst[i + j * numberQuadraturePoints] << std::endl;
-            }
+            } //*/
 
         if (!skip2)
           {
