@@ -53,7 +53,7 @@ namespace dftfe
      *
      */
     void
-    reinit(const unsigned int matrixfreeQuadratureID);
+    reinit(const unsigned int matrixFreeQuadratureID);
 
 
     /**
@@ -64,6 +64,10 @@ namespace dftfe
     initializeOptimizedConstraints();
 
 
+    /**
+     * @brief set Veff and VeffExtPot for matrixFree AX
+     *
+     */
     void
     setVeffMF(
       dftfe::utils::MemoryStorage<dataTypes::number,
@@ -90,11 +94,19 @@ namespace dftfe
 
   private:
     /**
-     * @brief evaluate tensor contractions
+     * @brief evaluate tensor contractions for LDA
      *
      */
     void
     evalHXLDA(const unsigned int iCell);
+
+
+    /**
+     * @brief evaluate tensor contractions for GGA
+     *
+     */
+    void
+    evalHXGGA(const unsigned int iCell);
 
 
     /// pointer to dealii MatrixFree object

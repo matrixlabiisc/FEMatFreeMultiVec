@@ -497,17 +497,17 @@ namespace dftfe
             unsigned int batchSize>
   void
   MatrixFree<ndofsPerDim, nQuadPointsPerDim, batchSize>::reinit(
-    const unsigned int matrixfreeQuadratureID)
+    const unsigned int matrixFreeQuadratureID)
   {
-    d_basisOperationsPtrHost->reinit(0, 0, matrixfreeQuadratureID);
+    d_basisOperationsPtrHost->reinit(0, 0, matrixFreeQuadratureID);
 
     d_matrixFreeDataPtr = &(d_basisOperationsPtrHost->matrixFreeData());
     auto dofInfo        = d_matrixFreeDataPtr->get_dof_info(
       d_basisOperationsPtrHost->d_dofHandlerID);
     auto shapeInfo = d_matrixFreeDataPtr->get_shape_info(
-      d_basisOperationsPtrHost->d_dofHandlerID, matrixfreeQuadratureID);
+      d_basisOperationsPtrHost->d_dofHandlerID, matrixFreeQuadratureID);
     auto mappingData =
-      d_matrixFreeDataPtr->get_mapping_info().cell_data[matrixfreeQuadratureID];
+      d_matrixFreeDataPtr->get_mapping_info().cell_data[matrixFreeQuadratureID];
     auto shapeData = shapeInfo.get_shape_data();
 
     d_nOwnedDofs         = d_basisOperationsPtrHost->nOwnedDofs();
@@ -1139,36 +1139,39 @@ namespace dftfe
   }
 
 
-  /*template <unsigned int ndofsPerDim,
+  template <unsigned int ndofsPerDim,
             unsigned int nQuadPointsPerDim,
             unsigned int batchSize>
   inline void
   MatrixFree<ndofsPerDim, nQuadPointsPerDim, batchSize>::evalHXGGA(
     const unsigned int iCell)
   {
-    matMulEO<(batchSize / 8) * ndofsPerDim * ndofsPerDim,
-             nQuadPointsPerDim,
-             ndofsPerDim,
-             1,
-             false,
-             true,
-             1>(arrayV, nodalShapeFunctionValuesAtQuadPointsEO.data(), arrayW);
+    matMulShapeEO<(batchSize / 8) * ndofsPerDim * ndofsPerDim,
+                  nQuadPointsPerDim,
+                  ndofsPerDim,
+                  1,
+                  false,
+                  true>(arrayX,
+                        nodalShapeFunctionValuesAtQuadPointsEO.data(),
+                        arrayV);
 
-    matMulEO<(batchSize / 8) * ndofsPerDim,
-             nQuadPointsPerDim,
-             ndofsPerDim,
-             nQuadPointsPerDim,
-             false,
-             true,
-             1>(arrayW, nodalShapeFunctionValuesAtQuadPointsEO.data(), arrayV);
+    matMulShapeEO<(batchSize / 8) * ndofsPerDim,
+                  nQuadPointsPerDim,
+                  ndofsPerDim,
+                  nQuadPointsPerDim,
+                  false,
+                  true>(arrayV,
+                        nodalShapeFunctionValuesAtQuadPointsEO.data(),
+                        arrayX);
 
-    matMulEO<(batchSize / 8),
-             nQuadPointsPerDim,
-             ndofsPerDim,
-             nQuadPointsPerDim * nQuadPointsPerDim,
-             false,
-             true,
-             1>(arrayV, nodalShapeFunctionValuesAtQuadPointsEO.data(), arrayY);
+    matMulShapeEO<(batchSize / 8),
+                  nQuadPointsPerDim,
+                  ndofsPerDim,
+                  nQuadPointsPerDim * nQuadPointsPerDim,
+                  false,
+                  true>(arrayX,
+                        nodalShapeFunctionValuesAtQuadPointsEO.data(),
+                        arrayV);
 
     /*if (iCell == 0)
       {
@@ -1197,100 +1200,95 @@ namespace dftfe
             }
       } //*/
 
-  /*matMulEO<(batchSize / 8) * nQuadPointsPerDim * nQuadPointsPerDim,
-           nQuadPointsPerDim,
-           nQuadPointsPerDim,
-           1,
-           false,
-           true,
-           2>(arrayY,
-              quadShapeFunctionGradientsAtQuadPointsEO.data(),
-              arrayX);
+    matMulGradEO<(batchSize / 8) * nQuadPointsPerDim * nQuadPointsPerDim,
+                 nQuadPointsPerDim,
+                 nQuadPointsPerDim,
+                 1,
+                 false,
+                 true>(arrayW,
+                       quadShapeFunctionGradientsAtQuadPointsEO.data(),
+                       arrayZ);
 
-  matMulEO<(batchSize / 8) * nQuadPointsPerDim,
-           nQuadPointsPerDim,
-           nQuadPointsPerDim,
-           nQuadPointsPerDim,
-           false,
-           true,
-           2>(arrayY,
-              quadShapeFunctionGradientsAtQuadPointsEO.data(),
-              arrayW);
+    matMulGradEO<(batchSize / 8) * nQuadPointsPerDim,
+                 nQuadPointsPerDim,
+                 nQuadPointsPerDim,
+                 nQuadPointsPerDim,
+                 false,
+                 true>(arrayW,
+                       quadShapeFunctionGradientsAtQuadPointsEO.data(),
+                       arrayY);
 
-  matMulEO<(batchSize / 8),
-           nQuadPointsPerDim,
-           nQuadPointsPerDim,
-           nQuadPointsPerDim * nQuadPointsPerDim,
-           false,
-           true,
-           2>(arrayY,
-              quadShapeFunctionGradientsAtQuadPointsEO.data(),
-              arrayV);
+    matMulGradEO<(batchSize / 8),
+                 nQuadPointsPerDim,
+                 nQuadPointsPerDim,
+                 nQuadPointsPerDim * nQuadPointsPerDim,
+                 false,
+                 true>(arrayW,
+                       quadShapeFunctionGradientsAtQuadPointsEO.data(),
+                       arrayX);
 
-  matMulEO<nQuadPointsPerDim * nQuadPointsPerDim *
-             nQuadPointsPerDim *(batchSize / 8),
+    matMul<(batchSize / 8) * nQuadPointsPerDim * nQuadPointsPerDim *
+             nQuadPointsPerDim,
            3,
            3,
            1,
            false,
-           true,
-           0>(arrayV, jacobianFactor.data() + iCell * 9, arrayV);
+           true>(arrayX, jacobianFactor.data() + iCell * 9, arrayX);
 
-  matMulEO<(batchSize / 8),
-           nQuadPointsPerDim,
-           nQuadPointsPerDim,
-           nQuadPointsPerDim * nQuadPointsPerDim,
-           false,
-           false,
-           2>(arrayV,
-              quadShapeFunctionGradientsAtQuadPointsEO.data(),
-              arrayY,
-              d_VeffJxW.data() + iCell * d_nQuadsPerCell);
+    matMulGradEO<(batchSize / 8),
+                 nQuadPointsPerDim,
+                 nQuadPointsPerDim,
+                 nQuadPointsPerDim * nQuadPointsPerDim,
+                 false>(arrayX,
+                        quadShapeFunctionGradientsAtQuadPointsEO.data(),
+                        arrayW,
+                        d_VeffJxW.data() + iCell * d_nQuadsPerCell);
 
-  matMulEO<(batchSize / 8) * nQuadPointsPerDim,
-           nQuadPointsPerDim,
-           nQuadPointsPerDim,
-           nQuadPointsPerDim,
-           true,
-           false,
-           2>(arrayW,
-              quadShapeFunctionGradientsAtQuadPointsEO.data(),
-              arrayY);
+    matMulGradEO<(batchSize / 8) * nQuadPointsPerDim,
+                 nQuadPointsPerDim,
+                 nQuadPointsPerDim,
+                 nQuadPointsPerDim,
+                 true,
+                 false>(arrayY,
+                        quadShapeFunctionGradientsAtQuadPointsEO.data(),
+                        arrayW);
 
-  matMulEO<(batchSize / 8) * nQuadPointsPerDim * nQuadPointsPerDim,
-           nQuadPointsPerDim,
-           nQuadPointsPerDim,
-           1,
-           true,
-           false,
-           2>(arrayX,
-              quadShapeFunctionGradientsAtQuadPointsEO.data(),
-              arrayY);
+    matMulGradEO<(batchSize / 8) * nQuadPointsPerDim * nQuadPointsPerDim,
+                 nQuadPointsPerDim,
+                 nQuadPointsPerDim,
+                 1,
+                 true,
+                 false>(arrayZ,
+                        quadShapeFunctionGradientsAtQuadPointsEO.data(),
+                        arrayW);
 
-  matMulEO<(batchSize / 8) * nQuadPointsPerDim * nQuadPointsPerDim,
-           ndofsPerDim,
-           nQuadPointsPerDim,
-           1,
-           false,
-           false,
-           1>(arrayY, nodalShapeFunctionValuesAtQuadPointsEO.data(), arrayV);
+    matMulShapeEO<(batchSize / 8) * nQuadPointsPerDim * nQuadPointsPerDim,
+                  ndofsPerDim,
+                  nQuadPointsPerDim,
+                  1,
+                  false,
+                  false>(arrayW,
+                         nodalShapeFunctionValuesAtQuadPointsEO.data(),
+                         arrayX);
 
-  matMulEO<(batchSize / 8) * nQuadPointsPerDim,
-           ndofsPerDim,
-           nQuadPointsPerDim,
-           ndofsPerDim,
-           false,
-           false,
-           1>(arrayV, nodalShapeFunctionValuesAtQuadPointsEO.data(), arrayY);
+    matMulShapeEO<(batchSize / 8) * nQuadPointsPerDim,
+                  ndofsPerDim,
+                  nQuadPointsPerDim,
+                  ndofsPerDim,
+                  false,
+                  false>(arrayX,
+                         nodalShapeFunctionValuesAtQuadPointsEO.data(),
+                         arrayW);
 
-  matMulEO<(batchSize / 8),
-           ndofsPerDim,
-           nQuadPointsPerDim,
-           ndofsPerDim * ndofsPerDim,
-           false,
-           false,
-           1>(arrayY, nodalShapeFunctionValuesAtQuadPointsEO.data(), arrayV);
-} //*/
+    matMulShapeEO<(batchSize / 8),
+                  ndofsPerDim,
+                  nQuadPointsPerDim,
+                  ndofsPerDim * ndofsPerDim,
+                  false,
+                  false>(arrayW,
+                         nodalShapeFunctionValuesAtQuadPointsEO.data(),
+                         arrayX);
+  }
 
 
   template <unsigned int ndofsPerDim,
