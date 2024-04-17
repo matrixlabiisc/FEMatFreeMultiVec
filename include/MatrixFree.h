@@ -53,15 +53,7 @@ namespace dftfe
      *
      */
     void
-    reinit(const unsigned int densityQuadratureID);
-
-
-    /**
-     * @brief clears all datamembers and reset to original state.
-     *
-     */
-    void
-    clear();
+    reinit(const unsigned int matrixfreeQuadratureID);
 
 
     /**
@@ -72,58 +64,13 @@ namespace dftfe
     initializeOptimizedConstraints();
 
 
-    /**
-     * @brief evaluate tensor contractions
-     *
-     */
     void
-    evaluateTensorContractions(const unsigned int iCell);
-
-
-    /**
-     * @brief evaluate tensor contractions
-     *
-     */
-    void
-    evaluateTensorContractionsJIT(const unsigned int iCell);
-
-
-    /**
-     * @brief even-odd matmul.
-     *
-     */
-    void
-    matmulEO(const unsigned int jitPointerIndex,
-             const unsigned int m,
-             const unsigned int n,
-             const unsigned int k,
-             double *           A,
-             double *           B,
-             double *           C,
-             const unsigned int c);
-
-
-    /**
-     * @brief matmul.
-     *
-     */
-    void
-    matmul(const unsigned int jitPointerIndex,
-           const unsigned int m,
-           const unsigned int n,
-           const unsigned int k,
-           double *           A,
-           double *           B,
-           double *           C,
-           const unsigned int c);
-
-
-    /**
-     * @brief destroy jit kernels.
-     *
-     */
-    void
-    destroyjitkernels();
+    setVeffMF(
+      dftfe::utils::MemoryStorage<dataTypes::number,
+                                  dftfe::utils::MemorySpace::HOST> &VeffJxW,
+      dftfe::utils::MemoryStorage<dataTypes::number,
+                                  dftfe::utils::MemorySpace::HOST>
+        &VeffExtPotJxW);
 
 
     /**
@@ -140,36 +87,29 @@ namespace dftfe
         dftfe::linearAlgebra::BLASWrapper<dftfe::utils::MemorySpace::HOST>>
         d_BLASWrapperPtr);
 
-    void
-    setVeffMF(
-      dftfe::utils::MemoryStorage<dataTypes::number,
-                                  dftfe::utils::MemorySpace::HOST> &VeffJxW,
-      dftfe::utils::MemoryStorage<dataTypes::number,
-                                  dftfe::utils::MemorySpace::HOST>
-        &VeffExtPotJxW);
 
   private:
+    /**
+     * @brief evaluate tensor contractions
+     *
+     */
+    void
+    evalHXLDA(const unsigned int iCell);
+
+
     /// pointer to dealii MatrixFree object
     const dealii::MatrixFree<3, double> *d_matrixFreeDataPtr;
 
     /// pointer to dealii dealii::AffineConstraints<double> object
     const dealii::AffineConstraints<double> *d_constraintMatrixPtr;
 
-    unsigned int d_matrixFreeVectorComponent;
-
-    unsigned int d_matrixFreeQuadratureComponentAX;
-
-    const unsigned int d_blockSize;
+    const unsigned int d_blockSize, d_nBatch;
 
     unsigned int d_nOwnedDofs, d_nRelaventDofs, d_nGhostDofs, d_nCells,
       d_nDofsPerCell, d_nQuadsPerCell;
 
-    // const unsigned int d_dofEDim, d_dofODim, d_quadEDim, d_quadODim;
-
-    const unsigned int d_nBatch;
-
     /// duplicate constraints object with flattened maps for faster access
-    dftUtils::constraintMatrixInfo d_constraintsInfomf;
+    dftUtils::constraintMatrixInfo d_constraintsInfo;
     std::shared_ptr<const dealii::Utilities::MPI::Partitioner>
       d_batchedPartitioner;
 
@@ -177,7 +117,6 @@ namespace dftfe
       d_VeffJxW;
 
     /// Matrix free data
-    distributedCPUVec<double> cpuTestInputdealiibatched;
     std::shared_ptr<
       dftfe::basis::FEBasisOperations<dataTypes::number,
                                       double,
@@ -185,12 +124,12 @@ namespace dftfe
       d_basisOperationsPtrHost;
 
     std::vector<unsigned int> globalToLocalMap, singleVectorGlobalToLocalMap;
+    std::vector<double>       jacobianFactor;
+    std::vector<double>       jacobianDeterminants;
 
     std::vector<std::vector<unsigned int>> slaveNodeBuckets, masterNodeBuckets;
     std::vector<std::vector<double>>       weightMatrixList;
     std::vector<double>                    inhomogenityList;
-    double *                               nodalShapeFunctionValuesAtQuadPoints,
-      *nodalShapeFunctionValuesAtQuadPointsTranspose;
 
     static constexpr int d_quadODim = nQuadPointsPerDim / 2;
     static constexpr int d_quadEDim =
@@ -198,30 +137,15 @@ namespace dftfe
     static constexpr int d_dofODim = ndofsPerDim / 2;
     static constexpr int d_dofEDim =
       ndofsPerDim % 2 == 1 ? d_dofODim + 1 : d_dofODim;
-    std::array<double, d_dofEDim * d_quadEDim + d_dofODim * d_quadODim>
+
+    std::array<double, d_quadEDim * d_dofEDim + d_quadODim * d_dofODim>
       nodalShapeFunctionValuesAtQuadPointsEO;
     std::array<double, 2 * d_quadODim * d_quadEDim>
-            quadShapeFunctionGradientsAtQuadPointsEO;
-    double *quadShapeFunctionGradientsAtQuadPoints,
-      *quadShapeFunctionGradientsAtQuadPointsTranspose;
-    double *            temp10, *temp11, *temp12, *temp20, *temp21, *temp22;
-    std::vector<double> jacobianFactor;
-    std::vector<double> jacobianDeterminants;
+      quadShapeFunctionGradientsAtQuadPointsEO;
 
-    std::vector<void *>                    jitpointers;
-    std::vector<std::pair<void *, void *>> jitpointersEO;
-    std::vector<dgemm_jit_kernel_t>        jitGemmKernels;
-    std::vector<std::pair<dgemm_jit_kernel_t, dgemm_jit_kernel_t>>
-      jitGemmKernelsEO;
-    std::array<double,
-               2 * 3 * batchSize * nQuadPointsPerDim * nQuadPointsPerDim *
-                   nQuadPointsPerDim +
-                 2 * ndofsPerDim * nQuadPointsPerDim>
-      tempStorage;
-    dealii::AlignedVector<dealii::VectorizedArray<double>>
-                                     tempStorageVectorized;
-    dealii::VectorizedArray<double> *temp10v, *temp11v, *temp12v, *temp20v,
-      *temp21v, *temp22v;
+    dealii::AlignedVector<dealii::VectorizedArray<double>> alignedVector;
+    dealii::VectorizedArray<double> *arrayV, *arrayW, *arrayX, *arrayY, *arrayZ;
+
     std::vector<double>        tempGhostStorage, tempCompressStorage;
     std::vector<double>        tempConstraintStorage;
     const MPI_Comm             mpi_communicator;

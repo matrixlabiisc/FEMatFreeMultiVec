@@ -200,7 +200,6 @@ namespace dftfe
     std::shared_ptr<
       AtomicCenteredNonLocalOperator<dataTypes::number, memorySpace>>
       d_ONCVnonLocalOperator;
-
     std::shared_ptr<dftfe::linearAlgebra::BLASWrapper<memorySpace>>
       d_BLASWrapperPtr;
     std::shared_ptr<
@@ -216,7 +215,6 @@ namespace dftfe
     std::shared_ptr<excManager>            d_excManagerPtr;
     dftParameters *                        d_dftParamsPtr;
     std::unique_ptr<dftfe::MatrixFreeBase> d_matrixFreeBasePtr;
-
     std::shared_ptr<const dealii::Utilities::MPI::Partitioner>
       d_batchedPartitionerBCV;
 
@@ -226,7 +224,6 @@ namespace dftfe
       d_cellHamiltonianMatrix;
     dftfe::utils::MemoryStorage<double, memorySpace>
       d_cellHamiltonianMatrixExtPot;
-
 
     dftfe::utils::MemoryStorage<dataTypes::number, memorySpace>
       d_cellWaveFunctionMatrixSrc;
