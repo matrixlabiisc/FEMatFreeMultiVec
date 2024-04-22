@@ -232,7 +232,7 @@ namespace dftfe
 
     dftfe::linearAlgebra::MultiVector<dataTypes::number, memorySpace>
                                                      d_ONCVNonLocalProjectorTimesVectorBlock;
-    dftfe::utils::MemoryStorage<double, memorySpace> d_VeffJxW, d_VeffJxWMF;
+    dftfe::utils::MemoryStorage<double, memorySpace> d_VeffJxW;
     dftfe::utils::MemoryStorage<double, memorySpace> d_VeffExtPotJxW;
 
     dftfe::utils::MemoryStorage<double, memorySpace>

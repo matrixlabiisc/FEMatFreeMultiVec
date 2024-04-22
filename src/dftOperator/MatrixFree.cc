@@ -610,11 +610,16 @@ namespace dftfe
             globalToLocalMap[iLDoF + d_nDofsPerCell * iCell] = l2g;
         }
 
-    bool isLDA = true;
-    int  arraySize =
+    d_isLDA = false;
+    int arraySize =
       (batchSize / dofInfo.vectorization_length) * d_nQuadsPerCell;
 
-    if (isLDA)
+    std::array<double, ndofsPerDim * nQuadPointsPerDim>
+      nodalShapeFunctionValuesAtQuadPoints;
+    std::array<double, nQuadPointsPerDim * nQuadPointsPerDim>
+      quadShapeFunctionGradientsAtQuadPoints;
+
+    if (d_isLDA)
       {
         alignedVector.resize(4 * arraySize);
         arrayW = alignedVector.data();
@@ -632,10 +637,9 @@ namespace dftfe
         arrayZ = arrayY + arraySize;
       }
 
-    std::array<double, ndofsPerDim * nQuadPointsPerDim>
-      nodalShapeFunctionValuesAtQuadPoints;
-    std::array<double, nQuadPointsPerDim * nQuadPointsPerDim>
-      quadShapeFunctionGradientsAtQuadPoints;
+    if (!d_isLDA)
+      for (auto iQuad = 0; iQuad < nQuadPointsPerDim; iQuad++)
+        quadratureWeights[iQuad] = shapeData.quadrature.weight(iQuad);
 
     for (auto iDoF = 0; iDoF < ndofsPerDim; iDoF++)
       for (auto iQuad = 0; iQuad < nQuadPointsPerDim; iQuad++)
@@ -643,7 +647,7 @@ namespace dftfe
           nodalShapeFunctionValuesAtQuadPoints[iQuad +
                                                iDoF * nQuadPointsPerDim] =
             shapeData.shape_values[iQuad + iDoF * nQuadPointsPerDim][0] *
-            std::sqrt(shapeData.quadrature.weight(iQuad));
+            (d_isLDA ? std::sqrt(shapeData.quadrature.weight(iQuad)) : 1);
         }
 
     for (auto iQuad2 = 0; iQuad2 < nQuadPointsPerDim; iQuad2++)
@@ -654,8 +658,9 @@ namespace dftfe
             shapeData
               .shape_gradients_collocation[iQuad1 + iQuad2 * nQuadPointsPerDim]
                                           [0] *
-            std::sqrt(shapeData.quadrature.weight(iQuad1)) /
-            std::sqrt(shapeData.quadrature.weight(iQuad2));
+            (d_isLDA ? std::sqrt(shapeData.quadrature.weight(iQuad1)) /
+                         std::sqrt(shapeData.quadrature.weight(iQuad2)) :
+                       1);
         }
 
     for (auto iDoF = 0; iDoF < d_dofEDim; iDoF++)
@@ -955,8 +960,14 @@ namespace dftfe
     dftfe::utils::MemoryStorage<dataTypes::number,
                                 dftfe::utils::MemorySpace::HOST> &VeffJxW,
     dftfe::utils::MemoryStorage<dataTypes::number,
-                                dftfe::utils::MemorySpace::HOST> &VeffExtPotJxW)
+                                dftfe::utils::MemorySpace::HOST> &VeffExtPotJxW,
+    dftfe::utils::MemoryStorage<dataTypes::number,
+                                dftfe::utils::MemorySpace::HOST> &VGGA)
   {
+    d_VeffJxW.resize(VeffJxW.size());
+    if (!d_isLDA)
+      d_VGGA.resize(VGGA.size());
+
     auto d_nMacroCells = d_matrixFreeDataPtr->n_cell_batches();
     auto d_nCells      = d_matrixFreeDataPtr->n_physical_cells();
     auto d_nDofsPerCell =
@@ -964,8 +975,6 @@ namespace dftfe
         ->get_dof_handler(d_basisOperationsPtrHost->d_dofHandlerID)
         .get_fe()
         .dofs_per_cell;
-
-    std::vector<unsigned int> cellIndexToMacroCellSubCellIndexMap(d_nCells);
 
     auto cellPtr = d_matrixFreeDataPtr
                      ->get_dof_handler(d_basisOperationsPtrHost->d_dofHandlerID)
@@ -975,7 +984,7 @@ namespace dftfe
                      .end();
 
     std::map<dealii::CellId, size_type> cellIdToCellIndexMap;
-    d_VeffJxW.resize(VeffJxW.size());
+    std::vector<unsigned int> cellIndexToMacroCellSubCellIndexMap(d_nCells);
 
     unsigned int iCell = 0;
     for (; cellPtr != endcPtr; cellPtr++)
@@ -1000,17 +1009,23 @@ namespace dftfe
           }
       }
 
-    pcout << "d_nMacroCells: " << d_nMacroCells << std::endl
-          << "d_nCells: " << d_nCells << std::endl
-          << "d_nDofsPerCell: " << d_nDofsPerCell << std::endl
-          << "d_nQuadsPerCell: " << d_nQuadsPerCell << std::endl;
-
     for (auto iCell = 0; iCell < d_nCells; iCell++)
       for (auto iQuad = 0; iQuad < d_nQuadsPerCell; iQuad++)
         d_VeffJxW[iQuad + cellIndexToMacroCellSubCellIndexMap[iCell] *
                             d_nQuadsPerCell] =
           VeffJxW[iQuad + iCell * d_nQuadsPerCell] *
-          jacobianDeterminants[cellIndexToMacroCellSubCellIndexMap[iCell]];
+          (d_isLDA ?
+             jacobianDeterminants[cellIndexToMacroCellSubCellIndexMap[iCell]] :
+             1);
+
+    if (!d_isLDA)
+      for (auto iCell = 0; iCell < d_nCells; iCell++)
+        for (auto iQuad = 0; iQuad < d_nQuadsPerCell; iQuad++)
+          for (unsigned iDim = 0; iDim < 3; ++iDim)
+            d_VGGA[iDim + iQuad * 3 +
+                   cellIndexToMacroCellSubCellIndexMap[iCell] *
+                     d_nQuadsPerCell * 3] =
+              VGGA[iDim + iQuad * 3 + iCell * d_nQuadsPerCell * 3];
   }
 
 
@@ -1153,14 +1168,14 @@ namespace dftfe
                   false,
                   true>(arrayX,
                         nodalShapeFunctionValuesAtQuadPointsEO.data(),
-                        arrayV);
+                        arrayW);
 
     matMulShapeEO<(batchSize / 8) * ndofsPerDim,
                   nQuadPointsPerDim,
                   ndofsPerDim,
                   nQuadPointsPerDim,
                   false,
-                  true>(arrayV,
+                  true>(arrayW,
                         nodalShapeFunctionValuesAtQuadPointsEO.data(),
                         arrayX);
 
@@ -1173,39 +1188,12 @@ namespace dftfe
                         nodalShapeFunctionValuesAtQuadPointsEO.data(),
                         arrayV);
 
-    /*if (iCell == 0)
-      {
-        std::vector<double> cellDst(nQuadPointsPerDim * nQuadPointsPerDim *
-                                      nQuadPointsPerDim * batchSize,
-                                    0.0);
-
-        for (unsigned int iQuad = 0;
-             iQuad < nQuadPointsPerDim * nQuadPointsPerDim * nQuadPointsPerDim;
-             iQuad++)
-          {
-            arrayY[iQuad].store(cellDst.data() + iQuad * batchSize);
-          }
-
-        std::cout << "MF Interpolation" << std::endl;
-
-        for (unsigned int j = 0; j < batchSize; j++)
-          for (unsigned int i = 0;
-               i < nQuadPointsPerDim * nQuadPointsPerDim * nQuadPointsPerDim;
-               i++)
-            {
-              std::cout << "batchSize: " << j << std::endl;
-              std::cout << "i: " << i
-                        << ", cellDst[i]: " << cellDst[j + i * batchSize]
-                        << std::endl;
-            }
-      } //*/
-
     matMulGradEO<(batchSize / 8) * nQuadPointsPerDim * nQuadPointsPerDim,
                  nQuadPointsPerDim,
                  nQuadPointsPerDim,
                  1,
                  false,
-                 true>(arrayW,
+                 true>(arrayV,
                        quadShapeFunctionGradientsAtQuadPointsEO.data(),
                        arrayZ);
 
@@ -1214,7 +1202,7 @@ namespace dftfe
                  nQuadPointsPerDim,
                  nQuadPointsPerDim,
                  false,
-                 true>(arrayW,
+                 true>(arrayV,
                        quadShapeFunctionGradientsAtQuadPointsEO.data(),
                        arrayY);
 
@@ -1223,9 +1211,30 @@ namespace dftfe
                  nQuadPointsPerDim,
                  nQuadPointsPerDim * nQuadPointsPerDim,
                  false,
-                 true>(arrayW,
+                 true>(arrayV,
                        quadShapeFunctionGradientsAtQuadPointsEO.data(),
                        arrayX);
+
+    for (int iQuad = 0; iQuad < d_nQuadsPerCell; iQuad++)
+      {
+        int idx       = iQuad * 3 + iCell * 3 * d_nQuadsPerCell;
+        arrayW[iQuad] = d_VGGA[idx] * arrayX[iQuad] +
+                        d_VGGA[1 + idx] * arrayY[iQuad] +
+                        d_VGGA[2 + idx] * arrayZ[iQuad];
+      }
+
+    for (int iQuad3 = 0; iQuad3 < nQuadPointsPerDim; iQuad3++)
+      for (int iQuad2 = 0; iQuad2 < nQuadPointsPerDim; iQuad2++)
+        for (int iQuad1 = 0; iQuad1 < nQuadPointsPerDim; iQuad1++)
+          {
+            double temp = quadratureWeights[iQuad1] *
+                          quadratureWeights[iQuad2] * quadratureWeights[iQuad3];
+            int idx = iQuad1 + iQuad2 * nQuadPointsPerDim +
+                      iQuad3 * nQuadPointsPerDim * nQuadPointsPerDim;
+            arrayX[idx] = temp * arrayX[idx];
+            arrayY[idx] = temp * arrayY[idx];
+            arrayZ[idx] = temp * arrayZ[idx];
+          }
 
     matMul<(batchSize / 8) * nQuadPointsPerDim * nQuadPointsPerDim *
              nQuadPointsPerDim,
@@ -1235,14 +1244,26 @@ namespace dftfe
            false,
            true>(arrayX, jacobianFactor.data() + iCell * 9, arrayX);
 
+    for (int iQuad = 0; iQuad < d_nQuadsPerCell; iQuad++)
+      {
+        int idx = iQuad * 3 + iCell * 3 * d_nQuadsPerCell;
+        arrayX[iQuad] += d_VGGA[idx] * arrayV[iQuad];
+        arrayY[iQuad] += d_VGGA[1 + idx] * arrayV[iQuad];
+        arrayZ[iQuad] += d_VGGA[2 + idx] * arrayV[iQuad];
+      }
+
+    for (int iQuad = 0; iQuad < d_nQuadsPerCell; iQuad++)
+      arrayW[iQuad] +=
+        d_VeffJxW[iQuad + iCell * d_nQuadsPerCell] * arrayV[iQuad];
+
     matMulGradEO<(batchSize / 8),
                  nQuadPointsPerDim,
                  nQuadPointsPerDim,
                  nQuadPointsPerDim * nQuadPointsPerDim,
+                 true,
                  false>(arrayX,
                         quadShapeFunctionGradientsAtQuadPointsEO.data(),
-                        arrayW,
-                        d_VeffJxW.data() + iCell * d_nQuadsPerCell);
+                        arrayW);
 
     matMulGradEO<(batchSize / 8) * nQuadPointsPerDim,
                  nQuadPointsPerDim,
@@ -1306,16 +1327,7 @@ namespace dftfe
   {
     const unsigned int numberWavefunctions = x.localSize() / d_nOwnedDofs;
     double             srcNorm;
-    double             srcCellNorm;
-    double             srcAllCellNorm;
     double             dstNorm;
-    double             dstCellNorm;
-    double             dstAllCellNorm;
-
-    std::vector<double> cellWaveFunctionMatrixSrc(d_nDofsPerCell * d_nCells *
-                                                  numberWavefunctions),
-      cellWaveFunctionMatrixDst(d_nDofsPerCell * d_nCells *
-                                numberWavefunctions);
 
     // x.updateGhostValues();
 
@@ -1332,64 +1344,22 @@ namespace dftfe
           {
             // Extraction
             for (unsigned int iDoF = 0; iDoF < d_nDofsPerCell; iDoF++)
-              {
-                std::memcpy(arrayX + iDoF * (batchSize / 8),
-                            x.begin() +
-                              globalToLocalMap[iDoF + iCell * d_nDofsPerCell] *
-                                batchSize +
-                              (globalToLocalMap[iDoF + iCell * d_nDofsPerCell] *
-                                     batchSize >=
-                                   d_nOwnedDofs * d_blockSize ?
-                                 d_nGhostDofs :
-                                 d_nOwnedDofs) *
-                                batchSize * iBatch,
-                            batchSize * sizeof(double));
+              std::memcpy(arrayX + iDoF * (batchSize / 8),
+                          x.begin() +
+                            globalToLocalMap[iDoF + iCell * d_nDofsPerCell] *
+                              batchSize +
+                            (globalToLocalMap[iDoF + iCell * d_nDofsPerCell] *
+                                   batchSize >=
+                                 d_nOwnedDofs * d_blockSize ?
+                               d_nGhostDofs :
+                               d_nOwnedDofs) *
+                              batchSize * iBatch,
+                          batchSize * sizeof(double));
 
-                // arrayX[iDoF * (batchSize / 8) + (b / 8)].load(
-                //   x.begin() +
-                //   globalToLocalMap[iDoF + iCell * d_nDofsPerCell] *
-                //     batchSize +
-                //   (globalToLocalMap[iDoF + iCell * d_nDofsPerCell] *
-                //          batchSize >=
-                //        d_nOwnedDofs * d_blockSize ?
-                //      d_nGhostDofs :
-                //      d_nOwnedDofs) *
-                //     batchSize * iBatch +
-                //   b);
-                // }
-              }
-
-            for (unsigned int iDoF = 0; iDoF < d_nDofsPerCell; iDoF++)
-              {
-                arrayX[iDoF].store(
-                  cellWaveFunctionMatrixSrc.data() + iDoF * batchSize +
-                  iCell * d_nDofsPerCell * batchSize +
-                  iBatch * batchSize * d_nDofsPerCell * d_nCells);
-              }
-
-            d_BLASWrapperPtr->xnrm2(batchSize * d_nDofsPerCell,
-                                    cellWaveFunctionMatrixSrc.data() +
-                                      iCell * batchSize * d_nDofsPerCell +
-                                      iBatch * batchSize * d_nDofsPerCell *
-                                        d_nCells,
-                                    1,
-                                    mpi_communicator,
-                                    &srcCellNorm);
-
-            pcout << "iCell: " << iCell << ", iBatch: " << iBatch
-                  << ", cellWaveFunctionMatrixSrc Norm: " << srcCellNorm
-                  << std::endl; //*/
-
-            evalHXLDA(iCell);
-            // evalHXGGA(iCell);
-
-            for (unsigned int iDoF = 0; iDoF < d_nDofsPerCell; iDoF++)
-              {
-                arrayX[iDoF].store(
-                  cellWaveFunctionMatrixDst.data() + iDoF * batchSize +
-                  iCell * d_nDofsPerCell * batchSize +
-                  iBatch * batchSize * d_nDofsPerCell * d_nCells);
-              } //*/
+            if (d_isLDA)
+              evalHXLDA(iCell);
+            else
+              evalHXGGA(iCell);
 
             // Assembly
             for (auto i = 0; i < d_nDofsPerCell; i++)
@@ -1397,35 +1367,28 @@ namespace dftfe
                 if (dofEncountered[singleVectorGlobalToLocalMap
                                      [i + d_nDofsPerCell * iCell]])
                   {
-                    for (auto b = 0; b < batchSize; b += 8)
-                      {
-                        dealii::VectorizedArray<double> temp;
-                        temp.load(
-                          Ax.begin() +
-                          globalToLocalMap[i + iCell * d_nDofsPerCell] *
-                            batchSize +
-                          (globalToLocalMap[i + iCell * d_nDofsPerCell] *
-                                 batchSize >=
-                               d_nOwnedDofs * d_blockSize ?
-                             d_nGhostDofs :
-                             d_nOwnedDofs) *
-                            batchSize * iBatch +
-                          b);
+                    dealii::VectorizedArray<double> temp;
+                    temp.load(Ax.begin() +
+                              globalToLocalMap[i + iCell * d_nDofsPerCell] *
+                                batchSize +
+                              (globalToLocalMap[i + iCell * d_nDofsPerCell] *
+                                     batchSize >=
+                                   d_nOwnedDofs * d_blockSize ?
+                                 d_nGhostDofs :
+                                 d_nOwnedDofs) *
+                                batchSize * iBatch);
 
-                        temp += arrayX[i * (batchSize / 8) + (b / 8)];
+                    temp += arrayX[i * (batchSize / 8)];
 
-                        temp.store(
-                          Ax.begin() +
-                          globalToLocalMap[i + iCell * d_nDofsPerCell] *
-                            batchSize +
-                          (globalToLocalMap[i + iCell * d_nDofsPerCell] *
-                                 batchSize >=
-                               d_nOwnedDofs * d_blockSize ?
-                             d_nGhostDofs :
-                             d_nOwnedDofs) *
-                            batchSize * iBatch +
-                          b);
-                      }
+                    temp.store(Ax.begin() +
+                               globalToLocalMap[i + iCell * d_nDofsPerCell] *
+                                 batchSize +
+                               (globalToLocalMap[i + iCell * d_nDofsPerCell] *
+                                      batchSize >=
+                                    d_nOwnedDofs * d_blockSize ?
+                                  d_nGhostDofs :
+                                  d_nOwnedDofs) *
+                                 batchSize * iBatch);
                   }
                 else
                   {
@@ -1446,24 +1409,8 @@ namespace dftfe
                           b);
                       }
                   }
-              } //*/
+              }
           }
-
-        for (auto iCell = 0; iCell < d_nCells; iCell++)
-          {
-            d_BLASWrapperPtr->xnrm2(batchSize * d_nDofsPerCell,
-                                    cellWaveFunctionMatrixDst.data() +
-                                      iCell * batchSize * d_nDofsPerCell +
-                                      iBatch * batchSize * d_nDofsPerCell *
-                                        d_nCells,
-                                    1,
-                                    mpi_communicator,
-                                    &dstCellNorm);
-
-            pcout << "iCell: " << iCell << ", iBatch: " << iBatch
-                  << ", cellWaveFunctionMatrixDst Norm: " << dstCellNorm
-                  << std::endl;
-          } //*/
 
         /*d_constraintsInfo.distribute_slave_to_master(Ax, batchSize, iBatch);
          * //*/

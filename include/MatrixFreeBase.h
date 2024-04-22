@@ -61,7 +61,9 @@ namespace dftfe
                                   dftfe::utils::MemorySpace::HOST> &VeffJxW,
       dftfe::utils::MemoryStorage<dataTypes::number,
                                   dftfe::utils::MemorySpace::HOST>
-        &VeffExtPotJxW) = 0;
+        &VeffExtPotJxW,
+      dftfe::utils::MemoryStorage<dataTypes::number,
+                                  dftfe::utils::MemorySpace::HOST> &VGGA) = 0;
   };
 
 } // namespace dftfe

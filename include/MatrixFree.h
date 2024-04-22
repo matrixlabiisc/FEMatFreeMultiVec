@@ -74,7 +74,9 @@ namespace dftfe
                                   dftfe::utils::MemorySpace::HOST> &VeffJxW,
       dftfe::utils::MemoryStorage<dataTypes::number,
                                   dftfe::utils::MemorySpace::HOST>
-        &VeffExtPotJxW);
+        &VeffExtPotJxW,
+      dftfe::utils::MemoryStorage<dataTypes::number,
+                                  dftfe::utils::MemorySpace::HOST> &VGGA);
 
 
     /**
@@ -126,7 +128,7 @@ namespace dftfe
       d_batchedPartitioner;
 
     dftfe::utils::MemoryStorage<double, dftfe::utils::MemorySpace::HOST>
-      d_VeffJxW;
+      d_VeffJxW, d_VeffExtPotJxW, d_VGGA;
 
     /// Matrix free data
     std::shared_ptr<
@@ -153,10 +155,13 @@ namespace dftfe
     std::array<double, d_quadEDim * d_dofEDim + d_quadODim * d_dofODim>
       nodalShapeFunctionValuesAtQuadPointsEO;
     std::array<double, 2 * d_quadODim * d_quadEDim>
-      quadShapeFunctionGradientsAtQuadPointsEO;
+                                          quadShapeFunctionGradientsAtQuadPointsEO;
+    std::array<double, nQuadPointsPerDim> quadratureWeights;
 
     dealii::AlignedVector<dealii::VectorizedArray<double>> alignedVector;
     dealii::VectorizedArray<double> *arrayV, *arrayW, *arrayX, *arrayY, *arrayZ;
+
+    bool d_isLDA;
 
     std::vector<double>        tempGhostStorage, tempCompressStorage;
     std::vector<double>        tempConstraintStorage;
