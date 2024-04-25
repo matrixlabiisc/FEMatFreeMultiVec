@@ -549,7 +549,7 @@ ENDIF()
 #
 # ELPA. Pass path to -DCMAKE_PREFIX_PATH
 #
-find_package(ELPA 2022 REQUIRED)
+find_package(ELPA 2024 REQUIRED)
 MESSAGE(STATUS "Will Link With ELPA")
 target_link_libraries(${TARGETLIB} PUBLIC ELPA::ELPA)
 

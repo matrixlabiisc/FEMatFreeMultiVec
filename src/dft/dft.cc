@@ -743,7 +743,29 @@ namespace dftfe
                   << std::endl;
           }
       }
+    // convert pseudopotential files in upf format to dftfe format
+    if (d_dftParamsPtr->verbosity >= 1)
+      {
+        pcout
+          << std::endl
+          << "Reading Pseudo-potential data for each atom from the list given in : "
+          << d_dftParamsPtr->pseudoPotentialFile << std::endl;
+      }
 
+    int              nlccFlag = 0;
+    std::vector<int> pspFlags(2, 0);
+    if (dealii::Utilities::MPI::this_mpi_process(d_mpiCommParent) == 0 &&
+        d_dftParamsPtr->isPseudopotential == true)
+      pspFlags = pseudoUtils::convert(d_dftParamsPtr->pseudoPotentialFile,
+                                      d_dftfeScratchFolderName,
+                                      d_dftParamsPtr->verbosity,
+                                      d_dftParamsPtr->natomTypes,
+                                      d_dftParamsPtr->pseudoTestsFlag);
+
+    nlccFlag = pspFlags[0];
+    nlccFlag = dealii::Utilities::MPI::sum(nlccFlag, d_mpiCommParent);
+    if (nlccFlag > 0 && d_dftParamsPtr->isPseudopotential == true)
+      d_dftParamsPtr->nonLinearCoreCorrection = true;
     // estimate total number of wave functions from atomic orbital filling
     if (d_dftParamsPtr->startingWFCType == "ATOMIC")
       determineOrbitalFilling();
@@ -803,29 +825,7 @@ namespace dftfe
                                           d_numEigenValuesRR);
       }
 
-    // convert pseudopotential files in upf format to dftfe format
-    if (d_dftParamsPtr->verbosity >= 1)
-      {
-        pcout
-          << std::endl
-          << "Reading Pseudo-potential data for each atom from the list given in : "
-          << d_dftParamsPtr->pseudoPotentialFile << std::endl;
-      }
 
-    int              nlccFlag = 0;
-    std::vector<int> pspFlags(2, 0);
-    if (dealii::Utilities::MPI::this_mpi_process(d_mpiCommParent) == 0 &&
-        d_dftParamsPtr->isPseudopotential == true)
-      pspFlags = pseudoUtils::convert(d_dftParamsPtr->pseudoPotentialFile,
-                                      d_dftfeScratchFolderName,
-                                      d_dftParamsPtr->verbosity,
-                                      d_dftParamsPtr->natomTypes,
-                                      d_dftParamsPtr->pseudoTestsFlag);
-
-    nlccFlag = pspFlags[0];
-    nlccFlag = dealii::Utilities::MPI::sum(nlccFlag, d_mpiCommParent);
-    if (nlccFlag > 0 && d_dftParamsPtr->isPseudopotential == true)
-      d_dftParamsPtr->nonLinearCoreCorrection = true;
     if (d_dftParamsPtr->isPseudopotential == true)
       {
         // pcout<<"dft.cc 827 ONCV Number of cells DEBUG:
@@ -4419,7 +4419,7 @@ namespace dftfe
   template <unsigned int              FEOrder,
             unsigned int              FEOrderElectro,
             dftfe::utils::MemorySpace memorySpace>
-  std::vector<std::vector<double>>
+  const std::vector<std::vector<double>> &
   dftClass<FEOrder, FEOrderElectro, memorySpace>::getAtomLocationsCart() const
   {
     return atomLocations;
@@ -4428,7 +4428,25 @@ namespace dftfe
   template <unsigned int              FEOrder,
             unsigned int              FEOrderElectro,
             dftfe::utils::MemorySpace memorySpace>
-  std::vector<std::vector<double>>
+  const std::vector<std::vector<double>> &
+  dftClass<FEOrder, FEOrderElectro, memorySpace>::getImageAtomLocationsCart() const
+  {
+    return d_imagePositionsTrunc;
+  }
+
+  template <unsigned int              FEOrder,
+            unsigned int              FEOrderElectro,
+            dftfe::utils::MemorySpace memorySpace>
+  const std::vector<int> &
+  dftClass<FEOrder, FEOrderElectro, memorySpace>::getImageAtomIDs() const
+  {
+    return d_imageIdsTrunc;
+  }
+
+  template <unsigned int              FEOrder,
+            unsigned int              FEOrderElectro,
+            dftfe::utils::MemorySpace memorySpace>
+  const std::vector<std::vector<double>> &
   dftClass<FEOrder, FEOrderElectro, memorySpace>::getAtomLocationsFrac() const
   {
     return atomLocationsFractional;
@@ -4437,7 +4455,7 @@ namespace dftfe
   template <unsigned int              FEOrder,
             unsigned int              FEOrderElectro,
             dftfe::utils::MemorySpace memorySpace>
-  std::vector<std::vector<double>>
+  const std::vector<std::vector<double>> &
   dftClass<FEOrder, FEOrderElectro, memorySpace>::getCell() const
   {
     return d_domainBoundingVectors;
@@ -4456,7 +4474,7 @@ namespace dftfe
   template <unsigned int              FEOrder,
             unsigned int              FEOrderElectro,
             dftfe::utils::MemorySpace memorySpace>
-  std::set<unsigned int>
+  const std::set<unsigned int> &
   dftClass<FEOrder, FEOrderElectro, memorySpace>::getAtomTypes() const
   {
     return atomTypes;
@@ -4465,7 +4483,7 @@ namespace dftfe
   template <unsigned int              FEOrder,
             unsigned int              FEOrderElectro,
             dftfe::utils::MemorySpace memorySpace>
-  std::vector<double>
+  const std::vector<double> &
   dftClass<FEOrder, FEOrderElectro, memorySpace>::getForceonAtoms() const
   {
     return (forcePtr->getAtomsForces());
@@ -4474,7 +4492,7 @@ namespace dftfe
   template <unsigned int              FEOrder,
             unsigned int              FEOrderElectro,
             dftfe::utils::MemorySpace memorySpace>
-  dealii::Tensor<2, 3, double>
+  const dealii::Tensor<2, 3, double> &
   dftClass<FEOrder, FEOrderElectro, memorySpace>::getCellStress() const
   {
     return (forcePtr->getStress());
@@ -4519,7 +4537,7 @@ namespace dftfe
   template <unsigned int              FEOrder,
             unsigned int              FEOrderElectro,
             dftfe::utils::MemorySpace memorySpace>
-  distributedCPUVec<double>
+  const distributedCPUVec<double> &
   dftClass<FEOrder, FEOrderElectro, memorySpace>::getRhoNodalOut() const
   {
     return d_densityOutNodalValues[0];
@@ -4528,7 +4546,7 @@ namespace dftfe
   template <unsigned int              FEOrder,
             unsigned int              FEOrderElectro,
             dftfe::utils::MemorySpace memorySpace>
-  distributedCPUVec<double>
+  const distributedCPUVec<double> &
   dftClass<FEOrder, FEOrderElectro, memorySpace>::getRhoNodalSplitOut() const
   {
     return d_rhoOutNodalValuesSplit;
