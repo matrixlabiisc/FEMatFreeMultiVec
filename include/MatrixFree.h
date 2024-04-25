@@ -19,7 +19,7 @@
 #ifndef matrixFree_H_
 #define matrixFree_H_
 #include <MatrixFreeBase.h>
-#include <mkl.h>
+#include <vectorUtilities.h>
 
 namespace dftfe
 {
@@ -42,6 +42,7 @@ namespace dftfe
                  dataTypes::number,
                  double,
                  dftfe::utils::MemorySpace::HOST>> basisOperationsPtrHost,
+               const bool                          isGGA,
                const unsigned int                  blockSize);
 
 
@@ -88,10 +89,7 @@ namespace dftfe
       dftfe::linearAlgebra::MultiVector<dataTypes::number,
                                         dftfe::utils::MemorySpace::HOST> &Ax,
       dftfe::linearAlgebra::MultiVector<dataTypes::number,
-                                        dftfe::utils::MemorySpace::HOST> &x,
-      std::shared_ptr<
-        dftfe::linearAlgebra::BLASWrapper<dftfe::utils::MemorySpace::HOST>>
-        d_BLASWrapperPtr);
+                                        dftfe::utils::MemorySpace::HOST> &x);
 
 
   private:
@@ -118,6 +116,7 @@ namespace dftfe
     const dealii::AffineConstraints<double> *d_constraintMatrixPtr;
 
     const unsigned int d_blockSize, d_nBatch;
+    const bool         d_isGGA;
 
     unsigned int d_nOwnedDofs, d_nRelaventDofs, d_nGhostDofs, d_nCells,
       d_nDofsPerCell, d_nQuadsPerCell;
@@ -125,7 +124,7 @@ namespace dftfe
     /// duplicate constraints object with flattened maps for faster access
     dftUtils::constraintMatrixInfo d_constraintsInfo;
     std::shared_ptr<const dealii::Utilities::MPI::Partitioner>
-      d_batchedPartitioner;
+      d_singleVectorPartitioner, d_singleBatchPartitioner;
 
     dftfe::utils::MemoryStorage<double, dftfe::utils::MemorySpace::HOST>
       d_VeffJxW, d_VeffExtPotJxW, d_VGGA;
@@ -160,8 +159,6 @@ namespace dftfe
 
     dealii::AlignedVector<dealii::VectorizedArray<double>> alignedVector;
     dealii::VectorizedArray<double> *arrayV, *arrayW, *arrayX, *arrayY, *arrayZ;
-
-    bool d_isLDA;
 
     std::vector<double>        tempGhostStorage, tempCompressStorage;
     std::vector<double>        tempConstraintStorage;

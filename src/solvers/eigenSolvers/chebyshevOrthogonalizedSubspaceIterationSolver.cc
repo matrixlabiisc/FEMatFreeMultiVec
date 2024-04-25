@@ -318,7 +318,6 @@ namespace dftfe
             computing_timer.leave_subsection(
               "Copy from full to block flattened array");
 
-
             operatorMatrix.HXCheby(*eigenVectorsFlattenedArrayBlock,
                                    1,
                                    0,

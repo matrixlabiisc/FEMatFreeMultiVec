@@ -227,9 +227,11 @@ namespace dftfe
       {
         // Setup MatrixFree
         unsigned int blockSize = d_dftParamsPtr->chebyWfcBlockSize;
+        const bool   isGGA     = d_excManagerPtr->getDensityBasedFamilyType() ==
+                           densityFamilyType::GGA;
 
         d_matrixFreeBasePtr = std::make_unique<dftfe::MatrixFree<8, 10, 8>>(
-          d_mpiCommDomain, d_basisOperationsPtrHost, blockSize);
+          d_mpiCommDomain, d_basisOperationsPtrHost, isGGA, blockSize);
 
         d_matrixFreeBasePtr->reinit(d_densityQuadratureID);
 
@@ -1242,9 +1244,9 @@ namespace dftfe
         for (int j = 0; j < trials; j++)
           {
             MPI_Barrier(d_mpiCommDomain);
-            auto start_HX = getTime();
+            auto start_HX = getTime(); //*/
 
-            d_matrixFreeBasePtr->computeAX(dst, src, d_BLASWrapperPtr);
+            d_matrixFreeBasePtr->computeAX(dst, src);
 
             MPI_Barrier(d_mpiCommDomain);
             auto stop_HX = getTime();
@@ -1255,7 +1257,7 @@ namespace dftfe
         meanAndStdDev(HXTimes, HXMean, HXStdDev);
 
         pcout << "HX Mean Time: " << HXMean << "\n"
-              << "HX Std Dev Time: " << HXStdDev << "\n";
+              << "HX Std Dev Time: " << HXStdDev << "\n"; //*/
 
         pcout << "MF Exit" << std::endl << std::endl;
 
@@ -1291,11 +1293,6 @@ namespace dftfe
         double dstNorm;
         double srcNorm;
 
-        double srcCellNorm;
-        double dstCellNorm;
-        double srcAllCellNorm;
-        double dstAllCellNorm;
-
         pcout << "CM Enter" << std::endl;
 
         if (d_numVectorsInternal != numberWavefunctions)
@@ -1326,8 +1323,8 @@ namespace dftfe
             const dataTypes::number scalarCoeffAlpha = dataTypes::number(1.0),
                                     scalarCoeffBeta  = dataTypes::number(0.0);
 
-            // if (!skip1 && !skip2 && !skip3)
-            //   src.updateGhostValues();
+            if (!skip1 && !skip2 && !skip3)
+              src.updateGhostValues();
 
             if (!skip1)
               {
@@ -1454,8 +1451,8 @@ namespace dftfe
 
             if (!skip1 && !skip2 && !skip3)
               {
-                // dst.accumulateAddLocallyOwned();
-                // dst.zeroOutGhosts();
+                dst.accumulateAddLocallyOwned();
+                dst.zeroOutGhosts();
               }
 
             MPI_Barrier(d_mpiCommDomain);
@@ -1467,7 +1464,7 @@ namespace dftfe
         meanAndStdDev(HXTimes, HXMean, HXStdDev);
 
         pcout << "HX Mean Time: " << HXMean << "\n"
-              << "HX Std Dev Time: " << HXStdDev << "\n";
+              << "HX Std Dev Time: " << HXStdDev << "\n"; //*/
 
         pcout << "CM Exit" << std::endl << std::endl;
 
