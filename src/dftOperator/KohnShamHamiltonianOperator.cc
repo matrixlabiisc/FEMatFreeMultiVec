@@ -229,9 +229,19 @@ namespace dftfe
         unsigned int blockSize = d_dftParamsPtr->chebyWfcBlockSize;
         const bool   isGGA     = d_excManagerPtr->getDensityBasedFamilyType() ==
                            densityFamilyType::GGA;
+        const int FeOrder = d_dftParamsPtr->finiteElementPolynomialOrder;
 
-        d_matrixFreeBasePtr = std::make_unique<dftfe::MatrixFree<8, 10, 8>>(
-          d_mpiCommDomain, d_basisOperationsPtrHost, isGGA, blockSize);
+        if (FeOrder == 5)
+          d_matrixFreeBasePtr = std::make_unique<dftfe::MatrixFree<6, 8, 8>>(
+            d_mpiCommDomain, d_basisOperationsPtrHost, isGGA, blockSize);
+
+        if (FeOrder == 6)
+          d_matrixFreeBasePtr = std::make_unique<dftfe::MatrixFree<7, 9, 8>>(
+            d_mpiCommDomain, d_basisOperationsPtrHost, isGGA, blockSize);
+
+        if (FeOrder == 7)
+          d_matrixFreeBasePtr = std::make_unique<dftfe::MatrixFree<8, 10, 8>>(
+            d_mpiCommDomain, d_basisOperationsPtrHost, isGGA, blockSize);
 
         d_matrixFreeBasePtr->reinit(d_densityQuadratureID);
 
@@ -781,6 +791,9 @@ namespace dftfe
           }
       }
 
+      // d_VeffJxW.setValue(0);
+      // d_invJacderExcWithSigmaTimesGradRhoJxW.setValue(0);
+
 #if defined(DFTFE_WITH_DEVICE)
     d_VeffJxW.resize(d_VeffJxWHost.size());
     d_VeffJxW.copyFrom(d_VeffJxWHost);
@@ -821,7 +834,7 @@ namespace dftfe
             temp[iQuad] * cellJxWPtr[iQuad];
       }
 
-    d_VeffExtPotJxW.setValue(0);
+      // d_VeffExtPotJxW.setValue(0);
 
 #if defined(DFTFE_WITH_DEVICE)
     d_VeffExtPotJxW.resize(d_VeffExtPotJxWHost.size());
@@ -1218,6 +1231,10 @@ namespace dftfe
     auto d_nRelaventDofs = d_basisOperationsPtrHost->nRelaventDofs();
     auto d_nGhostDofs    = d_nRelaventDofs - d_nOwnedDofs;
 
+    const int           trials = 1;
+    std::vector<double> HXTimes(trials);
+    double              HXMean = 0.0, HXStdDev = 0.0;
+
     if (MFflag)
       {
         const unsigned int numberWavefunctions = src.localSize() / d_nOwnedDofs;
@@ -1236,10 +1253,6 @@ namespace dftfe
         double srcNorm;
 
         pcout << "MF Enter" << std::endl;
-
-        const int           trials = 105;
-        std::vector<double> HXTimes(trials);
-        double              HXMean = 0.0, HXStdDev = 0.0;
 
         for (int j = 0; j < trials; j++)
           {
@@ -1305,10 +1318,6 @@ namespace dftfe
                                        false,
                                        false);
 
-        const int           trials = 105;
-        std::vector<double> HXTimes(trials);
-        double              HXMean = 0.0, HXStdDev = 0.0;
-
         for (int j = 0; j < trials; j++)
           {
             MPI_Barrier(d_mpiCommDomain);
@@ -1323,8 +1332,8 @@ namespace dftfe
             const dataTypes::number scalarCoeffAlpha = dataTypes::number(1.0),
                                     scalarCoeffBeta  = dataTypes::number(0.0);
 
-            if (!skip1 && !skip2 && !skip3)
-              src.updateGhostValues();
+            // if (!skip1 && !skip2 && !skip3)
+            // src.updateGhostValues();
 
             if (!skip1)
               {
@@ -1445,15 +1454,19 @@ namespace dftfe
                         cellRange.first * numDoFsPerCell);
                   }
 
+                // d_basisOperationsPtrHost
+                //   ->d_constraintInfo[d_basisOperationsPtrHost->d_dofHandlerID]
+                //   .distribute_slave_to_master(Ax);
+
                 // inverseMassVectorScaledConstraintsNoneDataInfoPtr
                 //   ->distribute_slave_to_master(dst);
               }
 
-            if (!skip1 && !skip2 && !skip3)
-              {
-                dst.accumulateAddLocallyOwned();
-                dst.zeroOutGhosts();
-              }
+            // if (!skip1 && !skip2 && !skip3)
+            //   {
+            //     dst.accumulateAddLocallyOwned();
+            //     dst.zeroOutGhosts();
+            //   }
 
             MPI_Barrier(d_mpiCommDomain);
             auto stop_HX = getTime();
@@ -1464,7 +1477,7 @@ namespace dftfe
         meanAndStdDev(HXTimes, HXMean, HXStdDev);
 
         pcout << "HX Mean Time: " << HXMean << "\n"
-              << "HX Std Dev Time: " << HXStdDev << "\n"; //*/
+              << "HX Std Dev Time: " << HXStdDev << "\n";
 
         pcout << "CM Exit" << std::endl << std::endl;
 

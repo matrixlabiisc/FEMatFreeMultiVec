@@ -160,6 +160,7 @@ namespace dftfe
     dealii::AlignedVector<dealii::VectorizedArray<double>> alignedVector;
     dealii::VectorizedArray<double> *arrayV, *arrayW, *arrayX, *arrayY, *arrayZ;
 
+    dealii::ConditionalOStream pcout;
     std::vector<double>        tempGhostStorage, tempCompressStorage;
     std::vector<double>        tempConstraintStorage;
     const MPI_Comm             mpi_communicator;
@@ -167,23 +168,6 @@ namespace dftfe
     const unsigned int         this_mpi_process;
     std::vector<MPI_Request>   mpiRequestsGhost;
     std::vector<MPI_Request>   mpiRequestsCompress;
-    std::vector<MPI_Datatype>  mpighostTypes;
-    std::vector<MPI_Datatype>  mpiownedTypes;
-    std::vector<unsigned int>  mpighostoffsets;
-    std::vector<unsigned int>  mpighostcounts;
-    std::vector<int>           mpiownedtargets;
-    std::vector<int>           mpighosttargets;
-    dealii::ConditionalOStream pcout;
-    std::unique_ptr<
-      dealii::internal::MatrixFreeFunctions::VectorDataExchange::Full>
-                                                 d_dealiiDataExchangePtr;
-    std::vector<dealii::ArrayView<const double>> sharedStoreageGhosts,
-      sharedStoreageCompress;
-    std::vector<double *> sharedStoreageGhostsPtrs, sharedStoreageCompressPtrs;
-    MPI_Win               sharedWinGhosts, sharedWinCompress; // window
-    MPI_Comm              shared_comm;
-    int                   rank_sm;
-    int                   size_sm;
   };
 
 } // namespace dftfe
