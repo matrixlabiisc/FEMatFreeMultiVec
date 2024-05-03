@@ -38,7 +38,7 @@ namespace dftfe
      *
      */
     virtual void
-    reinit(const unsigned int densityQuadratureID) = 0;
+    reinit(const unsigned int matrixFreeQuadratureID) = 0;
 
 
     /**
@@ -54,14 +54,15 @@ namespace dftfe
         &x) = 0;
 
     virtual void
-    setVeffMF(
+    setVJxWMF(
       dftfe::utils::MemoryStorage<dataTypes::number,
                                   dftfe::utils::MemorySpace::HOST> &VeffJxW,
       dftfe::utils::MemoryStorage<dataTypes::number,
                                   dftfe::utils::MemorySpace::HOST>
         &VeffExtPotJxW,
       dftfe::utils::MemoryStorage<dataTypes::number,
-                                  dftfe::utils::MemorySpace::HOST> &VGGA) = 0;
+                                  dftfe::utils::MemorySpace::HOST>
+        &VGGAJxW) = 0;
   };
 
 } // namespace dftfe

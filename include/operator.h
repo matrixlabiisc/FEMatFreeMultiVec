@@ -72,7 +72,7 @@ namespace dftfe
         &multiVector);
 
     virtual void
-    setVeffMF();
+    setVJxWMF();
 
     virtual void
     init(const std::vector<double> &kPointCoordinates,

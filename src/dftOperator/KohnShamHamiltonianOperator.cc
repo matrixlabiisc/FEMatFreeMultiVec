@@ -427,9 +427,9 @@ namespace dftfe
 
   template <dftfe::utils::MemorySpace memorySpace>
   void
-  KohnShamHamiltonianOperator<memorySpace>::setVeffMF()
+  KohnShamHamiltonianOperator<memorySpace>::setVJxWMF()
   {
-    d_matrixFreeBasePtr->setVeffMF(d_VeffJxW,
+    d_matrixFreeBasePtr->setVJxWMF(d_VeffJxW,
                                    d_VeffExtPotJxW,
                                    d_invJacderExcWithSigmaTimesGradRhoJxW);
   }
@@ -1332,12 +1332,12 @@ namespace dftfe
             const dataTypes::number scalarCoeffAlpha = dataTypes::number(1.0),
                                     scalarCoeffBeta  = dataTypes::number(0.0);
 
-            // if (!skip1 && !skip2 && !skip3)
-            // src.updateGhostValues();
+            if (!skip1 && !skip2 && !skip3)
+              src.updateGhostValues();
 
             if (!skip1)
               {
-                // d_basisOperationsPtr->distribute(src);
+                d_basisOperationsPtr->distribute(src);
 
                 /*if constexpr (memorySpace == dftfe::utils::MemorySpace::HOST)
                   if (d_dftParamsPtr->isPseudopotential)
@@ -1454,19 +1454,15 @@ namespace dftfe
                         cellRange.first * numDoFsPerCell);
                   }
 
-                // d_basisOperationsPtrHost
-                //   ->d_constraintInfo[d_basisOperationsPtrHost->d_dofHandlerID]
-                //   .distribute_slave_to_master(Ax);
-
                 // inverseMassVectorScaledConstraintsNoneDataInfoPtr
                 //   ->distribute_slave_to_master(dst);
               }
 
-            // if (!skip1 && !skip2 && !skip3)
-            //   {
-            //     dst.accumulateAddLocallyOwned();
-            //     dst.zeroOutGhosts();
-            //   }
+            if (!skip1 && !skip2 && !skip3)
+              {
+                dst.accumulateAddLocallyOwned();
+                dst.zeroOutGhosts();
+              }
 
             MPI_Barrier(d_mpiCommDomain);
             auto stop_HX = getTime();

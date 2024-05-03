@@ -302,7 +302,7 @@ namespace dftfe
                             jvec + iNode * totalNumberWaveFunctions);
                       }
 
-                operatorMatrix.setVeffMF();
+                operatorMatrix.setVJxWMF();
               }
             else
               {

@@ -97,7 +97,7 @@ namespace dftfe
         &BCVmultiVector);
 
     void
-    setVeffMF();
+    setVJxWMF();
 
     /**
      * @brief Computes effective potential involving exchange-correlation functionals

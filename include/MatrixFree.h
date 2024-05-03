@@ -19,7 +19,10 @@
 #ifndef matrixFree_H_
 #define matrixFree_H_
 #include <MatrixFreeBase.h>
+#include <linearAlgebraOperations.h>
+#include <constraintMatrixInfo.h>
 #include <vectorUtilities.h>
+
 
 namespace dftfe
 {
@@ -58,26 +61,18 @@ namespace dftfe
 
 
     /**
-     * @brief initialize optimized constraints.
-     *
-     */
-    void
-    initializeOptimizedConstraints();
-
-
-    /**
      * @brief set Veff and VeffExtPot for matrixFree AX
      *
      */
     void
-    setVeffMF(
+    setVJxWMF(
       dftfe::utils::MemoryStorage<dataTypes::number,
                                   dftfe::utils::MemorySpace::HOST> &VeffJxW,
       dftfe::utils::MemoryStorage<dataTypes::number,
                                   dftfe::utils::MemorySpace::HOST>
         &VeffExtPotJxW,
       dftfe::utils::MemoryStorage<dataTypes::number,
-                                  dftfe::utils::MemorySpace::HOST> &VGGA);
+                                  dftfe::utils::MemorySpace::HOST> &VGGAJxW);
 
 
     /**
@@ -109,6 +104,19 @@ namespace dftfe
     evalHXGGA(const unsigned int iCell);
 
 
+    /**
+     * @brief initialize optimized constraints.
+     *
+     */
+    void
+    initConstraints();
+
+
+    inline unsigned int
+    getMultiVectorIndex(const unsigned int nodeIdx,
+                        const unsigned int batchIdx) const;
+
+
     /// pointer to dealii MatrixFree object
     const dealii::MatrixFree<3, double> *d_matrixFreeDataPtr;
 
@@ -127,7 +135,7 @@ namespace dftfe
       d_singleVectorPartitioner, d_singleBatchPartitioner;
 
     dftfe::utils::MemoryStorage<double, dftfe::utils::MemorySpace::HOST>
-      d_VeffJxW, d_VeffExtPotJxW, d_VGGA;
+      d_VeffJxW, d_VeffExtPotJxW, d_VGGAJxW;
 
     /// Matrix free data
     std::shared_ptr<
@@ -136,9 +144,10 @@ namespace dftfe
                                       dftfe::utils::MemorySpace::HOST>>
       d_basisOperationsPtrHost;
 
-    std::vector<unsigned int> globalToLocalMap, singleVectorGlobalToLocalMap;
-    std::vector<double>       jacobianFactor;
-    std::vector<double>       jacobianDeterminants;
+    std::vector<unsigned int> singleVectorGlobalToLocalMap,
+      singleVectorToMultiVectorMap;
+    std::vector<double> jacobianFactor;
+    std::vector<double> jacobianDeterminants;
 
     std::vector<std::vector<unsigned int>> slaveNodeBuckets, masterNodeBuckets;
     std::vector<std::vector<double>>       weightMatrixList;
@@ -162,7 +171,6 @@ namespace dftfe
 
     dealii::ConditionalOStream pcout;
     std::vector<double>        tempGhostStorage, tempCompressStorage;
-    std::vector<double>        tempConstraintStorage;
     const MPI_Comm             mpi_communicator;
     const unsigned int         n_mpi_processes;
     const unsigned int         this_mpi_process;
