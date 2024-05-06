@@ -1381,7 +1381,12 @@ namespace dftfe
                   } //*/
 
                 // src.zeroOutGhosts();
-                // inverseMassVectorScaledConstraintsNoneDataInfoPtr->set_zero(src);
+                // inverseMassVectorScaledConstraintsNoneDataInfoPtr->set_zero(
+                //   src);
+
+                d_basisOperationsPtr
+                  ->d_constraintInfo[d_basisOperationsPtr->d_dofHandlerID].set_zero(
+                  src);
 
                 /*if (d_dftParamsPtr->isPseudopotential &&
                     !onlyHPrimePartForFirstOrderDensityMatResponse)
@@ -1454,8 +1459,12 @@ namespace dftfe
                         cellRange.first * numDoFsPerCell);
                   }
 
+                d_basisOperationsPtr
+                  ->d_constraintInfo[d_basisOperationsPtr->d_dofHandlerID]
+                  .distribute_slave_to_master(dst);
+
                 // inverseMassVectorScaledConstraintsNoneDataInfoPtr
-                //   ->distribute_slave_to_master(dst);
+                // ->distribute_slave_to_master(dst);
               }
 
             if (!skip1 && !skip2 && !skip3)

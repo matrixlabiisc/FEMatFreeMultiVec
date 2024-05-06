@@ -1397,7 +1397,7 @@ namespace dftfe
             mpiRequestsCompress);
 
         // Constraints distribute
-        // Optimize masterNodeBuckets[i].size() from GPUs
+        // Optimize masterNodeBuckets[i].size() from GPUs shared size
         for (auto i = 0; i < masterNodeBuckets.size(); i++)
           {
             std::vector<dealii::VectorizedArray<double>> tempMasterData(
@@ -1474,8 +1474,8 @@ namespace dftfe
               }
           }
 
-
-        /*for (auto i = 0; i < slaveNodeBuckets.size(); ++i)
+        // Constraints distribute transpose
+        for (auto i = 0; i < slaveNodeBuckets.size(); ++i)
           {
             if (masterNodeBuckets[i].size() > 0)
               {
@@ -1483,35 +1483,79 @@ namespace dftfe
                   slaveNodeBuckets[i].size());
                 for (auto k = 0; k < slaveNodeBuckets[i].size(); ++k)
                   {
-                    tempSlaveData[k] =
-                      Ax[getMultivectorIndex(slaveNodeBuckets[i][k], iBatch)];
-                    Ax[getMultivectorIndex(slaveNodeBuckets[i][k], iBatch)] = 0;
-                    x[getMultivectorIndex(slaveNodeBuckets[i][k], iBatch)]  = 0;
+                    tempSlaveData[k].load(
+                      Ax.data() +
+                      getMultiVectorIndex(slaveNodeBuckets[i][k], iBatch) *
+                        batchSize);
+
+                    std::fill(
+                      Ax.data() +
+                        getMultiVectorIndex(slaveNodeBuckets[i][k], iBatch) *
+                          batchSize,
+                      Ax.data() +
+                        getMultiVectorIndex(slaveNodeBuckets[i][k], iBatch) *
+                          batchSize +
+                        batchSize,
+                      0.0);
+
+                    std::fill(
+                      x.data() +
+                        getMultiVectorIndex(slaveNodeBuckets[i][k], iBatch) *
+                          batchSize,
+                      x.data() +
+                        getMultiVectorIndex(slaveNodeBuckets[i][k], iBatch) *
+                          batchSize +
+                        batchSize,
+                      0.0);
                   }
+
                 for (auto j = 0; j < masterNodeBuckets[i].size(); ++j)
                   {
                     dealii::VectorizedArray<double> temp = 0;
+
+                    temp.load(
+                      Ax.data() +
+                      getMultiVectorIndex(masterNodeBuckets[i][j], iBatch) *
+                        batchSize);
+
                     for (auto k = 0; k < slaveNodeBuckets[i].size(); ++k)
-                      {
-                        temp +=
-                          weightMatrixList[i][masterNodeBuckets[i].size() * k +
-                                              j] *
-                          tempSlaveData[k];
-                      }
-                    Ax[getMultivectorIndex(masterNodeBuckets[i][j], iBatch)] +=
-                      temp;
+                      temp +=
+                        weightMatrixList[i]
+                                        [masterNodeBuckets[i].size() * k + j] *
+                        tempSlaveData[k];
+
+                    temp.store(
+                      Ax.data() +
+                      getMultiVectorIndex(masterNodeBuckets[i][j], iBatch) *
+                        batchSize);
                   }
               }
             else
               {
                 for (auto k = 0; k < slaveNodeBuckets[i].size(); ++k)
                   {
-                    Ax[getMultivectorIndex(slaveNodeBuckets[i][k], iBatch)] = 0;
-                    x[getMultivectorIndex(slaveNodeBuckets[i][k], iBatch)]  = 0;
+                    std::fill(
+                      Ax.data() +
+                        getMultiVectorIndex(slaveNodeBuckets[i][k], iBatch) *
+                          batchSize,
+                      Ax.data() +
+                        getMultiVectorIndex(slaveNodeBuckets[i][k], iBatch) *
+                          batchSize +
+                        batchSize,
+                      0.0);
+
+                    std::fill(
+                      x.data() +
+                        getMultiVectorIndex(slaveNodeBuckets[i][k], iBatch) *
+                          batchSize,
+                      x.data() +
+                        getMultiVectorIndex(slaveNodeBuckets[i][k], iBatch) *
+                          batchSize +
+                        batchSize,
+                      0.0);
                   }
               }
-          } //*/
-
+          }
 
         if (iBatch > 0)
           d_singleBatchPartitioner->import_from_ghosted_array_finish(
@@ -1566,7 +1610,6 @@ namespace dftfe
               Ax.data() + d_nOwnedDofs * d_blockSize + 2 * d_nGhostDofs,
               0.0);
   }
-
 
 
 #include "MatrixFree.inst.cc"
