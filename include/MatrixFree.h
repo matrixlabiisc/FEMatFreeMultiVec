@@ -146,12 +146,12 @@ namespace dftfe
 
     std::vector<unsigned int> singleVectorGlobalToLocalMap,
       singleVectorToMultiVectorMap;
-    std::vector<double> jacobianFactor;
-    std::vector<double> jacobianDeterminants;
+    std::vector<double> jacobianFactor, jacobianDeterminants,
+      cellInverseMassVector;
 
     std::vector<std::vector<unsigned int>> slaveNodeBuckets, masterNodeBuckets;
-    std::vector<std::vector<double>>       weightMatrixList;
-    std::vector<double>                    inhomogenityList;
+    std::vector<std::vector<double>> weightMatrixList, scaledWeightMatrixList;
+    std::vector<double>              inhomogenityList;
 
     static constexpr int d_quadODim = nQuadPointsPerDim / 2;
     static constexpr int d_quadEDim =

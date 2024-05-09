@@ -1318,6 +1318,8 @@ namespace dftfe
                                        false,
                                        false);
 
+        dst.setValue(0.0);
+
         for (int j = 0; j < trials; j++)
           {
             MPI_Barrier(d_mpiCommDomain);
@@ -1381,12 +1383,12 @@ namespace dftfe
                   } //*/
 
                 // src.zeroOutGhosts();
-                // inverseMassVectorScaledConstraintsNoneDataInfoPtr->set_zero(
-                //   src);
-
-                d_basisOperationsPtr
-                  ->d_constraintInfo[d_basisOperationsPtr->d_dofHandlerID].set_zero(
+                inverseMassVectorScaledConstraintsNoneDataInfoPtr->set_zero(
                   src);
+
+                // d_basisOperationsPtr
+                //   ->d_constraintInfo[d_basisOperationsPtr->d_dofHandlerID]
+                //   .set_zero(src);
 
                 /*if (d_dftParamsPtr->isPseudopotential &&
                     !onlyHPrimePartForFirstOrderDensityMatResponse)
@@ -1448,10 +1450,10 @@ namespace dftfe
                     d_BLASWrapperPtr->axpyStridedBlockAtomicAdd(
                       numberWavefunctions,
                       numDoFsPerCell * (cellRange.second - cellRange.first),
-                      // scalarHX,
-                      // d_basisOperationsPtr->cellInverseMassVectorBasisData()
-                      //     .data() +
-                      //   cellRange.first * numDoFsPerCell,
+                      1.0, // scalarHX,
+                      d_basisOperationsPtr->cellInverseMassVectorBasisData()
+                          .data() +
+                        cellRange.first * numDoFsPerCell,
                       d_cellWaveFunctionMatrixDst.data(),
                       dst.data(),
                       d_basisOperationsPtr
@@ -1459,12 +1461,12 @@ namespace dftfe
                         cellRange.first * numDoFsPerCell);
                   }
 
-                d_basisOperationsPtr
-                  ->d_constraintInfo[d_basisOperationsPtr->d_dofHandlerID]
-                  .distribute_slave_to_master(dst);
+                // d_basisOperationsPtr
+                //   ->d_constraintInfo[d_basisOperationsPtr->d_dofHandlerID]
+                //   .distribute_slave_to_master(dst);
 
-                // inverseMassVectorScaledConstraintsNoneDataInfoPtr
-                // ->distribute_slave_to_master(dst);
+                inverseMassVectorScaledConstraintsNoneDataInfoPtr
+                  ->distribute_slave_to_master(dst);
               }
 
             if (!skip1 && !skip2 && !skip3)

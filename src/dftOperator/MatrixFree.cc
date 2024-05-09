@@ -720,7 +720,7 @@ namespace dftfe
         taskGhostStartIndices[i] = tmp;
       }
 
-    for (unsigned int iDof = 0; iDof < d_nRelaventDofs; ++iDof)
+    for (unsigned int iDof = 0; iDof < d_nRelaventDofs; iDof++)
       {
         if (iDof >= d_nOwnedDofs)
           {
@@ -764,6 +764,26 @@ namespace dftfe
   void
   MatrixFree<ndofsPerDim, nQuadPointsPerDim, batchSize>::initConstraints()
   {
+    cellInverseMassVector.resize(d_nDofsPerCell * d_nCells, 0.0);
+
+    for (auto iCell = 0; iCell < d_nCells; iCell++)
+      for (unsigned int iDoF = 0; iDoF < d_nDofsPerCell; iDoF++)
+        {
+          unsigned int dofIdx = iDoF + iCell * d_nDofsPerCell;
+          unsigned int l2g    = singleVectorGlobalToLocalMap[dofIdx];
+
+          auto globalIdx =
+            d_matrixFreeDataPtr
+              ->get_vector_partitioner(d_basisOperationsPtrHost->d_dofHandlerID)
+              ->local_to_global(l2g);
+
+          if (d_constraintMatrixPtr->is_constrained(globalIdx))
+            cellInverseMassVector[dofIdx] = 1.0;
+          else
+            cellInverseMassVector[dofIdx] =
+              d_basisOperationsPtrHost->inverseMassVectorBasisData()[l2g];
+        }
+
     const dealii::IndexSet &locallyOwnedDofs =
       d_matrixFreeDataPtr
         ->get_vector_partitioner(d_basisOperationsPtrHost->d_dofHandlerID)
@@ -776,7 +796,7 @@ namespace dftfe
 
     for (dealii::IndexSet::ElementIterator it = locallyOwnedDofs.begin();
          it != locallyOwnedDofs.end();
-         ++it)
+         it++)
       {
         if (d_constraintMatrixPtr->is_constrained(*it))
           {
@@ -788,7 +808,7 @@ namespace dftfe
 
             bool isConstraintRhsExpandingOutOfIndexSet = false;
 
-            for (unsigned int j = 0; j < rowData->size(); ++j)
+            for (unsigned int j = 0; j < rowData->size(); j++)
               {
                 if (!(d_matrixFreeDataPtr
                         ->get_vector_partitioner(
@@ -809,25 +829,29 @@ namespace dftfe
 
             std::vector<unsigned int> masterData(rowData->size());
             std::vector<double>       weightData(rowData->size());
+            std::vector<double>       scaledWeightData(rowData->size());
+            double                    inhomogenity =
+              d_constraintMatrixPtr->get_inhomogeneity(lineDof);
 
-            for (auto i = 0; i < rowData->size(); ++i)
+            for (auto i = 0; i < rowData->size(); i++)
               {
                 masterData[i] = d_matrixFreeDataPtr
                                   ->get_vector_partitioner(
                                     d_basisOperationsPtrHost->d_dofHandlerID)
                                   ->global_to_local((*rowData)[i].first);
 
-                weightData[i] =
-                  (*rowData)[i]
-                    .second; // * sqrtMassVec.local_element(masterData[i]);
+                weightData[i] = (*rowData)[i].second;
+
+                scaledWeightData[i] =
+                  ((*rowData)[i].second) *
+                  d_basisOperationsPtrHost
+                    ->inverseMassVectorBasisData()[masterData[i]];
               }
 
             bool         constraintExists = false;
             unsigned int constraintIndex  = 0;
-            double       inhomogenity =
-              d_constraintMatrixPtr->get_inhomogeneity(lineDof);
 
-            for (auto i = 0; i < masterNodeBuckets.size(); ++i)
+            for (auto i = 0; i < masterNodeBuckets.size(); i++)
               {
                 if ((masterNodeBuckets[i] == masterData) &&
                     (inhomogenityList[i] == inhomogenity))
@@ -845,10 +869,16 @@ namespace dftfe
                     ->get_vector_partitioner(
                       d_basisOperationsPtrHost->d_dofHandlerID)
                     ->global_to_local(lineDof));
+
                 weightMatrixList[constraintIndex].insert(
                   weightMatrixList[constraintIndex].end(),
                   weightData.begin(),
                   weightData.end());
+
+                scaledWeightMatrixList[constraintIndex].insert(
+                  scaledWeightMatrixList[constraintIndex].end(),
+                  scaledWeightData.begin(),
+                  scaledWeightData.end());
               }
             else
               {
@@ -858,7 +888,9 @@ namespace dftfe
                     ->get_vector_partitioner(
                       d_basisOperationsPtrHost->d_dofHandlerID)
                     ->global_to_local(lineDof)));
+
                 weightMatrixList.push_back(weightData);
+                scaledWeightMatrixList.push_back(scaledWeightData);
                 masterNodeBuckets.push_back(masterData);
                 inhomogenityList.push_back(inhomogenity);
               }
@@ -867,7 +899,7 @@ namespace dftfe
 
     for (dealii::IndexSet::ElementIterator it = ghostDofs.begin();
          it != ghostDofs.end();
-         ++it)
+         it++)
       {
         if (d_constraintMatrixPtr->is_constrained(*it))
           {
@@ -879,7 +911,7 @@ namespace dftfe
 
             bool isConstraintRhsExpandingOutOfIndexSet = false;
 
-            for (unsigned int j = 0; j < rowData->size(); ++j)
+            for (unsigned int j = 0; j < rowData->size(); j++)
               {
                 if (!(d_matrixFreeDataPtr
                         ->get_vector_partitioner(
@@ -900,8 +932,9 @@ namespace dftfe
 
             std::vector<unsigned int> masterData(rowData->size());
             std::vector<double>       weightData(rowData->size());
+            std::vector<double>       scaledWeightData(rowData->size());
 
-            for (auto i = 0; i < rowData->size(); ++i)
+            for (auto i = 0; i < rowData->size(); i++)
               {
                 masterData[i] = d_matrixFreeDataPtr
                                   ->get_vector_partitioner(
@@ -909,7 +942,11 @@ namespace dftfe
                                   ->global_to_local((*rowData)[i].first);
 
                 weightData[i] = (*rowData)[i].second;
-                // * sqrtMassVec.local_element(masterData[i]);
+
+                scaledWeightData[i] =
+                  ((*rowData)[i].second) *
+                  d_basisOperationsPtrHost
+                    ->inverseMassVectorBasisData()[masterData[i]];
               }
 
             bool         constraintExists = false;
@@ -917,7 +954,7 @@ namespace dftfe
             double       inhomogenity =
               d_constraintMatrixPtr->get_inhomogeneity(lineDof);
 
-            for (auto i = 0; i < masterNodeBuckets.size(); ++i)
+            for (auto i = 0; i < masterNodeBuckets.size(); i++)
               {
                 if ((masterNodeBuckets[i] == masterData) &&
                     (inhomogenityList[i] == inhomogenity))
@@ -935,10 +972,16 @@ namespace dftfe
                     ->get_vector_partitioner(
                       d_basisOperationsPtrHost->d_dofHandlerID)
                     ->global_to_local(lineDof));
+
                 weightMatrixList[constraintIndex].insert(
                   weightMatrixList[constraintIndex].end(),
                   weightData.begin(),
                   weightData.end());
+
+                scaledWeightMatrixList[constraintIndex].insert(
+                  scaledWeightMatrixList[constraintIndex].end(),
+                  scaledWeightData.begin(),
+                  scaledWeightData.end());
               }
             else
               {
@@ -948,7 +991,9 @@ namespace dftfe
                     ->get_vector_partitioner(
                       d_basisOperationsPtrHost->d_dofHandlerID)
                     ->global_to_local(lineDof)));
+
                 weightMatrixList.push_back(weightData);
+                scaledWeightMatrixList.push_back(scaledWeightData);
                 masterNodeBuckets.push_back(masterData);
                 inhomogenityList.push_back(inhomogenity);
               }
@@ -1004,12 +1049,15 @@ namespace dftfe
       {
         const unsigned int numberSubCells =
           d_matrixFreeDataPtr->n_components_filled(iMacroCell);
+
         for (unsigned int iSubCell = 0; iSubCell < numberSubCells; iSubCell++)
           {
             cellPtr = d_matrixFreeDataPtr->get_cell_iterator(
               iMacroCell, iSubCell, d_basisOperationsPtrHost->d_dofHandlerID);
+
             size_type cellIndex = cellIdToCellIndexMap[cellPtr->id()];
             cellIndexToMacroCellSubCellIndexMap[cellIndex] = iCell;
+
             iCell++;
           }
       }
@@ -1027,7 +1075,7 @@ namespace dftfe
     if (d_isGGA)
       for (auto iCell = 0; iCell < d_nCells; iCell++)
         for (auto iQuad = 0; iQuad < d_nQuadsPerCell; iQuad++)
-          for (unsigned iDim = 0; iDim < 3; ++iDim)
+          for (unsigned iDim = 0; iDim < 3; iDim++)
             d_VGGAJxW[iDim + iQuad * 3 +
                       cellIndexToMacroCellSubCellIndexMap[iCell] *
                         d_nQuadsPerCell * 3] =
@@ -1347,6 +1395,8 @@ namespace dftfe
     constexpr unsigned int          eightInt = batchSize;
     dealii::VectorizedArray<double> temp;
 
+    Ax.setValue(0.0);
+
     // Start updateGhost for batch 0
     d_singleBatchPartitioner->export_to_ghosted_array_start<double>(
       (unsigned int)5,
@@ -1365,9 +1415,7 @@ namespace dftfe
     // Batch Loop
     for (auto iBatch = 0; iBatch < d_nBatch; iBatch++)
       {
-        // Optimize this
         // Use GPU overlap 1st tensor contraction and extraction
-        std::vector<bool> dofEncountered(d_nRelaventDofs, false);
 
         // Overlap batches
         if (iBatch < d_nBatch - 1)
@@ -1434,6 +1482,7 @@ namespace dftfe
                 unsigned int l2g =
                   singleVectorGlobalToLocalMap[iDoF + iCell * d_nDofsPerCell];
 
+                // Possibly optimized
                 std::memcpy(arrayX + iDoF,
                             x.data() +
                               getMultiVectorIndex(l2g, iBatch) * batchSize,
@@ -1445,43 +1494,34 @@ namespace dftfe
             else
               evalHXLDA(iCell);
 
-            // Potential bottleneck
             // Assembly
             for (auto iDoF = 0; iDoF < d_nDofsPerCell; iDoF++)
               {
                 unsigned int l2g =
                   singleVectorGlobalToLocalMap[iDoF + iCell * d_nDofsPerCell];
 
-                if (dofEncountered[l2g])
-                  {
-                    daxpy_(&eightInt,
-                           &one,
-                           (double *)(arrayX + iDoF),
-                           &oneInt,
-                           Ax.data() +
-                             getMultiVectorIndex(l2g, iBatch) * batchSize,
-                           &oneInt);
-                  }
-                else
-                  {
-                    dofEncountered[l2g] = true;
+                arrayX[iDoF] =
+                  1.0 * cellInverseMassVector[iDoF + iCell * d_nDofsPerCell] *
+                  arrayX[iDoF];
 
-                    std::memcpy(Ax.data() +
-                                  getMultiVectorIndex(l2g, iBatch) * batchSize,
-                                arrayX + iDoF,
-                                batchSize * sizeof(double));
-                  }
+                // Potential bottleneck
+                daxpy_(&eightInt,
+                       &one,
+                       (double *)(arrayX + iDoF),
+                       &oneInt,
+                       Ax.data() + getMultiVectorIndex(l2g, iBatch) * batchSize,
+                       &oneInt);
               }
           }
 
         // Constraints distribute transpose
-        for (auto i = 0; i < slaveNodeBuckets.size(); ++i)
+        for (auto i = 0; i < slaveNodeBuckets.size(); i++)
           {
             if (masterNodeBuckets[i].size() > 0)
               {
                 std::vector<dealii::VectorizedArray<double>> tempSlaveData(
                   slaveNodeBuckets[i].size());
-                for (auto k = 0; k < slaveNodeBuckets[i].size(); ++k)
+                for (auto k = 0; k < slaveNodeBuckets[i].size(); k++)
                   {
                     tempSlaveData[k].load(
                       Ax.data() +
@@ -1509,7 +1549,7 @@ namespace dftfe
                       0.0);
                   }
 
-                for (auto j = 0; j < masterNodeBuckets[i].size(); ++j)
+                for (auto j = 0; j < masterNodeBuckets[i].size(); j++)
                   {
                     dealii::VectorizedArray<double> temp = 0;
 
@@ -1518,10 +1558,10 @@ namespace dftfe
                       getMultiVectorIndex(masterNodeBuckets[i][j], iBatch) *
                         batchSize);
 
-                    for (auto k = 0; k < slaveNodeBuckets[i].size(); ++k)
+                    for (auto k = 0; k < slaveNodeBuckets[i].size(); k++)
                       temp +=
-                        weightMatrixList[i]
-                                        [masterNodeBuckets[i].size() * k + j] *
+                        scaledWeightMatrixList[i][j + k * masterNodeBuckets[i]
+                                                            .size()] *
                         tempSlaveData[k];
 
                     temp.store(
@@ -1532,7 +1572,7 @@ namespace dftfe
               }
             else
               {
-                for (auto k = 0; k < slaveNodeBuckets[i].size(); ++k)
+                for (auto k = 0; k < slaveNodeBuckets[i].size(); k++)
                   {
                     std::fill(
                       Ax.data() +
@@ -1555,7 +1595,7 @@ namespace dftfe
                       0.0);
                   }
               }
-          }
+          } //*/
 
         if (iBatch > 0)
           d_singleBatchPartitioner->import_from_ghosted_array_finish(
