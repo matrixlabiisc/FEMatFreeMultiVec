@@ -84,7 +84,8 @@ namespace dftfe
       dftfe::linearAlgebra::MultiVector<dataTypes::number,
                                         dftfe::utils::MemorySpace::HOST> &Ax,
       dftfe::linearAlgebra::MultiVector<dataTypes::number,
-                                        dftfe::utils::MemorySpace::HOST> &x);
+                                        dftfe::utils::MemorySpace::HOST> &x,
+      const double scalarHX);
 
 
   private:
@@ -111,6 +112,8 @@ namespace dftfe
     void
     initConstraints();
 
+    void
+    setupConstraints(const dealii::IndexSet &indexSet);
 
     inline unsigned int
     getMultiVectorIndex(const unsigned int nodeIdx,

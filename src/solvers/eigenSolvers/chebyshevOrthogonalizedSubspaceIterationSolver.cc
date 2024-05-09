@@ -319,10 +319,23 @@ namespace dftfe
               "Copy from full to block flattened array");
 
             operatorMatrix.HXCheby(*eigenVectorsFlattenedArrayBlock,
-                                   1,
+                                   2,
                                    0,
                                    0,
                                    *eigenVectorsFlattenedArrayBlock2);
+
+            if (MFflag)
+              for (unsigned int iNode = 0; iNode < localVectorSize; iNode++)
+                for (unsigned int iBatch = 0; iBatch < BVec / SIMDWidth;
+                     iBatch++)
+                  for (unsigned int iSIMD = 0; iSIMD < SIMDWidth; iSIMD++)
+                    {
+                      *(eigenVectorsFlattened + iSIMD + iBatch * SIMDWidth +
+                        jvec + iNode * totalNumberWaveFunctions) =
+                        *(eigenVectorsFlattenedArrayBlock->data() + iSIMD +
+                          iNode * SIMDWidth +
+                          iBatch * SIMDWidth * localVectorSize);
+                    }
 
             pcout << "HXCheby Done" << std::endl;
             exit(0);

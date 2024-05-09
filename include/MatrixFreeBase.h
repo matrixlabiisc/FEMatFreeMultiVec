@@ -50,8 +50,8 @@ namespace dftfe
       dftfe::linearAlgebra::MultiVector<dataTypes::number,
                                         dftfe::utils::MemorySpace::HOST> &Ax,
       dftfe::linearAlgebra::MultiVector<dataTypes::number,
-                                        dftfe::utils::MemorySpace::HOST>
-        &x) = 0;
+                                        dftfe::utils::MemorySpace::HOST> &x,
+      const double scalarHX) = 0;
 
     virtual void
     setVJxWMF(

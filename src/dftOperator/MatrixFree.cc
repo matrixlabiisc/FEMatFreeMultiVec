@@ -520,6 +520,7 @@ namespace dftfe
       (*(d_basisOperationsPtrHost
            ->d_constraintsVector))[d_basisOperationsPtrHost->d_dofHandlerID];
 
+    // Initialize member variables
     d_nOwnedDofs              = d_basisOperationsPtrHost->nOwnedDofs();
     d_nRelaventDofs           = d_basisOperationsPtrHost->nRelaventDofs();
     d_nQuadsPerCell           = d_basisOperationsPtrHost->nQuadsPerCell();
@@ -529,13 +530,14 @@ namespace dftfe
     d_singleVectorPartitioner = d_matrixFreeDataPtr->get_vector_partitioner(
       d_basisOperationsPtrHost->d_dofHandlerID);
 
-    int arraySize =
-      (batchSize / dofInfo.vectorization_length) * d_nQuadsPerCell;
-
+    // Initialize shape and gradient functions
     std::array<double, ndofsPerDim * nQuadPointsPerDim>
       nodalShapeFunctionValuesAtQuadPoints;
     std::array<double, nQuadPointsPerDim * nQuadPointsPerDim>
       quadShapeFunctionGradientsAtQuadPoints;
+
+    int arraySize =
+      (batchSize / dofInfo.vectorization_length) * d_nQuadsPerCell;
 
     if (d_isGGA)
       {
@@ -635,7 +637,9 @@ namespace dftfe
             0.5;
         }
 
-    jacobianFactor.resize(d_nCells * 9, 0.0);
+    // Initialize Jacobian matrix
+    int dim = 3;
+    jacobianFactor.resize(d_nCells * dim * dim, 0.0);
     jacobianDeterminants.resize(d_nCells, 0.0);
 
     auto cellOffsets = mappingData.data_index_offsets;
@@ -646,18 +650,21 @@ namespace dftfe
       for (auto iCell = 0;
            iCell < dofInfo.n_vectorization_lanes_filled[2][iCellBatch];
            iCell++, cellCount++)
-        for (auto d = 0; d < 3; d++)
-          for (auto e = 0; e < 3; e++)
-            for (auto f = 0; f < 3; f++)
+        for (auto d = 0; d < dim; d++)
+          for (auto e = 0; e < dim; e++)
+            for (auto f = 0; f < dim; f++)
               {
-                jacobianFactor[e + d * 3 + cellCount * 9] +=
+                jacobianFactor[e + d * dim + cellCount * dim * dim] +=
+                  0.5 *
                   mappingData.jacobians[0][cellOffsets[iCellBatch]][d][f][0] *
                   mappingData.jacobians[0][cellOffsets[iCellBatch]][e][f][0] *
-                  mappingData.JxW_values[cellOffsets[iCellBatch]][0] * 0.5;
+                  mappingData.JxW_values[cellOffsets[iCellBatch]][0];
+
                 jacobianDeterminants[cellCount] =
                   mappingData.JxW_values[cellOffsets[iCellBatch]][0];
               }
 
+    // Create matrix-free maps
     distributedCPUVec<double> tempBatchedVector;
     vectorTools::createDealiiVector(d_singleVectorPartitioner,
                                     batchSize,
@@ -754,6 +761,7 @@ namespace dftfe
           }
       }
 
+    // Initialize constraints
     initConstraints();
   }
 
@@ -764,241 +772,146 @@ namespace dftfe
   void
   MatrixFree<ndofsPerDim, nQuadPointsPerDim, batchSize>::initConstraints()
   {
+    // Initialize cellInverseMassVector
     cellInverseMassVector.resize(d_nDofsPerCell * d_nCells, 0.0);
 
     for (auto iCell = 0; iCell < d_nCells; iCell++)
       for (unsigned int iDoF = 0; iDoF < d_nDofsPerCell; iDoF++)
         {
-          unsigned int dofIdx = iDoF + iCell * d_nDofsPerCell;
-          unsigned int l2g    = singleVectorGlobalToLocalMap[dofIdx];
+          unsigned int cellDoFIdx = iDoF + iCell * d_nDofsPerCell;
+          unsigned int dofIdx     = singleVectorGlobalToLocalMap[cellDoFIdx];
 
           auto globalIdx =
             d_matrixFreeDataPtr
               ->get_vector_partitioner(d_basisOperationsPtrHost->d_dofHandlerID)
-              ->local_to_global(l2g);
+              ->local_to_global(dofIdx);
 
           if (d_constraintMatrixPtr->is_constrained(globalIdx))
-            cellInverseMassVector[dofIdx] = 1.0;
+            cellInverseMassVector[cellDoFIdx] = 1.0;
           else
-            cellInverseMassVector[dofIdx] =
-              d_basisOperationsPtrHost->inverseMassVectorBasisData()[l2g];
+            cellInverseMassVector[cellDoFIdx] =
+              d_basisOperationsPtrHost->inverseMassVectorBasisData()[dofIdx];
         }
 
+    // Initialize constraint data structures
     const dealii::IndexSet &locallyOwnedDofs =
       d_matrixFreeDataPtr
         ->get_vector_partitioner(d_basisOperationsPtrHost->d_dofHandlerID)
         ->locally_owned_range();
+
+    setupConstraints(locallyOwnedDofs);
 
     const dealii::IndexSet &ghostDofs =
       d_matrixFreeDataPtr
         ->get_vector_partitioner(d_basisOperationsPtrHost->d_dofHandlerID)
         ->ghost_indices();
 
-    for (dealii::IndexSet::ElementIterator it = locallyOwnedDofs.begin();
-         it != locallyOwnedDofs.end();
-         it++)
-      {
-        if (d_constraintMatrixPtr->is_constrained(*it))
-          {
-            const dealii::types::global_dof_index lineDof = *it;
+    setupConstraints(ghostDofs);
+  }
 
-            const std::vector<
-              std::pair<dealii::types::global_dof_index, double>> *rowData =
-              d_constraintMatrixPtr->get_constraint_entries(lineDof);
 
-            bool isConstraintRhsExpandingOutOfIndexSet = false;
+  template <unsigned int ndofsPerDim,
+            unsigned int nQuadPointsPerDim,
+            unsigned int batchSize>
+  void
+  MatrixFree<ndofsPerDim, nQuadPointsPerDim, batchSize>::setupConstraints(
+    const dealii::IndexSet &indexSet)
+  {
+    for (dealii::IndexSet::ElementIterator iter = indexSet.begin();
+         iter != indexSet.end();
+         iter++)
+      if (d_constraintMatrixPtr->is_constrained(*iter))
+        {
+          bool isConstraintRhsExpandingOutOfIndexSet    = false;
+          const dealii::types::global_dof_index lineDof = *iter;
+          const std::vector<std::pair<dealii::types::global_dof_index, double>>
+            *rowData = d_constraintMatrixPtr->get_constraint_entries(lineDof);
 
-            for (unsigned int j = 0; j < rowData->size(); j++)
+          for (unsigned int j = 0; j < rowData->size(); j++)
+            {
+              if (!(d_matrixFreeDataPtr
+                      ->get_vector_partitioner(
+                        d_basisOperationsPtrHost->d_dofHandlerID)
+                      ->is_ghost_entry((*rowData)[j].first) ||
+                    d_matrixFreeDataPtr
+                      ->get_vector_partitioner(
+                        d_basisOperationsPtrHost->d_dofHandlerID)
+                      ->in_local_range((*rowData)[j].first)))
+                {
+                  isConstraintRhsExpandingOutOfIndexSet = true;
+                  break;
+                }
+            }
+
+          if (isConstraintRhsExpandingOutOfIndexSet)
+            continue;
+
+          std::vector<unsigned int> masterData(rowData->size());
+          std::vector<double>       weightData(rowData->size());
+          std::vector<double>       scaledWeightData(rowData->size());
+
+          for (auto i = 0; i < rowData->size(); i++)
+            {
+              masterData[i] = d_matrixFreeDataPtr
+                                ->get_vector_partitioner(
+                                  d_basisOperationsPtrHost->d_dofHandlerID)
+                                ->global_to_local((*rowData)[i].first);
+
+              weightData[i] = (*rowData)[i].second;
+
+              scaledWeightData[i] =
+                ((*rowData)[i].second) *
+                d_basisOperationsPtrHost
+                  ->inverseMassVectorBasisData()[masterData[i]];
+            }
+
+          bool         constraintExists = false;
+          unsigned int constraintIndex  = 0;
+          double       inhomogenity =
+            d_constraintMatrixPtr->get_inhomogeneity(lineDof);
+
+          for (auto i = 0; i < masterNodeBuckets.size(); i++)
+            if ((masterNodeBuckets[i] == masterData) &&
+                (inhomogenityList[i] == inhomogenity))
               {
-                if (!(d_matrixFreeDataPtr
-                        ->get_vector_partitioner(
-                          d_basisOperationsPtrHost->d_dofHandlerID)
-                        ->is_ghost_entry((*rowData)[j].first) ||
-                      d_matrixFreeDataPtr
-                        ->get_vector_partitioner(
-                          d_basisOperationsPtrHost->d_dofHandlerID)
-                        ->in_local_range((*rowData)[j].first)))
-                  {
-                    isConstraintRhsExpandingOutOfIndexSet = true;
-                    break;
-                  }
+                constraintIndex  = i;
+                constraintExists = true;
+                break;
               }
 
-            if (isConstraintRhsExpandingOutOfIndexSet)
-              continue;
+          if (constraintExists)
+            {
+              slaveNodeBuckets[constraintIndex].push_back(
+                d_matrixFreeDataPtr
+                  ->get_vector_partitioner(
+                    d_basisOperationsPtrHost->d_dofHandlerID)
+                  ->global_to_local(lineDof));
 
-            std::vector<unsigned int> masterData(rowData->size());
-            std::vector<double>       weightData(rowData->size());
-            std::vector<double>       scaledWeightData(rowData->size());
-            double                    inhomogenity =
-              d_constraintMatrixPtr->get_inhomogeneity(lineDof);
+              weightMatrixList[constraintIndex].insert(
+                weightMatrixList[constraintIndex].end(),
+                weightData.begin(),
+                weightData.end());
 
-            for (auto i = 0; i < rowData->size(); i++)
-              {
-                masterData[i] = d_matrixFreeDataPtr
-                                  ->get_vector_partitioner(
-                                    d_basisOperationsPtrHost->d_dofHandlerID)
-                                  ->global_to_local((*rowData)[i].first);
+              scaledWeightMatrixList[constraintIndex].insert(
+                scaledWeightMatrixList[constraintIndex].end(),
+                scaledWeightData.begin(),
+                scaledWeightData.end());
+            }
+          else
+            {
+              slaveNodeBuckets.push_back(std::vector<unsigned int>(
+                1,
+                d_matrixFreeDataPtr
+                  ->get_vector_partitioner(
+                    d_basisOperationsPtrHost->d_dofHandlerID)
+                  ->global_to_local(lineDof)));
 
-                weightData[i] = (*rowData)[i].second;
-
-                scaledWeightData[i] =
-                  ((*rowData)[i].second) *
-                  d_basisOperationsPtrHost
-                    ->inverseMassVectorBasisData()[masterData[i]];
-              }
-
-            bool         constraintExists = false;
-            unsigned int constraintIndex  = 0;
-
-            for (auto i = 0; i < masterNodeBuckets.size(); i++)
-              {
-                if ((masterNodeBuckets[i] == masterData) &&
-                    (inhomogenityList[i] == inhomogenity))
-                  {
-                    constraintIndex  = i;
-                    constraintExists = true;
-                    break;
-                  }
-              }
-
-            if (constraintExists)
-              {
-                slaveNodeBuckets[constraintIndex].push_back(
-                  d_matrixFreeDataPtr
-                    ->get_vector_partitioner(
-                      d_basisOperationsPtrHost->d_dofHandlerID)
-                    ->global_to_local(lineDof));
-
-                weightMatrixList[constraintIndex].insert(
-                  weightMatrixList[constraintIndex].end(),
-                  weightData.begin(),
-                  weightData.end());
-
-                scaledWeightMatrixList[constraintIndex].insert(
-                  scaledWeightMatrixList[constraintIndex].end(),
-                  scaledWeightData.begin(),
-                  scaledWeightData.end());
-              }
-            else
-              {
-                slaveNodeBuckets.push_back(std::vector<unsigned int>(
-                  1,
-                  d_matrixFreeDataPtr
-                    ->get_vector_partitioner(
-                      d_basisOperationsPtrHost->d_dofHandlerID)
-                    ->global_to_local(lineDof)));
-
-                weightMatrixList.push_back(weightData);
-                scaledWeightMatrixList.push_back(scaledWeightData);
-                masterNodeBuckets.push_back(masterData);
-                inhomogenityList.push_back(inhomogenity);
-              }
-          }
-      }
-
-    for (dealii::IndexSet::ElementIterator it = ghostDofs.begin();
-         it != ghostDofs.end();
-         it++)
-      {
-        if (d_constraintMatrixPtr->is_constrained(*it))
-          {
-            const dealii::types::global_dof_index lineDof = *it;
-
-            const std::vector<
-              std::pair<dealii::types::global_dof_index, double>> *rowData =
-              d_constraintMatrixPtr->get_constraint_entries(lineDof);
-
-            bool isConstraintRhsExpandingOutOfIndexSet = false;
-
-            for (unsigned int j = 0; j < rowData->size(); j++)
-              {
-                if (!(d_matrixFreeDataPtr
-                        ->get_vector_partitioner(
-                          d_basisOperationsPtrHost->d_dofHandlerID)
-                        ->is_ghost_entry((*rowData)[j].first) ||
-                      d_matrixFreeDataPtr
-                        ->get_vector_partitioner(
-                          d_basisOperationsPtrHost->d_dofHandlerID)
-                        ->in_local_range((*rowData)[j].first)))
-                  {
-                    isConstraintRhsExpandingOutOfIndexSet = true;
-                    break;
-                  }
-              }
-
-            if (isConstraintRhsExpandingOutOfIndexSet)
-              continue;
-
-            std::vector<unsigned int> masterData(rowData->size());
-            std::vector<double>       weightData(rowData->size());
-            std::vector<double>       scaledWeightData(rowData->size());
-
-            for (auto i = 0; i < rowData->size(); i++)
-              {
-                masterData[i] = d_matrixFreeDataPtr
-                                  ->get_vector_partitioner(
-                                    d_basisOperationsPtrHost->d_dofHandlerID)
-                                  ->global_to_local((*rowData)[i].first);
-
-                weightData[i] = (*rowData)[i].second;
-
-                scaledWeightData[i] =
-                  ((*rowData)[i].second) *
-                  d_basisOperationsPtrHost
-                    ->inverseMassVectorBasisData()[masterData[i]];
-              }
-
-            bool         constraintExists = false;
-            unsigned int constraintIndex  = 0;
-            double       inhomogenity =
-              d_constraintMatrixPtr->get_inhomogeneity(lineDof);
-
-            for (auto i = 0; i < masterNodeBuckets.size(); i++)
-              {
-                if ((masterNodeBuckets[i] == masterData) &&
-                    (inhomogenityList[i] == inhomogenity))
-                  {
-                    constraintIndex  = i;
-                    constraintExists = true;
-                    break;
-                  }
-              }
-
-            if (constraintExists)
-              {
-                slaveNodeBuckets[constraintIndex].push_back(
-                  d_matrixFreeDataPtr
-                    ->get_vector_partitioner(
-                      d_basisOperationsPtrHost->d_dofHandlerID)
-                    ->global_to_local(lineDof));
-
-                weightMatrixList[constraintIndex].insert(
-                  weightMatrixList[constraintIndex].end(),
-                  weightData.begin(),
-                  weightData.end());
-
-                scaledWeightMatrixList[constraintIndex].insert(
-                  scaledWeightMatrixList[constraintIndex].end(),
-                  scaledWeightData.begin(),
-                  scaledWeightData.end());
-              }
-            else
-              {
-                slaveNodeBuckets.push_back(std::vector<unsigned int>(
-                  1,
-                  d_matrixFreeDataPtr
-                    ->get_vector_partitioner(
-                      d_basisOperationsPtrHost->d_dofHandlerID)
-                    ->global_to_local(lineDof)));
-
-                weightMatrixList.push_back(weightData);
-                scaledWeightMatrixList.push_back(scaledWeightData);
-                masterNodeBuckets.push_back(masterData);
-                inhomogenityList.push_back(inhomogenity);
-              }
-          }
-      }
+              weightMatrixList.push_back(weightData);
+              scaledWeightMatrixList.push_back(scaledWeightData);
+              masterNodeBuckets.push_back(masterData);
+              inhomogenityList.push_back(inhomogenity);
+            }
+        }
   }
 
 
@@ -1019,14 +932,7 @@ namespace dftfe
       d_VGGAJxW.resize(VGGAJxW.size());
 
     auto d_nMacroCells = d_matrixFreeDataPtr->n_cell_batches();
-    auto d_nCells      = d_matrixFreeDataPtr->n_physical_cells();
-    auto d_nDofsPerCell =
-      d_matrixFreeDataPtr
-        ->get_dof_handler(d_basisOperationsPtrHost->d_dofHandlerID)
-        .get_fe()
-        .dofs_per_cell;
-
-    auto cellPtr = d_matrixFreeDataPtr
+    auto cellPtr       = d_matrixFreeDataPtr
                      ->get_dof_handler(d_basisOperationsPtrHost->d_dofHandlerID)
                      .begin_active();
     auto endcPtr = d_matrixFreeDataPtr
@@ -1072,14 +978,16 @@ namespace dftfe
              1 :
              jacobianDeterminants[cellIndexToMacroCellSubCellIndexMap[iCell]]);
 
+    int dim = 3;
+
     if (d_isGGA)
       for (auto iCell = 0; iCell < d_nCells; iCell++)
         for (auto iQuad = 0; iQuad < d_nQuadsPerCell; iQuad++)
-          for (unsigned iDim = 0; iDim < 3; iDim++)
-            d_VGGAJxW[iDim + iQuad * 3 +
+          for (unsigned iDim = 0; iDim < dim; iDim++)
+            d_VGGAJxW[iDim + iQuad * dim +
                       cellIndexToMacroCellSubCellIndexMap[iCell] *
-                        d_nQuadsPerCell * 3] =
-              VGGAJxW[iDim + iQuad * 3 + iCell * d_nQuadsPerCell * 3];
+                        d_nQuadsPerCell * dim] =
+              VGGAJxW[iDim + iQuad * dim + iCell * d_nQuadsPerCell * dim];
   }
 
 
@@ -1388,14 +1296,12 @@ namespace dftfe
     dftfe::linearAlgebra::MultiVector<dataTypes::number,
                                       dftfe::utils::MemorySpace::HOST> &Ax,
     dftfe::linearAlgebra::MultiVector<dataTypes::number,
-                                      dftfe::utils::MemorySpace::HOST> &x)
+                                      dftfe::utils::MemorySpace::HOST> &x,
+    const double scalarHX)
   {
-    constexpr double                one      = 1.0;
     constexpr unsigned int          oneInt   = 1;
     constexpr unsigned int          eightInt = batchSize;
     dealii::VectorizedArray<double> temp;
-
-    Ax.setValue(0.0);
 
     // Start updateGhost for batch 0
     d_singleBatchPartitioner->export_to_ghosted_array_start<double>(
@@ -1466,10 +1372,10 @@ namespace dftfe
                     weightMatrixList[i][k + j * masterNodeBuckets[i].size()] *
                     tempMasterData[k];
 
-                unsigned int l2gs =
+                unsigned int dofIdx =
                   getMultiVectorIndex(slaveNodeBuckets[i][j], iBatch);
 
-                temp.store(x.data() + l2gs * batchSize);
+                temp.store(x.data() + dofIdx * batchSize);
               }
           }
 
@@ -1479,13 +1385,13 @@ namespace dftfe
             // Extraction
             for (unsigned int iDoF = 0; iDoF < d_nDofsPerCell; iDoF++)
               {
-                unsigned int l2g =
+                unsigned int dofIdx =
                   singleVectorGlobalToLocalMap[iDoF + iCell * d_nDofsPerCell];
 
                 // Possibly optimized
                 std::memcpy(arrayX + iDoF,
                             x.data() +
-                              getMultiVectorIndex(l2g, iBatch) * batchSize,
+                              getMultiVectorIndex(dofIdx, iBatch) * batchSize,
                             batchSize * sizeof(double));
               }
 
@@ -1497,19 +1403,20 @@ namespace dftfe
             // Assembly
             for (auto iDoF = 0; iDoF < d_nDofsPerCell; iDoF++)
               {
-                unsigned int l2g =
+                unsigned int dofIdx =
                   singleVectorGlobalToLocalMap[iDoF + iCell * d_nDofsPerCell];
 
                 arrayX[iDoF] =
-                  1.0 * cellInverseMassVector[iDoF + iCell * d_nDofsPerCell] *
+                  cellInverseMassVector[iDoF + iCell * d_nDofsPerCell] *
                   arrayX[iDoF];
 
                 // Potential bottleneck
                 daxpy_(&eightInt,
-                       &one,
+                       &scalarHX,
                        (double *)(arrayX + iDoF),
                        &oneInt,
-                       Ax.data() + getMultiVectorIndex(l2g, iBatch) * batchSize,
+                       Ax.data() +
+                         getMultiVectorIndex(dofIdx, iBatch) * batchSize,
                        &oneInt);
               }
           }
@@ -1521,6 +1428,7 @@ namespace dftfe
               {
                 std::vector<dealii::VectorizedArray<double>> tempSlaveData(
                   slaveNodeBuckets[i].size());
+
                 for (auto k = 0; k < slaveNodeBuckets[i].size(); k++)
                   {
                     tempSlaveData[k].load(
@@ -1551,8 +1459,6 @@ namespace dftfe
 
                 for (auto j = 0; j < masterNodeBuckets[i].size(); j++)
                   {
-                    dealii::VectorizedArray<double> temp = 0;
-
                     temp.load(
                       Ax.data() +
                       getMultiVectorIndex(masterNodeBuckets[i][j], iBatch) *
@@ -1595,7 +1501,7 @@ namespace dftfe
                       0.0);
                   }
               }
-          } //*/
+          }
 
         if (iBatch > 0)
           d_singleBatchPartitioner->import_from_ghosted_array_finish(
@@ -1642,13 +1548,8 @@ namespace dftfe
       mpiRequestsCompress);
 
     // Compare with memsets
-    // std::fill(x.data() + d_nOwnedDofs * d_blockSize,
-    //           x.data() + d_nOwnedDofs * d_blockSize + 2 * d_nGhostDofs,
-    //           0.0);
-
-    std::fill(Ax.data() + d_nOwnedDofs * d_blockSize,
-              Ax.data() + d_nOwnedDofs * d_blockSize + 2 * d_nGhostDofs,
-              0.0);
+    x.zeroOutGhosts();
+    Ax.zeroOutGhosts();
   }
 
 

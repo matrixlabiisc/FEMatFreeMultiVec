@@ -1231,7 +1231,7 @@ namespace dftfe
     auto d_nRelaventDofs = d_basisOperationsPtrHost->nRelaventDofs();
     auto d_nGhostDofs    = d_nRelaventDofs - d_nOwnedDofs;
 
-    const int           trials = 1;
+    const int           trials = 100;
     std::vector<double> HXTimes(trials);
     double              HXMean = 0.0, HXStdDev = 0.0;
 
@@ -1257,9 +1257,9 @@ namespace dftfe
         for (int j = 0; j < trials; j++)
           {
             MPI_Barrier(d_mpiCommDomain);
-            auto start_HX = getTime(); //*/
+            auto start_HX = getTime();
 
-            d_matrixFreeBasePtr->computeAX(dst, src);
+            d_matrixFreeBasePtr->computeAX(dst, src, scalarHX);
 
             MPI_Barrier(d_mpiCommDomain);
             auto stop_HX = getTime();
@@ -1270,7 +1270,7 @@ namespace dftfe
         meanAndStdDev(HXTimes, HXMean, HXStdDev);
 
         pcout << "HX Mean Time: " << HXMean << "\n"
-              << "HX Std Dev Time: " << HXStdDev << "\n"; //*/
+              << "HX Std Dev Time: " << HXStdDev << "\n";
 
         pcout << "MF Exit" << std::endl << std::endl;
 
@@ -1317,8 +1317,6 @@ namespace dftfe
                                        d_densityQuadratureID,
                                        false,
                                        false);
-
-        dst.setValue(0.0);
 
         for (int j = 0; j < trials; j++)
           {
@@ -1382,13 +1380,9 @@ namespace dftfe
                       .accumulateAddLocallyOwnedBegin();
                   } //*/
 
-                // src.zeroOutGhosts();
+                src.zeroOutGhosts();
                 inverseMassVectorScaledConstraintsNoneDataInfoPtr->set_zero(
                   src);
-
-                // d_basisOperationsPtr
-                //   ->d_constraintInfo[d_basisOperationsPtr->d_dofHandlerID]
-                //   .set_zero(src);
 
                 /*if (d_dftParamsPtr->isPseudopotential &&
                     !onlyHPrimePartForFirstOrderDensityMatResponse)
@@ -1450,7 +1444,7 @@ namespace dftfe
                     d_BLASWrapperPtr->axpyStridedBlockAtomicAdd(
                       numberWavefunctions,
                       numDoFsPerCell * (cellRange.second - cellRange.first),
-                      1.0, // scalarHX,
+                      scalarHX,
                       d_basisOperationsPtr->cellInverseMassVectorBasisData()
                           .data() +
                         cellRange.first * numDoFsPerCell,
@@ -1460,10 +1454,6 @@ namespace dftfe
                           ->d_flattenedCellDofIndexToProcessDofIndexMap.data() +
                         cellRange.first * numDoFsPerCell);
                   }
-
-                // d_basisOperationsPtr
-                //   ->d_constraintInfo[d_basisOperationsPtr->d_dofHandlerID]
-                //   .distribute_slave_to_master(dst);
 
                 inverseMassVectorScaledConstraintsNoneDataInfoPtr
                   ->distribute_slave_to_master(dst);
