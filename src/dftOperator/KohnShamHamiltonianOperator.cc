@@ -791,9 +791,6 @@ namespace dftfe
           }
       }
 
-      // d_VeffJxW.setValue(0);
-      // d_invJacderExcWithSigmaTimesGradRhoJxW.setValue(0);
-
 #if defined(DFTFE_WITH_DEVICE)
     d_VeffJxW.resize(d_VeffJxWHost.size());
     d_VeffJxW.copyFrom(d_VeffJxWHost);
@@ -833,8 +830,6 @@ namespace dftfe
           d_VeffExtPotJxWHost[iCell * nQuadsPerCell + iQuad] =
             temp[iQuad] * cellJxWPtr[iQuad];
       }
-
-      // d_VeffExtPotJxW.setValue(0);
 
 #if defined(DFTFE_WITH_DEVICE)
     d_VeffExtPotJxW.resize(d_VeffExtPotJxWHost.size());

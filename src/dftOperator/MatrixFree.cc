@@ -40,13 +40,13 @@ namespace dftfe
           for (int q = 0; q < ko; q++)
             {
               tempAe[q] =
-                A[i + q * m + m * k * b] + A[i + (k - 1 - q) * m + m * k * b];
+                A[i + q * m + b * m * k] + A[i + (k - 1 - q) * m + b * m * k];
               tempAo[q] =
-                A[i + q * m + m * k * b] - A[i + (k - 1 - q) * m + m * k * b];
+                A[i + q * m + b * m * k] - A[i + (k - 1 - q) * m + b * m * k];
             }
 
           if (k % 2 == 1)
-            tempAe[ko] = A[i + ko * m + m * k * b];
+            tempAe[ko] = A[i + ko * m + b * m * k];
 
           for (int j = 0; j < no; j++)
             {
@@ -80,13 +80,13 @@ namespace dftfe
 
               if (add)
                 {
-                  C[i + m * j + m * n * b] += tempCe + tempCo;
-                  C[i + m * (n - 1 - j) + m * n * b] += tempCe - tempCo;
+                  C[i + j * m + b * m * n] += tempCe + tempCo;
+                  C[i + (n - 1 - j) * m + b * m * n] += tempCe - tempCo;
                 }
               else
                 {
-                  C[i + m * j + m * n * b]           = tempCe + tempCo;
-                  C[i + m * (n - 1 - j) + m * n * b] = tempCe - tempCo;
+                  C[i + j * m + b * m * n]           = tempCe + tempCo;
+                  C[i + (n - 1 - j) * m + b * m * n] = tempCe - tempCo;
                 }
             }
 
@@ -95,24 +95,24 @@ namespace dftfe
               if (add)
                 {
                   if (trans)
-                    C[i + m * no + m * n * b] += tempAe[0] * B[no];
+                    C[i + no * m + b * m * n] += tempAe[0] * B[no];
                   else
-                    C[i + m * no + m * n * b] += tempAe[0] * B[no * ke];
+                    C[i + no * m + b * m * n] += tempAe[0] * B[no * ke];
                 }
               else
                 {
                   if (trans)
-                    C[i + m * no + m * n * b] = tempAe[0] * B[no];
+                    C[i + no * m + b * m * n] = tempAe[0] * B[no];
                   else
-                    C[i + m * no + m * n * b] = tempAe[0] * B[no * ke];
+                    C[i + no * m + b * m * n] = tempAe[0] * B[no * ke];
                 }
 
               for (int q = 1; q < ke; q++)
                 {
                   if (trans)
-                    C[i + m * no + m * n * b] += tempAe[q] * B[no + q * ne];
+                    C[i + no * m + b * m * n] += tempAe[q] * B[no + q * ne];
                   else
-                    C[i + m * no + m * n * b] += tempAe[q] * B[no * ke + q];
+                    C[i + no * m + b * m * n] += tempAe[q] * B[q + no * ke];
                 }
             }
         }
@@ -140,13 +140,13 @@ namespace dftfe
           for (int q = 0; q < ko; q++)
             {
               tempAe[q] =
-                A[i + q * m + m * k * b] + A[i + (k - 1 - q) * m + m * k * b];
+                A[i + q * m + b * m * k] + A[i + (k - 1 - q) * m + b * m * k];
               tempAo[q] =
-                A[i + q * m + m * k * b] - A[i + (k - 1 - q) * m + m * k * b];
+                A[i + q * m + b * m * k] - A[i + (k - 1 - q) * m + b * m * k];
             }
 
           if (k % 2 == 1)
-            tempAe[ko] = A[i + ko * m + m * k * b];
+            tempAe[ko] = A[i + ko * m + b * m * k];
 
           for (int j = 0; j < no; j++)
             {
@@ -176,33 +176,33 @@ namespace dftfe
                     tempCo += tempAo[q] * B[q + j * ko + ke * ne];
                 }
 
-              C[i + m * j + m * n * b] =
-                C[i + m * j + m * n * b] * coeffs[i + m * j + m * n * b] +
+              C[i + j * m + b * m * n] =
+                C[i + j * m + b * m * n] * coeffs[i + j * m + b * m * n] +
                 tempCe + tempCo;
 
-              C[i + m * (n - 1 - j) + m * n * b] =
-                C[i + m * (n - 1 - j) + m * n * b] *
-                  coeffs[i + m * (n - 1 - j) + m * n * b] +
+              C[i + (n - 1 - j) * m + b * m * n] =
+                C[i + (n - 1 - j) * m + b * m * n] *
+                  coeffs[i + (n - 1 - j) * m + b * m * n] +
                 tempCe - tempCo;
             }
 
           if (n % 2 == 1)
             {
               if (trans)
-                C[i + m * no + m * n * b] =
-                  C[i + m * no + m * n * b] * coeffs[i + m * no + m * n * b] +
+                C[i + no * m + b * m * n] =
+                  C[i + no * m + b * m * n] * coeffs[i + no * m + b * m * n] +
                   tempAe[0] * B[no];
               else
-                C[i + m * no + m * n * b] =
-                  C[i + m * no + m * n * b] * coeffs[i + m * no + m * n * b] +
+                C[i + no * m + b * m * n] =
+                  C[i + no * m + b * m * n] * coeffs[i + no * m + b * m * n] +
                   tempAe[0] * B[no * ke];
 
               for (int q = 1; q < ke; q++)
                 {
                   if (trans)
-                    C[i + m * no + m * n * b] += tempAe[q] * B[no + q * ne];
+                    C[i + no * m + b * m * n] += tempAe[q] * B[no + q * ne];
                   else
-                    C[i + m * no + m * n * b] += tempAe[q] * B[no * ke + q];
+                    C[i + no * m + b * m * n] += tempAe[q] * B[q + no * ke];
                 }
             }
         }
@@ -228,13 +228,13 @@ namespace dftfe
           for (int q = 0; q < ko; q++)
             {
               tempAe[q] =
-                A[i + q * m + m * k * b] + A[i + (k - 1 - q) * m + m * k * b];
+                A[i + q * m + b * m * k] + A[i + (k - 1 - q) * m + b * m * k];
               tempAo[q] =
-                A[i + q * m + m * k * b] - A[i + (k - 1 - q) * m + m * k * b];
+                A[i + q * m + b * m * k] - A[i + (k - 1 - q) * m + b * m * k];
             }
 
           if (k % 2 == 1)
-            tempAe[ko] = A[i + ko * m + m * k * b];
+            tempAe[ko] = A[i + ko * m + b * m * k];
 
           for (int j = 0; j < no; j++)
             {
@@ -268,13 +268,13 @@ namespace dftfe
 
               if (add)
                 {
-                  C[i + m * j + m * n * b] += tempCe + tempCo;
-                  C[i + m * (n - 1 - j) + m * n * b] += tempCo - tempCe;
+                  C[i + j * m + b * m * n] += tempCe + tempCo;
+                  C[i + (n - 1 - j) * m + b * m * n] += tempCo - tempCe;
                 }
               else
                 {
-                  C[i + m * j + m * n * b]           = tempCe + tempCo;
-                  C[i + m * (n - 1 - j) + m * n * b] = tempCo - tempCe;
+                  C[i + j * m + b * m * n]           = tempCe + tempCo;
+                  C[i + (n - 1 - j) * m + b * m * n] = tempCo - tempCe;
                 }
             }
 
@@ -283,25 +283,25 @@ namespace dftfe
               if (add)
                 {
                   if (trans)
-                    C[i + m * no + m * n * b] += tempAo[0] * B[no + ke * no];
+                    C[i + no * m + b * m * n] += tempAo[0] * B[no + ke * no];
                   else
-                    C[i + m * no + m * n * b] += tempAo[0] * B[no * ko];
+                    C[i + no * m + b * m * n] += tempAo[0] * B[no * ko];
                 }
               else
                 {
                   if (trans)
-                    C[i + m * no + m * n * b] = tempAo[0] * B[no + ke * no];
+                    C[i + no * m + b * m * n] = tempAo[0] * B[no + ke * no];
                   else
-                    C[i + m * no + m * n * b] = tempAo[0] * B[no * ko];
+                    C[i + no * m + b * m * n] = tempAo[0] * B[no * ko];
                 }
 
               for (int q = 1; q < ko; q++)
                 {
                   if (trans)
-                    C[i + m * no + m * n * b] +=
+                    C[i + no * m + b * m * n] +=
                       tempAo[q] * B[no + q * ne + ke * no];
                   else
-                    C[i + m * no + m * n * b] += tempAo[q] * B[no * ko + q];
+                    C[i + no * m + b * m * n] += tempAo[q] * B[q + no * ko];
                 }
             }
         }
@@ -328,13 +328,13 @@ namespace dftfe
           for (int q = 0; q < ko; q++)
             {
               tempAe[q] =
-                A[i + q * m + m * k * b] + A[i + (k - 1 - q) * m + m * k * b];
+                A[i + q * m + b * m * k] + A[i + (k - 1 - q) * m + b * m * k];
               tempAo[q] =
-                A[i + q * m + m * k * b] - A[i + (k - 1 - q) * m + m * k * b];
+                A[i + q * m + b * m * k] - A[i + (k - 1 - q) * m + b * m * k];
             }
 
           if (k % 2 == 1)
-            tempAe[ko] = A[i + ko * m + m * k * b];
+            tempAe[ko] = A[i + ko * m + b * m * k];
 
           for (int j = 0; j < no; j++)
             {
@@ -366,34 +366,34 @@ namespace dftfe
                     tempCo += tempAo[q] * B[q + j * ko];
                 }
 
-              C[i + m * j + m * n * b] =
-                C[i + m * j + m * n * b] * coeffs[i + m * j + m * n * b] +
+              C[i + j * m + b * m * n] =
+                C[i + j * m + b * m * n] * coeffs[i + j * m + b * m * n] +
                 tempCe + tempCo;
 
-              C[i + m * (n - 1 - j) + m * n * b] =
-                C[i + m * (n - 1 - j) + m * n * b] *
-                  coeffs[i + m * (n - 1 - j) + m * n * b] +
+              C[i + (n - 1 - j) * m + b * m * n] =
+                C[i + (n - 1 - j) * m + b * m * n] *
+                  coeffs[i + (n - 1 - j) * m + b * m * n] +
                 tempCo - tempCe;
             }
 
           if (n % 2 == 1)
             {
               if (trans)
-                C[i + m * no + m * n * b] =
-                  C[i + m * no + m * n * b] * coeffs[i + m * no + m * n * b] +
+                C[i + no * m + b * m * n] =
+                  C[i + no * m + b * m * n] * coeffs[i + no * m + b * m * n] +
                   tempAo[0] * B[no + ke * no];
               else
-                C[i + m * no + m * n * b] =
-                  C[i + m * no + m * n * b] * coeffs[i + m * no + m * n * b] +
+                C[i + no * m + b * m * n] =
+                  C[i + no * m + b * m * n] * coeffs[i + no * m + b * m * n] +
                   tempAo[0] * B[no * ko];
 
               for (int q = 1; q < ko; q++)
                 {
                   if (trans)
-                    C[i + m * no + m * n * b] +=
+                    C[i + no * m + b * m * n] +=
                       tempAo[q] * B[no + q * ne + ke * no];
                   else
-                    C[i + m * no + m * n * b] += tempAo[q] * B[no * ko + q];
+                    C[i + no * m + b * m * n] += tempAo[q] * B[q + no * ko];
                 }
             }
         }
@@ -413,7 +413,7 @@ namespace dftfe
       for (int i = 0; i < m; i++)
         {
           for (int q = 0; q < k; q++)
-            tempA[q] = A[i + q * m + m * k * b];
+            tempA[q] = A[i + q * m + b * m * k];
 
           for (int j = 0; j < n; j++)
             {
@@ -428,9 +428,9 @@ namespace dftfe
                 }
 
               if (add)
-                C[i + m * j + m * n * b] += temp;
+                C[i + j * m + b * m * n] += temp;
               else
-                C[i + m * j + m * n * b] = temp;
+                C[i + j * m + b * m * n] = temp;
             }
         }
   }
@@ -450,7 +450,7 @@ namespace dftfe
       for (int i = 0; i < m; i++)
         {
           for (int q = 0; q < k; q++)
-            tempA[q] = A[i + q * m + m * k * b];
+            tempA[q] = A[i + q * m + b * m * k];
 
           for (int j = 0; j < n; j++)
             {
@@ -464,8 +464,8 @@ namespace dftfe
                     temp += tempA[q] * B[q + j * k];
                 }
 
-              C[i + m * j + m * n * b] =
-                C[i + m * j + m * n * b] * coeffs[i + m * j + m * n * b] + temp;
+              C[i + j * m + b * m * n] =
+                C[i + j * m + b * m * n] * coeffs[i + j * m + b * m * n] + temp;
             }
         }
   }
@@ -557,9 +557,8 @@ namespace dftfe
         arrayZ = arrayY + arraySize;
       }
 
-    if (d_isGGA)
-      for (auto iQuad = 0; iQuad < nQuadPointsPerDim; iQuad++)
-        quadratureWeights[iQuad] = shapeData.quadrature.weight(iQuad);
+    for (auto iQuad = 0; iQuad < nQuadPointsPerDim; iQuad++)
+      quadratureWeights[iQuad] = shapeData.quadrature.weight(iQuad);
 
     for (auto iDoF = 0; iDoF < ndofsPerDim; iDoF++)
       for (auto iQuad = 0; iQuad < nQuadPointsPerDim; iQuad++)
@@ -567,7 +566,7 @@ namespace dftfe
           nodalShapeFunctionValuesAtQuadPoints[iQuad +
                                                iDoF * nQuadPointsPerDim] =
             shapeData.shape_values[iQuad + iDoF * nQuadPointsPerDim][0] *
-            (d_isGGA ? 1 : std::sqrt(shapeData.quadrature.weight(iQuad)));
+            (d_isGGA ? 1 : std::sqrt(quadratureWeights[iQuad]));
         }
 
     for (auto iQuad2 = 0; iQuad2 < nQuadPointsPerDim; iQuad2++)
@@ -579,8 +578,8 @@ namespace dftfe
               .shape_gradients_collocation[iQuad1 + iQuad2 * nQuadPointsPerDim]
                                           [0] *
             (d_isGGA ? 1 :
-                       std::sqrt(shapeData.quadrature.weight(iQuad1)) /
-                         std::sqrt(shapeData.quadrature.weight(iQuad2)));
+                       std::sqrt(quadratureWeights[iQuad1]) /
+                         std::sqrt(quadratureWeights[iQuad2]));
         }
 
     for (auto iDoF = 0; iDoF < d_dofEDim; iDoF++)
@@ -931,6 +930,7 @@ namespace dftfe
     if (d_isGGA)
       d_VGGAJxW.resize(VGGAJxW.size());
 
+    // Construct cellIndexToMacroCellSubCellIndexMap
     auto d_nMacroCells = d_matrixFreeDataPtr->n_cell_batches();
     auto cellPtr       = d_matrixFreeDataPtr
                      ->get_dof_handler(d_basisOperationsPtrHost->d_dofHandlerID)
@@ -968,26 +968,39 @@ namespace dftfe
           }
       }
 
+    // Reorder VeffJxW and VeffExtPotJxW for matrix-free
     for (auto iCell = 0; iCell < d_nCells; iCell++)
-      for (auto iQuad = 0; iQuad < d_nQuadsPerCell; iQuad++)
-        d_VeffJxW[iQuad + cellIndexToMacroCellSubCellIndexMap[iCell] *
-                            d_nQuadsPerCell] =
-          (VeffJxW[iQuad + iCell * d_nQuadsPerCell] +
-           VeffExtPotJxW[iQuad + iCell * d_nQuadsPerCell]) *
-          (d_isGGA ?
-             1 :
-             jacobianDeterminants[cellIndexToMacroCellSubCellIndexMap[iCell]]);
+      for (int iQuad3 = 0; iQuad3 < nQuadPointsPerDim; iQuad3++)
+        for (int iQuad2 = 0; iQuad2 < nQuadPointsPerDim; iQuad2++)
+          for (int iQuad1 = 0; iQuad1 < nQuadPointsPerDim; iQuad1++)
+            {
+              double temp;
 
-    int dim = 3;
+              int quadIdx = iQuad1 + iQuad2 * nQuadPointsPerDim +
+                            iQuad3 * nQuadPointsPerDim * nQuadPointsPerDim;
 
+              if (!d_isGGA)
+                temp = quadratureWeights[iQuad1] * quadratureWeights[iQuad2] *
+                       quadratureWeights[iQuad3];
+
+              d_VeffJxW[quadIdx + cellIndexToMacroCellSubCellIndexMap[iCell] *
+                                    d_nQuadsPerCell] =
+                (VeffJxW[quadIdx + iCell * d_nQuadsPerCell] +
+                 VeffExtPotJxW[quadIdx + iCell * d_nQuadsPerCell]) /
+                (d_isGGA ? 1 : temp);
+            }
+
+    constexpr int dim = 3;
+
+    // Reorder VGGAJxW for matrix-free
     if (d_isGGA)
       for (auto iCell = 0; iCell < d_nCells; iCell++)
         for (auto iQuad = 0; iQuad < d_nQuadsPerCell; iQuad++)
-          for (unsigned iDim = 0; iDim < dim; iDim++)
+          for (auto iDim = 0; iDim < dim; iDim++)
             d_VGGAJxW[iDim + iQuad * dim +
-                      cellIndexToMacroCellSubCellIndexMap[iCell] *
-                        d_nQuadsPerCell * dim] =
-              VGGAJxW[iDim + iQuad * dim + iCell * d_nQuadsPerCell * dim];
+                      cellIndexToMacroCellSubCellIndexMap[iCell] * dim *
+                        d_nQuadsPerCell] =
+              VGGAJxW[iDim + iQuad * dim + iCell * dim * d_nQuadsPerCell];
   }
 
 
