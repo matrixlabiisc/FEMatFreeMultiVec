@@ -13,7 +13,7 @@ add_definitions(-w)
 
 #FIXME: find a better way to replace O3 with O2 in CMAKE_CXX_FLAGS_RELEASE
 IF("${CMAKE_BUILD_TYPE}" STREQUAL "Release")
-  add_compile_options("-O2")
+  add_compile_options("-O3")
 ENDIF()
 
 PROJECT(${TARGET} LANGUAGES CXX)

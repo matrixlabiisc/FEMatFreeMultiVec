@@ -38,7 +38,7 @@ namespace dftfe
      *
      */
     virtual void
-    reinit(const unsigned int matrixFreeQuadratureID) = 0;
+    reinit(const int matrixFreeQuadratureID) = 0;
 
 
     /**
@@ -52,6 +52,11 @@ namespace dftfe
       dftfe::linearAlgebra::MultiVector<dataTypes::number,
                                         dftfe::utils::MemorySpace::HOST> &x,
       const double scalarHX) = 0;
+
+    virtual void
+    computeAX(dealii::VectorizedArray<double> *Ax,
+              dealii::VectorizedArray<double> *x,
+              const double                     scalarHX) = 0;
 
     virtual void
     setVJxWMF(

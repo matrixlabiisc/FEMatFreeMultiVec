@@ -244,7 +244,6 @@ namespace dftfe
             d_mpiCommDomain, d_basisOperationsPtrHost, isGGA, blockSize);
 
         d_matrixFreeBasePtr->reinit(d_densityQuadratureID);
-
         d_batchedPartitionerBCV = getPartitionerBCV();
       }
 
@@ -1087,6 +1086,7 @@ namespace dftfe
     const unsigned int numCells       = d_basisOperationsPtr->nCells();
     const unsigned int numDoFsPerCell = d_basisOperationsPtr->nDofsPerCell();
     const unsigned int numberWavefunctions = src.numVectors();
+
     if (d_numVectorsInternal != numberWavefunctions)
       reinitNumberWavefunctions(numberWavefunctions);
 
@@ -1111,6 +1111,7 @@ namespace dftfe
     if constexpr (memorySpace == dftfe::utils::MemorySpace::HOST)
       if (d_dftParamsPtr->isPseudopotential)
         d_ONCVnonLocalOperator->initialiseOperatorActionOnX(d_kPointIndex);
+
     const bool hasNonlocalComponents =
       d_dftParamsPtr->isPseudopotential &&
       (d_ONCVnonLocalOperator->getTotalNonLocalElementsInCurrentProcessor() >
@@ -1121,6 +1122,7 @@ namespace dftfe
       {
         std::pair<unsigned int, unsigned int> cellRange(
           iCell, std::min(iCell + d_cellsBlockSizeHX, numCells));
+
         d_BLASWrapperPtr->stridedBlockScaleCopy(
           numberWavefunctions,
           numDoFsPerCell * (cellRange.second - cellRange.first),
@@ -1133,6 +1135,7 @@ namespace dftfe
           d_basisOperationsPtr->d_flattenedCellDofIndexToProcessDofIndexMap
               .data() +
             cellRange.first * numDoFsPerCell);
+
         if (hasNonlocalComponents)
           d_ONCVnonLocalOperator->applyCconjtransOnX(
             d_cellWaveFunctionMatrixSrc.data() +
@@ -1178,9 +1181,11 @@ namespace dftfe
           numberWavefunctions,
           numDoFsPerCell * numberWavefunctions,
           cellRange.second - cellRange.first);
+
         if (hasNonlocalComponents)
           d_ONCVnonLocalOperator->applyCOnVCconjtransX(
             d_cellWaveFunctionMatrixDst.data(), cellRange);
+
         d_BLASWrapperPtr->axpyStridedBlockAtomicAdd(
           numberWavefunctions,
           numDoFsPerCell * (cellRange.second - cellRange.first),
@@ -1226,7 +1231,7 @@ namespace dftfe
     auto d_nRelaventDofs = d_basisOperationsPtrHost->nRelaventDofs();
     auto d_nGhostDofs    = d_nRelaventDofs - d_nOwnedDofs;
 
-    const int           trials = 100;
+    const int           trials = 1000;
     std::vector<double> HXTimes(trials);
     double              HXMean = 0.0, HXStdDev = 0.0;
 
@@ -1244,10 +1249,53 @@ namespace dftfe
                                        false,
                                        false);
 
+        std::vector<dealii::VectorizedArray<double>> Xvec(
+          (numberWavefunctions / batchSize) * d_nOwnedDofs + 2 * d_nGhostDofs,
+          0.0),
+          Yvec((numberWavefunctions / batchSize) * d_nOwnedDofs +
+                 2 * d_nGhostDofs,
+               0.0);
+
+        for (auto j = 0; j < numberWavefunctions / batchSize; j++)
+          for (auto i = 0; i < d_nOwnedDofs; i++)
+            {
+              Xvec[i + j * d_nOwnedDofs].load(
+                src.data() + (i + j * d_nOwnedDofs) * batchSize);
+            }
+
         double dstNorm;
         double srcNorm;
 
-        pcout << "MF Enter" << std::endl;
+        pcout << "MF Vectorized Enter" << std::endl;
+        pcout << "trials: " << trials << std::endl;
+
+        for (int j = 0; j < trials; j++)
+          {
+            MPI_Barrier(d_mpiCommDomain);
+            auto start_HX = getTime();
+
+            d_matrixFreeBasePtr->computeAX(Yvec.data(), Xvec.data(), scalarHX);
+
+            MPI_Barrier(d_mpiCommDomain);
+            auto stop_HX = getTime();
+
+            HXTimes[j] = stop_HX - start_HX;
+          }
+
+        meanAndStdDev(HXTimes, HXMean, HXStdDev);
+
+        pcout << "HX Mean Time: " << HXMean << "\n"
+              << "HX Std Dev Time: " << HXStdDev << "\n";
+
+        pcout << "MF Vectorized Exit" << std::endl << std::endl;
+
+        /*const bool hasNonlocalComponents =
+          d_dftParamsPtr->isPseudopotential &&
+          (d_ONCVnonLocalOperator
+             ->getTotalNonLocalElementsInCurrentProcessor() > 0) &&
+          !onlyHPrimePartForFirstOrderDensityMatResponse; //*/
+
+        pcout << "MF Non-Vectorized Enter" << std::endl;
 
         for (int j = 0; j < trials; j++)
           {
@@ -1267,7 +1315,7 @@ namespace dftfe
         pcout << "HX Mean Time: " << HXMean << "\n"
               << "HX Std Dev Time: " << HXStdDev << "\n";
 
-        pcout << "MF Exit" << std::endl << std::endl;
+        pcout << "MF Non-Vectorized Exit" << std::endl << std::endl;
 
         d_BLASWrapperPtr->xnrm2(dst.localSize() * dst.numVectors(),
                                 dst.data(),
@@ -1359,7 +1407,8 @@ namespace dftfe
                       d_ONCVnonLocalOperator->applyCconjtransOnX(
                         d_cellWaveFunctionMatrixSrc.data() +
                           cellRange.first * numDoFsPerCell *
-                      numberWavefunctions, cellRange); //*/
+                            numberWavefunctions,
+                        cellRange); //*/
                   }
               }
 
@@ -1389,12 +1438,17 @@ namespace dftfe
                   }
 
                 d_BLASWrapperPtr->axpby(src.locallyOwnedSize() *
-                src.numVectors(), scalarX, src.data(), scalarY, dst.data());
+                                          src.numVectors(),
+                                        scalarX,
+                                        src.data(),
+                                        scalarY,
+                                        dst.data());
 
                 if (d_dftParamsPtr->isPseudopotential &&
                     !onlyHPrimePartForFirstOrderDensityMatResponse)
                   {
-                    d_ONCVNonLocalProjectorTimesVectorBlock.updateGhostValuesEnd();
+                    d_ONCVNonLocalProjectorTimesVectorBlock
+                      .updateGhostValuesEnd();
                     d_ONCVnonLocalOperator->applyVOnCconjtransX(
                       CouplingStructure::diagonal,
                       d_oncvClassPtr->getCouplingMatrix(),

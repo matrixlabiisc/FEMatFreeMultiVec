@@ -33,9 +33,7 @@ namespace dftfe
    *
    * @author Gourab Panigrahi
    */
-  template <unsigned int ndofsPerDim,
-            unsigned int nQuadPointsPerDim,
-            unsigned int batchSize>
+  template <int ndofsPerDim, int nQuadPointsPerDim, int batchSize>
   class MatrixFree : public MatrixFreeBase
   {
   public:
@@ -46,7 +44,7 @@ namespace dftfe
                  double,
                  dftfe::utils::MemorySpace::HOST>> basisOperationsPtrHost,
                const bool                          isGGA,
-               const unsigned int                  blockSize);
+               const int                           blockSize);
 
 
     /**
@@ -57,7 +55,7 @@ namespace dftfe
      *
      */
     void
-    reinit(const unsigned int matrixFreeQuadratureID);
+    reinit(const int matrixFreeQuadratureID);
 
 
     /**
@@ -88,13 +86,19 @@ namespace dftfe
       const double scalarHX);
 
 
+    void
+    computeAX(dealii::VectorizedArray<double> *Ax,
+              dealii::VectorizedArray<double> *x,
+              const double                     scalarHX);
+
+
   private:
     /**
      * @brief evaluate tensor contractions for LDA
      *
      */
     void
-    evalHXLDA(const unsigned int iCell);
+    evalHXLDA(const int iCell);
 
 
     /**
@@ -102,7 +106,7 @@ namespace dftfe
      *
      */
     void
-    evalHXGGA(const unsigned int iCell);
+    evalHXGGA(const int iCell);
 
 
     /**
@@ -115,9 +119,8 @@ namespace dftfe
     void
     setupConstraints(const dealii::IndexSet &indexSet);
 
-    inline unsigned int
-    getMultiVectorIndex(const unsigned int nodeIdx,
-                        const unsigned int batchIdx) const;
+    inline int
+    getMultiVectorIndex(const int nodeIdx, const int batchIdx) const;
 
 
     /// pointer to dealii MatrixFree object
@@ -126,8 +129,8 @@ namespace dftfe
     /// pointer to dealii dealii::AffineConstraints<double> object
     const dealii::AffineConstraints<double> *d_constraintMatrixPtr;
 
-    const unsigned int d_blockSize, d_nBatch;
-    const bool         d_isGGA;
+    const int  d_blockSize, d_nBatch;
+    const bool d_isGGA;
 
     unsigned int d_nOwnedDofs, d_nRelaventDofs, d_nGhostDofs, d_nCells,
       d_nDofsPerCell, d_nQuadsPerCell;
@@ -147,12 +150,11 @@ namespace dftfe
                                       dftfe::utils::MemorySpace::HOST>>
       d_basisOperationsPtrHost;
 
-    std::vector<unsigned int> singleVectorGlobalToLocalMap,
-      singleVectorToMultiVectorMap;
+    std::vector<int> singleVectorGlobalToLocalMap, singleVectorToMultiVectorMap;
     std::vector<double> jacobianFactor, jacobianDeterminants,
       cellInverseMassVector;
 
-    std::vector<std::vector<unsigned int>> slaveNodeBuckets, masterNodeBuckets;
+    std::vector<std::vector<int>>    slaveNodeBuckets, masterNodeBuckets;
     std::vector<std::vector<double>> weightMatrixList, scaledWeightMatrixList;
     std::vector<double>              inhomogenityList;
 
@@ -175,8 +177,8 @@ namespace dftfe
     dealii::ConditionalOStream pcout;
     std::vector<double>        tempGhostStorage, tempCompressStorage;
     const MPI_Comm             mpi_communicator;
-    const unsigned int         n_mpi_processes;
-    const unsigned int         this_mpi_process;
+    const int                  n_mpi_processes;
+    const int                  this_mpi_process;
     std::vector<MPI_Request>   mpiRequestsGhost;
     std::vector<MPI_Request>   mpiRequestsCompress;
   };

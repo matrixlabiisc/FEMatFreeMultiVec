@@ -92,6 +92,7 @@ namespace dftfe
   constexpr unsigned int
   C_rhoNodalPolyOrder()
   {
+    // return FEOrder;
     return ((FEOrder + 2) > FEOrderElectro ? (FEOrder + 2) : FEOrderElectro);
   }
 
@@ -131,6 +132,7 @@ namespace dftfe
   constexpr unsigned int
   C_rhoNodalPolyOrder()
   {
+    // return FEOrder;
     return ((FEOrder + 2) > FEOrderElectro ? (FEOrder + 2) : FEOrderElectro);
   }
 
