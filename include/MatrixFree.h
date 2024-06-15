@@ -157,6 +157,8 @@ namespace dftfe
     std::vector<std::vector<int>>    slaveNodeBuckets, masterNodeBuckets;
     std::vector<std::vector<double>> weightMatrixList, scaledWeightMatrixList;
     std::vector<double>              inhomogenityList;
+    dealii::VectorizedArray<double>  inhomogenity, temp;
+    std::vector<dealii::VectorizedArray<double>> tempMasterData, tempSlaveData;
 
     static constexpr int d_quadODim = nQuadPointsPerDim / 2;
     static constexpr int d_quadEDim =

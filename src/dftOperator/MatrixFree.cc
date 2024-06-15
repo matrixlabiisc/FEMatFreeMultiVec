@@ -1348,6 +1348,8 @@ namespace dftfe
         // Optimize masterNodeBuckets[i].size() from GPUs shared size
         for (auto i = 0; i < masterNodeBuckets.size(); i++)
           {
+            double inhomogenity = inhomogenityList[i];
+
             std::vector<dealii::VectorizedArray<double>> tempMasterData(
               masterNodeBuckets[i].size());
 
@@ -1359,7 +1361,7 @@ namespace dftfe
 
             for (auto j = 0; j < slaveNodeBuckets[i].size(); j++)
               {
-                temp = inhomogenityList[i];
+                temp = inhomogenity;
 
                 for (auto k = 0; k < masterNodeBuckets[i].size(); k++)
                   temp +=
@@ -1608,6 +1610,8 @@ namespace dftfe
         // Optimize masterNodeBuckets[i].size() from GPUs shared size
         for (auto i = 0; i < masterNodeBuckets.size(); i++)
           {
+            double inhomogenity = inhomogenityList[i];
+
             std::vector<dealii::VectorizedArray<double>> tempMasterData(
               masterNodeBuckets[i].size());
 
@@ -1617,7 +1621,7 @@ namespace dftfe
 
             for (auto j = 0; j < slaveNodeBuckets[i].size(); j++)
               {
-                temp = inhomogenityList[i];
+                temp = inhomogenity;
 
                 for (auto k = 0; k < masterNodeBuckets[i].size(); k++)
                   temp +=

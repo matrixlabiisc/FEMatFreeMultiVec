@@ -232,15 +232,19 @@ namespace dftfe
         const int FeOrder = d_dftParamsPtr->finiteElementPolynomialOrder;
 
         if (FeOrder == 5)
-          d_matrixFreeBasePtr = std::make_unique<dftfe::MatrixFree<6, 8, 8>>(
+          d_matrixFreeBasePtr = std::make_unique<dftfe::MatrixFree<6, 6, 8>>(
             d_mpiCommDomain, d_basisOperationsPtrHost, isGGA, blockSize);
 
         if (FeOrder == 6)
-          d_matrixFreeBasePtr = std::make_unique<dftfe::MatrixFree<7, 9, 8>>(
+          d_matrixFreeBasePtr = std::make_unique<dftfe::MatrixFree<7, 7, 8>>(
             d_mpiCommDomain, d_basisOperationsPtrHost, isGGA, blockSize);
 
         if (FeOrder == 7)
-          d_matrixFreeBasePtr = std::make_unique<dftfe::MatrixFree<8, 10, 8>>(
+          d_matrixFreeBasePtr = std::make_unique<dftfe::MatrixFree<8, 8, 8>>(
+            d_mpiCommDomain, d_basisOperationsPtrHost, isGGA, blockSize);
+
+        if (FeOrder == 8)
+          d_matrixFreeBasePtr = std::make_unique<dftfe::MatrixFree<9, 9, 8>>(
             d_mpiCommDomain, d_basisOperationsPtrHost, isGGA, blockSize);
 
         d_matrixFreeBasePtr->reinit(d_densityQuadratureID);
@@ -1231,7 +1235,7 @@ namespace dftfe
     auto d_nRelaventDofs = d_basisOperationsPtrHost->nRelaventDofs();
     auto d_nGhostDofs    = d_nRelaventDofs - d_nOwnedDofs;
 
-    const int           trials = 1000;
+    const int           trials = 505;
     std::vector<double> HXTimes(trials);
     double              HXMean = 0.0, HXStdDev = 0.0;
 
@@ -1289,13 +1293,21 @@ namespace dftfe
 
         pcout << "MF Vectorized Exit" << std::endl << std::endl;
 
+
+        for (auto j = 0; j < numberWavefunctions / batchSize; j++)
+          for (auto i = 0; i < d_nOwnedDofs; i++)
+            {
+              Yvec[i + j * d_nOwnedDofs].store(
+                dst.data() + (i + j * d_nOwnedDofs) * batchSize);
+            }
+
         /*const bool hasNonlocalComponents =
           d_dftParamsPtr->isPseudopotential &&
           (d_ONCVnonLocalOperator
              ->getTotalNonLocalElementsInCurrentProcessor() > 0) &&
           !onlyHPrimePartForFirstOrderDensityMatResponse; //*/
 
-        pcout << "MF Non-Vectorized Enter" << std::endl;
+        /*pcout << "MF Non-Vectorized Enter" << std::endl;
 
         for (int j = 0; j < trials; j++)
           {
@@ -1315,7 +1327,7 @@ namespace dftfe
         pcout << "HX Mean Time: " << HXMean << "\n"
               << "HX Std Dev Time: " << HXStdDev << "\n";
 
-        pcout << "MF Non-Vectorized Exit" << std::endl << std::endl;
+        pcout << "MF Non-Vectorized Exit" << std::endl << std::endl; //*/
 
         d_BLASWrapperPtr->xnrm2(dst.localSize() * dst.numVectors(),
                                 dst.data(),
