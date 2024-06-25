@@ -56,7 +56,19 @@ namespace dftfe
     virtual void
     computeAX(dealii::VectorizedArray<double> *Ax,
               dealii::VectorizedArray<double> *x,
-              const double                     scalarHX) = 0;
+              dftfe::utils::MemoryStorage<dataTypes::number,
+                                          dftfe::utils::MemorySpace::HOST>
+                &          cellWaveFunctionMatrixDst,
+              const double scalarHX,
+              const bool   hasNonlocalComponents) = 0;
+
+    virtual void
+    computeAX2(dealii::VectorizedArray<double> *Ax,
+               dealii::VectorizedArray<double> *x,
+               dftfe::utils::MemoryStorage<dataTypes::number,
+                                           dftfe::utils::MemorySpace::HOST>
+                 &          cellWaveFunctionMatrixDst,
+               const double scalarHX) = 0;
 
     virtual void
     setVJxWMF(

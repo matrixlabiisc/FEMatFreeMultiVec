@@ -478,7 +478,11 @@ namespace dftfe
       dftfe::basis::FEBasisOperations<dataTypes::number,
                                       double,
                                       dftfe::utils::MemorySpace::HOST>>
-               basisOperationsPtrHost,
+      basisOperationsPtrHost,
+    std::shared_ptr<
+      AtomicCenteredNonLocalOperator<dataTypes::number,
+                                     dftfe::utils::MemorySpace::HOST>>
+               ONCVnonLocalOperator,
     const bool isGGA,
     const int  blockSize)
     : mpi_communicator(mpi_comm)
@@ -487,6 +491,7 @@ namespace dftfe
     , pcout(std::cout,
             (dealii::Utilities::MPI::this_mpi_process(mpi_comm) == 0))
     , d_basisOperationsPtrHost(basisOperationsPtrHost)
+    , d_ONCVnonLocalOperator(ONCVnonLocalOperator)
     , d_isGGA(isGGA)
     , d_blockSize(blockSize)
     , d_nBatch(ceil((double)blockSize / (double)batchSize))
@@ -499,9 +504,9 @@ namespace dftfe
     const int matrixFreeQuadratureID)
   {
     d_basisOperationsPtrHost->reinit(0, 0, matrixFreeQuadratureID);
-
     d_matrixFreeDataPtr = &(d_basisOperationsPtrHost->matrixFreeData());
-    auto dofInfo        = d_matrixFreeDataPtr->get_dof_info(
+
+    auto dofInfo = d_matrixFreeDataPtr->get_dof_info(
       d_basisOperationsPtrHost->d_dofHandlerID);
     auto shapeData =
       d_matrixFreeDataPtr
@@ -670,7 +675,48 @@ namespace dftfe
                                0.0);
     singleVectorGlobalToLocalMap.resize(d_nCells * d_nDofsPerCell, 0);
     singleVectorToMultiVectorMap.resize(d_nRelaventDofs, 0);
+    std::vector<int> singleVectorGlobalToLocalMapTemp(d_nCells * d_nDofsPerCell,
+                                                      0);
 
+    // Construct cellIndexToMacroCellSubCellIndexMap
+    auto d_nMacroCells = d_matrixFreeDataPtr->n_cell_batches();
+    auto cellPtr       = d_matrixFreeDataPtr
+                     ->get_dof_handler(d_basisOperationsPtrHost->d_dofHandlerID)
+                     .begin_active();
+    auto endcPtr = d_matrixFreeDataPtr
+                     ->get_dof_handler(d_basisOperationsPtrHost->d_dofHandlerID)
+                     .end();
+
+    std::map<dealii::CellId, size_type> cellIdToCellIndexMap;
+    std::vector<int> cellIndexToMacroCellSubCellIndexMap(d_nCells);
+
+    int iCell = 0;
+    for (; cellPtr != endcPtr; cellPtr++)
+      if (cellPtr->is_locally_owned())
+        {
+          cellIdToCellIndexMap[cellPtr->id()] = iCell;
+          iCell++;
+        }
+
+    iCell = 0;
+    for (int iMacroCell = 0; iMacroCell < d_nMacroCells; iMacroCell++)
+      {
+        const int numberSubCells =
+          d_matrixFreeDataPtr->n_components_filled(iMacroCell);
+
+        for (int iSubCell = 0; iSubCell < numberSubCells; iSubCell++)
+          {
+            cellPtr = d_matrixFreeDataPtr->get_cell_iterator(
+              iMacroCell, iSubCell, d_basisOperationsPtrHost->d_dofHandlerID);
+
+            size_type cellIndex = cellIdToCellIndexMap[cellPtr->id()];
+            cellIndexToMacroCellSubCellIndexMap[cellIndex] = iCell;
+
+            iCell++;
+          }
+      }
+
+    // Construct singleVectorGlobalToLocalMapTemp with matrix-free cell ordering
     for (auto iCellBatch = 0, iCell = 0;
          iCellBatch < dofInfo.n_vectorization_lanes_filled[2].size();
          iCellBatch++)
@@ -697,11 +743,19 @@ namespace dftfe
                                              iCellBatch *
                                                dofInfo.vectorization_length];
 
-          std::memcpy(singleVectorGlobalToLocalMap.data() +
+          std::memcpy(singleVectorGlobalToLocalMapTemp.data() +
                         iCell * d_nDofsPerCell,
                       checkExpr ? trueClause : falseClause,
                       d_nDofsPerCell * sizeof(int));
         }
+
+    // Reorder cell numbering to cell-matrix order
+    for (auto iCell = 0; iCell < d_nCells; iCell++)
+      for (auto iDof = 0; iDof < d_nDofsPerCell; iDof++)
+        singleVectorGlobalToLocalMap[iDof + iCell * d_nDofsPerCell] =
+          singleVectorGlobalToLocalMapTemp
+            [iDof +
+             cellIndexToMacroCellSubCellIndexMap[iCell] * d_nDofsPerCell];
 
     auto taskGhostMap =
       d_matrixFreeDataPtr
@@ -919,44 +973,6 @@ namespace dftfe
     if (d_isGGA)
       d_VGGAJxW.resize(VGGAJxW.size());
 
-    // Construct cellIndexToMacroCellSubCellIndexMap
-    auto d_nMacroCells = d_matrixFreeDataPtr->n_cell_batches();
-    auto cellPtr       = d_matrixFreeDataPtr
-                     ->get_dof_handler(d_basisOperationsPtrHost->d_dofHandlerID)
-                     .begin_active();
-    auto endcPtr = d_matrixFreeDataPtr
-                     ->get_dof_handler(d_basisOperationsPtrHost->d_dofHandlerID)
-                     .end();
-
-    std::map<dealii::CellId, size_type> cellIdToCellIndexMap;
-    std::vector<int> cellIndexToMacroCellSubCellIndexMap(d_nCells);
-
-    int iCell = 0;
-    for (; cellPtr != endcPtr; cellPtr++)
-      if (cellPtr->is_locally_owned())
-        {
-          cellIdToCellIndexMap[cellPtr->id()] = iCell;
-          iCell++;
-        }
-
-    iCell = 0;
-    for (int iMacroCell = 0; iMacroCell < d_nMacroCells; iMacroCell++)
-      {
-        const int numberSubCells =
-          d_matrixFreeDataPtr->n_components_filled(iMacroCell);
-
-        for (int iSubCell = 0; iSubCell < numberSubCells; iSubCell++)
-          {
-            cellPtr = d_matrixFreeDataPtr->get_cell_iterator(
-              iMacroCell, iSubCell, d_basisOperationsPtrHost->d_dofHandlerID);
-
-            size_type cellIndex = cellIdToCellIndexMap[cellPtr->id()];
-            cellIndexToMacroCellSubCellIndexMap[cellIndex] = iCell;
-
-            iCell++;
-          }
-      }
-
     // Reorder VeffJxW and VeffExtPotJxW for matrix-free
     for (int iCell = 0; iCell < d_nCells; iCell++)
       for (int iQuad3 = 0; iQuad3 < nQuadPointsPerDim; iQuad3++)
@@ -972,8 +988,7 @@ namespace dftfe
                 temp = quadratureWeights[iQuad1] * quadratureWeights[iQuad2] *
                        quadratureWeights[iQuad3];
 
-              d_VeffJxW[quadIdx + cellIndexToMacroCellSubCellIndexMap[iCell] *
-                                    d_nQuadsPerCell] =
+              d_VeffJxW[quadIdx + iCell * d_nQuadsPerCell] =
                 (VeffJxW[quadIdx + iCell * d_nQuadsPerCell] +
                  VeffExtPotJxW[quadIdx + iCell * d_nQuadsPerCell]) /
                 (d_isGGA ? 1 : temp);
@@ -986,9 +1001,7 @@ namespace dftfe
       for (auto iCell = 0; iCell < d_nCells; iCell++)
         for (auto iQuad = 0; iQuad < d_nQuadsPerCell; iQuad++)
           for (auto iDim = 0; iDim < dim; iDim++)
-            d_VGGAJxW[iDim + iQuad * dim +
-                      cellIndexToMacroCellSubCellIndexMap[iCell] * dim *
-                        d_nQuadsPerCell] =
+            d_VGGAJxW[iDim + iQuad * dim + iCell * dim * d_nQuadsPerCell] =
               VGGAJxW[iDim + iQuad * dim + iCell * dim * d_nQuadsPerCell];
   }
 
@@ -1350,8 +1363,8 @@ namespace dftfe
           {
             double inhomogenity = inhomogenityList[i];
 
-            std::vector<dealii::VectorizedArray<double>> tempMasterData(
-              masterNodeBuckets[i].size());
+            dealii::AlignedVector<dealii::VectorizedArray<double>>
+              tempMasterData(masterNodeBuckets[i].size());
 
             for (auto k = 0; k < masterNodeBuckets[i].size(); k++)
               tempMasterData[k].load(
@@ -1422,8 +1435,8 @@ namespace dftfe
           {
             if (masterNodeBuckets[i].size() > 0)
               {
-                std::vector<dealii::VectorizedArray<double>> tempSlaveData(
-                  slaveNodeBuckets[i].size());
+                dealii::AlignedVector<dealii::VectorizedArray<double>>
+                  tempSlaveData(slaveNodeBuckets[i].size());
 
                 for (auto k = 0; k < slaveNodeBuckets[i].size(); k++)
                   {
@@ -1554,66 +1567,42 @@ namespace dftfe
   MatrixFree<ndofsPerDim, nQuadPointsPerDim, batchSize>::computeAX(
     dealii::VectorizedArray<double> *Ax,
     dealii::VectorizedArray<double> *x,
-    const double                     scalarHX)
+    dftfe::utils::MemoryStorage<dataTypes::number,
+                                dftfe::utils::MemorySpace::HOST>
+      &          cellWaveFunctionMatrixDst,
+    const double scalarHX,
+    const bool   hasNonlocalComponents)
   {
     dealii::VectorizedArray<double> temp;
-
-    // Start updateGhost for batch 0
-    d_singleBatchPartitioner->export_to_ghosted_array_start<double>(
-      (unsigned int)5,
-      dealii::ArrayView<const double>((double *)x, batchSize * d_nOwnedDofs),
-      dealii::ArrayView<double>(tempGhostStorage),
-      dealii::ArrayView<double>((double *)x + d_nOwnedDofs * d_blockSize,
-                                batchSize * d_nGhostDofs),
-      mpiRequestsGhost);
-
-    // End updateGhost for batch 0
-    d_singleBatchPartitioner->export_to_ghosted_array_finish<double>(
-      dealii::ArrayView<double>((double *)x + d_nOwnedDofs * d_blockSize,
-                                batchSize * d_nGhostDofs),
-      mpiRequestsGhost);
 
     // Batch Loop
     for (int iBatch = 0; iBatch < d_nBatch; iBatch++)
       {
-        // Use GPU overlap 1st tensor contraction and extraction
-
         // Overlap batches
-        if (iBatch < d_nBatch - 1)
-          d_singleBatchPartitioner->export_to_ghosted_array_start<double>(
-            (unsigned int)5,
-            dealii::ArrayView<const double>((double *)x + (iBatch + 1) *
-                                                            batchSize *
-                                                            d_nOwnedDofs,
-                                            batchSize * d_nOwnedDofs),
-            dealii::ArrayView<double>(tempGhostStorage),
-            dealii::ArrayView<double>((double *)x + d_nOwnedDofs * d_blockSize +
-                                        d_nGhostDofs * batchSize *
-                                          ((iBatch + 1) % 2),
-                                      batchSize * d_nGhostDofs),
-            mpiRequestsGhost);
+        d_singleBatchPartitioner->export_to_ghosted_array_start<double>(
+          (unsigned int)5,
+          dealii::ArrayView<const double>((double *)x +
+                                            iBatch * batchSize * d_nOwnedDofs,
+                                          batchSize * d_nOwnedDofs),
+          dealii::ArrayView<double>(tempGhostStorage),
+          dealii::ArrayView<double>((double *)x + d_nOwnedDofs * d_blockSize +
+                                      d_nGhostDofs * batchSize * (iBatch % 2),
+                                    batchSize * d_nGhostDofs),
+          mpiRequestsGhost);
 
-        // Overlap batches
-        if (iBatch > 0)
-          d_singleBatchPartitioner->import_from_ghosted_array_start(
-            dealii::VectorOperation::add,
-            0,
-            dealii::ArrayView<double>((double *)Ax +
-                                        d_nOwnedDofs * d_blockSize +
-                                        d_nGhostDofs * batchSize *
-                                          ((iBatch - 1) % 2),
-                                      batchSize * d_nGhostDofs),
-            dealii::ArrayView<double>(tempCompressStorage),
-            mpiRequestsCompress);
+        d_singleBatchPartitioner->export_to_ghosted_array_finish<double>(
+          dealii::ArrayView<double>((double *)x + d_nOwnedDofs * d_blockSize +
+                                      d_nGhostDofs * batchSize * (iBatch % 2),
+                                    batchSize * d_nGhostDofs),
+          mpiRequestsGhost);
 
         // Constraints distribute
-        // Optimize masterNodeBuckets[i].size() from GPUs shared size
         for (auto i = 0; i < masterNodeBuckets.size(); i++)
           {
             double inhomogenity = inhomogenityList[i];
 
-            std::vector<dealii::VectorizedArray<double>> tempMasterData(
-              masterNodeBuckets[i].size());
+            dealii::AlignedVector<dealii::VectorizedArray<double>>
+              tempMasterData(masterNodeBuckets[i].size());
 
             for (auto k = 0; k < masterNodeBuckets[i].size(); k++)
               tempMasterData[k] =
@@ -1647,22 +1636,60 @@ namespace dftfe
                 arrayX[iDoF] = x[getMultiVectorIndex(dofIdx, iBatch)];
               }
 
+            if (hasNonlocalComponents)
+              d_ONCVnonLocalOperator->applyCconjtransOnX(arrayX, iCell, iBatch);
+
             if (d_isGGA)
               evalHXGGA(iCell);
             else
               evalHXLDA(iCell);
 
+            for (auto iDoF = 0; iDoF < d_nDofsPerCell; iDoF++)
+              for (auto iSIMD = 0; iSIMD < 8; iSIMD++)
+                cellWaveFunctionMatrixDst[iSIMD + iBatch * 8 +
+                                          iDoF * 8 * d_nBatch +
+                                          iCell * 8 * d_nBatch *
+                                            d_nDofsPerCell] =
+                  arrayX[iDoF][iSIMD];
+          }
+      }
+  }
+
+
+  template <int ndofsPerDim, int nQuadPointsPerDim, int batchSize>
+  void
+  MatrixFree<ndofsPerDim, nQuadPointsPerDim, batchSize>::computeAX2(
+    dealii::VectorizedArray<double> *Ax,
+    dealii::VectorizedArray<double> *x,
+    dftfe::utils::MemoryStorage<dataTypes::number,
+                                dftfe::utils::MemorySpace::HOST>
+      &          cellWaveFunctionMatrixDst,
+    const double scalarHX)
+  {
+    // Batch Loop
+    for (auto iBatch = 0; iBatch < d_nBatch; iBatch++)
+      {
+        for (auto iCell = 0; iCell < d_nCells; iCell++)
+          {
             // Assembly
             for (auto iDoF = 0; iDoF < d_nDofsPerCell; iDoF++)
               {
-                int dofIdx =
+                auto dofIdx =
                   singleVectorGlobalToLocalMap[iDoF + iCell * d_nDofsPerCell];
 
                 // arrayX[iDoF] =
+                //   scalarHX *
                 //   cellInverseMassVector[iDoF + iCell * d_nDofsPerCell] *
                 //   arrayX[iDoF];
 
-                Ax[getMultiVectorIndex(dofIdx, iBatch)] += arrayX[iDoF];
+                for (auto iSIMD = 0; iSIMD < 8; iSIMD++)
+                  Ax[getMultiVectorIndex(dofIdx, iBatch)][iSIMD] +=
+                    scalarHX *
+                    cellInverseMassVector[iDoF + iCell * d_nDofsPerCell] *
+                    cellWaveFunctionMatrixDst[iSIMD + iBatch * 8 +
+                                              iDoF * 8 * d_nBatch +
+                                              iCell * 8 * d_nBatch *
+                                                d_nDofsPerCell];
               }
           }
 
@@ -1671,8 +1698,8 @@ namespace dftfe
           {
             if (masterNodeBuckets[i].size() > 0)
               {
-                std::vector<dealii::VectorizedArray<double>> tempSlaveData(
-                  slaveNodeBuckets[i].size());
+                dealii::AlignedVector<dealii::VectorizedArray<double>>
+                  tempSlaveData(slaveNodeBuckets[i].size());
 
                 for (auto k = 0; k < slaveNodeBuckets[i].size(); k++)
                   tempSlaveData[k] =
@@ -1701,50 +1728,26 @@ namespace dftfe
               }
           }
 
-        if (iBatch > 0)
-          d_singleBatchPartitioner->import_from_ghosted_array_finish(
-            dealii::VectorOperation::add,
-            dealii::ArrayView<const double>(tempCompressStorage),
-            dealii::ArrayView<double>((double *)Ax +
-                                        (iBatch - 1) * batchSize * d_nOwnedDofs,
-                                      batchSize * d_nOwnedDofs),
-            dealii::ArrayView<double>((double *)Ax +
-                                        d_nOwnedDofs * d_blockSize +
-                                        d_nGhostDofs * batchSize *
-                                          ((iBatch - 1) % 2),
-                                      batchSize * d_nGhostDofs),
-            mpiRequestsCompress);
+        d_singleBatchPartitioner->import_from_ghosted_array_start(
+          dealii::VectorOperation::add,
+          0,
+          dealii::ArrayView<double>((double *)Ax + d_nOwnedDofs * d_blockSize +
+                                      d_nGhostDofs * batchSize * (iBatch % 2),
+                                    batchSize * d_nGhostDofs),
+          dealii::ArrayView<double>(tempCompressStorage),
+          mpiRequestsCompress);
 
-        if (iBatch < d_nBatch - 1)
-          d_singleBatchPartitioner->export_to_ghosted_array_finish<double>(
-            dealii::ArrayView<double>((double *)x + d_nOwnedDofs * d_blockSize +
-                                        d_nGhostDofs * batchSize *
-                                          ((iBatch + 1) % 2),
-                                      batchSize * d_nGhostDofs),
-            mpiRequestsGhost);
+        d_singleBatchPartitioner->import_from_ghosted_array_finish(
+          dealii::VectorOperation::add,
+          dealii::ArrayView<const double>(tempCompressStorage),
+          dealii::ArrayView<double>((double *)Ax +
+                                      iBatch * batchSize * d_nOwnedDofs,
+                                    batchSize * d_nOwnedDofs),
+          dealii::ArrayView<double>((double *)Ax + d_nOwnedDofs * d_blockSize +
+                                      d_nGhostDofs * batchSize * (iBatch % 2),
+                                    batchSize * d_nGhostDofs),
+          mpiRequestsCompress);
       }
-
-    d_singleBatchPartitioner->import_from_ghosted_array_start(
-      dealii::VectorOperation::add,
-      0,
-      dealii::ArrayView<double>((double *)Ax + d_nOwnedDofs * d_blockSize +
-                                  d_nGhostDofs * batchSize *
-                                    ((d_nBatch - 1) % 2),
-                                batchSize * d_nGhostDofs),
-      dealii::ArrayView<double>(tempCompressStorage),
-      mpiRequestsCompress);
-
-    d_singleBatchPartitioner->import_from_ghosted_array_finish(
-      dealii::VectorOperation::add,
-      dealii::ArrayView<const double>(tempCompressStorage),
-      dealii::ArrayView<double>((double *)Ax +
-                                  (d_nBatch - 1) * batchSize * d_nOwnedDofs,
-                                batchSize * d_nOwnedDofs),
-      dealii::ArrayView<double>((double *)Ax + d_nOwnedDofs * d_blockSize +
-                                  d_nGhostDofs * batchSize *
-                                    ((d_nBatch - 1) % 2),
-                                batchSize * d_nGhostDofs),
-      mpiRequestsCompress);
 
     // Compare with memsets
     std::fill(Ax + d_nOwnedDofs * (d_blockSize / batchSize),
@@ -1752,9 +1755,8 @@ namespace dftfe
               0.0);
     std::fill(x + d_nOwnedDofs * (d_blockSize / batchSize),
               x + d_nOwnedDofs * (d_blockSize / batchSize) + 2 * d_nGhostDofs,
-              0.0);
+              0.0); //*/
   }
-
 
 #include "MatrixFree.inst.cc"
 } // namespace dftfe

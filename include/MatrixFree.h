@@ -22,7 +22,7 @@
 #include <linearAlgebraOperations.h>
 #include <constraintMatrixInfo.h>
 #include <vectorUtilities.h>
-
+#include <oncvClass.h>
 
 namespace dftfe
 {
@@ -43,6 +43,9 @@ namespace dftfe
                  dataTypes::number,
                  double,
                  dftfe::utils::MemorySpace::HOST>> basisOperationsPtrHost,
+               std::shared_ptr<AtomicCenteredNonLocalOperator<
+                 dataTypes::number,
+                 dftfe::utils::MemorySpace::HOST>> ONCVnonLocalOperator,
                const bool                          isGGA,
                const int                           blockSize);
 
@@ -89,7 +92,19 @@ namespace dftfe
     void
     computeAX(dealii::VectorizedArray<double> *Ax,
               dealii::VectorizedArray<double> *x,
-              const double                     scalarHX);
+              dftfe::utils::MemoryStorage<dataTypes::number,
+                                          dftfe::utils::MemorySpace::HOST>
+                &          cellWaveFunctionMatrixDst,
+              const double scalarHX,
+              const bool   hasNonlocalComponents);
+
+    void
+    computeAX2(dealii::VectorizedArray<double> *Ax,
+               dealii::VectorizedArray<double> *x,
+               dftfe::utils::MemoryStorage<dataTypes::number,
+                                           dftfe::utils::MemorySpace::HOST>
+                 &          cellWaveFunctionMatrixDst,
+               const double scalarHX);
 
 
   private:
@@ -129,6 +144,11 @@ namespace dftfe
     /// pointer to dealii dealii::AffineConstraints<double> object
     const dealii::AffineConstraints<double> *d_constraintMatrixPtr;
 
+    std::shared_ptr<
+      AtomicCenteredNonLocalOperator<dataTypes::number,
+                                     dftfe::utils::MemorySpace::HOST>>
+      d_ONCVnonLocalOperator;
+
     const int  d_blockSize, d_nBatch;
     const bool d_isGGA;
 
@@ -158,7 +178,8 @@ namespace dftfe
     std::vector<std::vector<double>> weightMatrixList, scaledWeightMatrixList;
     std::vector<double>              inhomogenityList;
     dealii::VectorizedArray<double>  inhomogenity, temp;
-    std::vector<dealii::VectorizedArray<double>> tempMasterData, tempSlaveData;
+    dealii::AlignedVector<dealii::VectorizedArray<double>> tempMasterData,
+      tempSlaveData;
 
     static constexpr int d_quadODim = nQuadPointsPerDim / 2;
     static constexpr int d_quadEDim =

@@ -244,6 +244,11 @@ namespace dftfe
     applyCconjtransOnX(const ValueType *                           X,
                        const std::pair<unsigned int, unsigned int> cellRange);
 
+    void
+    applyCconjtransOnX(const dealii::VectorizedArray<ValueType> *X,
+                       const int                                 cell,
+                       const int                                 batch);
+
     /**
      * @brief completes the VCconjX on nodal vector src. The src vector must have all ghost nodes and contraint nodes updated.
      * @param[in] src input nodal vector on which operator acts on.
@@ -429,6 +434,9 @@ namespace dftfe
       unsigned int,
       dftfe::utils::MemoryStorage<ValueType, dftfe::utils::MemorySpace::HOST>>
       d_sphericalFnTimesWavefunMatrix;
+    std::map<unsigned int,
+             dealii::AlignedVector<dealii::VectorizedArray<double>>>
+      d_sphericalFnTimesWaveFn;
     std::vector<dftfe::global_size_type>
       d_flattenedNonLocalCellDofIndexToProcessDofIndexVector;
     dftfe::utils::MemoryStorage<dftfe::global_size_type, memorySpace>
