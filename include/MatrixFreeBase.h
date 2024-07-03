@@ -53,22 +53,21 @@ namespace dftfe
                                         dftfe::utils::MemorySpace::HOST> &x,
       const double scalarHX) = 0;
 
+
     virtual void
     computeAX(dealii::VectorizedArray<double> *Ax,
               dealii::VectorizedArray<double> *x,
               dftfe::utils::MemoryStorage<dataTypes::number,
                                           dftfe::utils::MemorySpace::HOST>
-                &          cellWaveFunctionMatrixDst,
+                &cellWaveFunctionMatrixDst,
+              dftfe::linearAlgebra::MultiVector<dataTypes::number,
+                                                dftfe::utils::MemorySpace::HOST>
+                &          d_ONCVNonLocalProjectorTimesVectorBlock,
               const double scalarHX,
-              const bool   hasNonlocalComponents) = 0;
+              const int    kPointIndex,
+              const bool   hasNonlocalComponents,
+              const bool   hasNonlocalComponents2) = 0;
 
-    virtual void
-    computeAX2(dealii::VectorizedArray<double> *Ax,
-               dealii::VectorizedArray<double> *x,
-               dftfe::utils::MemoryStorage<dataTypes::number,
-                                           dftfe::utils::MemorySpace::HOST>
-                 &          cellWaveFunctionMatrixDst,
-               const double scalarHX) = 0;
 
     virtual void
     setVJxWMF(

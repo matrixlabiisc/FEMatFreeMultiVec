@@ -196,6 +196,15 @@ namespace dftfe
     const std::vector<unsigned int> &
     getSphericalFnTimesVectorFlattenedVectorLocalIds() const;
 
+    void
+    constructLexicoMappedCMatrix(
+      std::vector<std::vector<std::vector<ValueType>>>
+        &CMatrixEntriesLexicoConjugate,
+      std::vector<std::vector<std::vector<ValueType>>>
+        &                              CMatrixEntriesLexicoTranspose,
+      const std::vector<unsigned int> &lexMap,
+      const int                        nCells,
+      const int                        kPointIndex);
 
     // Calls for both device and host
     /**
@@ -246,8 +255,9 @@ namespace dftfe
 
     void
     applyCconjtransOnX(const dealii::VectorizedArray<ValueType> *X,
-                       const int                                 cell,
-                       const int                                 batch);
+                       const std::vector<std::vector<std::vector<ValueType>>>
+                         &       CMatrixEntriesConjugate,
+                       const int cellID);
 
     /**
      * @brief completes the VCconjX on nodal vector src. The src vector must have all ghost nodes and contraint nodes updated.
@@ -303,6 +313,11 @@ namespace dftfe
     applyCOnVCconjtransX(ValueType *                                 Xout,
                          const std::pair<unsigned int, unsigned int> cellRange);
 
+    void
+    applyCOnVCconjtransX(ValueType *Xout,
+                         std::vector<std::vector<std::vector<ValueType>>>
+                           &       CMatrixEntriesLexicoTranspose,
+                         const int cellID);
 
   protected:
     bool                d_AllReduceCompleted;
@@ -320,7 +335,6 @@ namespace dftfe
     std::shared_ptr<
       dftfe::basis::FEBasisOperations<ValueType, double, memorySpace>>
       d_basisOperatorPtr;
-
 
     // Required by force.cc
     std::vector<ValueType> d_atomCenteredKpointIndexedSphericalFnQuadValues;

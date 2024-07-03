@@ -38,16 +38,23 @@ namespace dftfe
   {
   public:
     /// Constructor
-    MatrixFree(const MPI_Comm &                    mpi_comm,
-               std::shared_ptr<dftfe::basis::FEBasisOperations<
-                 dataTypes::number,
-                 double,
-                 dftfe::utils::MemorySpace::HOST>> basisOperationsPtrHost,
-               std::shared_ptr<AtomicCenteredNonLocalOperator<
-                 dataTypes::number,
-                 dftfe::utils::MemorySpace::HOST>> ONCVnonLocalOperator,
-               const bool                          isGGA,
-               const int                           blockSize);
+    MatrixFree(
+      const MPI_Comm &mpi_comm,
+      std::shared_ptr<
+        dftfe::basis::FEBasisOperations<dataTypes::number,
+                                        double,
+                                        dftfe::utils::MemorySpace::HOST>>
+        basisOperationsPtrHost,
+      std::shared_ptr<
+        AtomicCenteredNonLocalOperator<dataTypes::number,
+                                       dftfe::utils::MemorySpace::HOST>>
+        ONCVnonLocalOperator,
+      std::shared_ptr<
+        dftfe::oncvClass<dataTypes::number, dftfe::utils::MemorySpace::HOST>>
+                 oncvClassPtr,
+      const bool isGGA,
+      const int  kPointIndex,
+      const int  blockSize);
 
 
     /**
@@ -94,17 +101,14 @@ namespace dftfe
               dealii::VectorizedArray<double> *x,
               dftfe::utils::MemoryStorage<dataTypes::number,
                                           dftfe::utils::MemorySpace::HOST>
-                &          cellWaveFunctionMatrixDst,
+                &cellWaveFunctionMatrixDst,
+              dftfe::linearAlgebra::MultiVector<dataTypes::number,
+                                                dftfe::utils::MemorySpace::HOST>
+                &          d_ONCVNonLocalProjectorTimesVectorBlock,
               const double scalarHX,
-              const bool   hasNonlocalComponents);
-
-    void
-    computeAX2(dealii::VectorizedArray<double> *Ax,
-               dealii::VectorizedArray<double> *x,
-               dftfe::utils::MemoryStorage<dataTypes::number,
-                                           dftfe::utils::MemorySpace::HOST>
-                 &          cellWaveFunctionMatrixDst,
-               const double scalarHX);
+              const int    kPointIndex,
+              const bool   hasNonlocalComponents,
+              const bool   hasNonlocalComponents2);
 
 
   private:
@@ -149,7 +153,14 @@ namespace dftfe
                                      dftfe::utils::MemorySpace::HOST>>
       d_ONCVnonLocalOperator;
 
-    const int  d_blockSize, d_nBatch;
+    std::shared_ptr<
+      dftfe::oncvClass<dataTypes::number, dftfe::utils::MemorySpace::HOST>>
+      d_oncvClassPtr;
+
+    std::vector<std::vector<std::vector<dataTypes::number>>>
+      d_CMatrixEntriesConjugate, d_CMatrixEntriesTranspose;
+
+    const int  d_blockSize, d_nBatch, d_kPointIndex;
     const bool d_isGGA;
 
     unsigned int d_nOwnedDofs, d_nRelaventDofs, d_nGhostDofs, d_nCells,

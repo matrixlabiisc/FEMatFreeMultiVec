@@ -231,12 +231,24 @@ namespace dftfe
                            densityFamilyType::GGA;
         const int FeOrder = d_dftParamsPtr->finiteElementPolynomialOrder;
 
+        if (FeOrder == 3)
+          d_matrixFreeBasePtr = std::make_unique<dftfe::MatrixFree<4, 4, 8>>(
+            d_mpiCommDomain,
+            d_basisOperationsPtrHost,
+            d_ONCVnonLocalOperator,
+            d_oncvClassPtr,
+            isGGA,
+            d_kPointIndex,
+            blockSize);
+
         if (FeOrder == 5)
           d_matrixFreeBasePtr = std::make_unique<dftfe::MatrixFree<6, 6, 8>>(
             d_mpiCommDomain,
             d_basisOperationsPtrHost,
             d_ONCVnonLocalOperator,
+            d_oncvClassPtr,
             isGGA,
+            d_kPointIndex,
             blockSize);
 
         if (FeOrder == 6)
@@ -244,7 +256,9 @@ namespace dftfe
             d_mpiCommDomain,
             d_basisOperationsPtrHost,
             d_ONCVnonLocalOperator,
+            d_oncvClassPtr,
             isGGA,
+            d_kPointIndex,
             blockSize);
 
         if (FeOrder == 7)
@@ -252,7 +266,9 @@ namespace dftfe
             d_mpiCommDomain,
             d_basisOperationsPtrHost,
             d_ONCVnonLocalOperator,
+            d_oncvClassPtr,
             isGGA,
+            d_kPointIndex,
             blockSize);
 
         if (FeOrder == 8)
@@ -260,7 +276,9 @@ namespace dftfe
             d_mpiCommDomain,
             d_basisOperationsPtrHost,
             d_ONCVnonLocalOperator,
+            d_oncvClassPtr,
             isGGA,
+            d_kPointIndex,
             blockSize);
 
         d_matrixFreeBasePtr->reinit(d_densityQuadratureID);
@@ -883,10 +901,9 @@ namespace dftfe
     const unsigned int nCells       = d_basisOperationsPtr->nCells();
     const unsigned int nDofsPerCell = d_basisOperationsPtr->nDofsPerCell();
 
-    if (MFflag)
+    if (MFflag and numWaveFunctions != 1)
       {
-        d_cellWaveFunctionMatrixDst.resize(numWaveFunctions * nDofsPerCell *
-                                           nCells);
+        d_cellWaveFunctionMatrixDst.resize(8 * nDofsPerCell * nCells);
 
         if (d_dftParamsPtr->isPseudopotential)
           d_ONCVnonLocalOperator->initialiseFlattenedDataStructure(
@@ -1295,10 +1312,6 @@ namespace dftfe
           d_dftParamsPtr->isPseudopotential &&
           !onlyHPrimePartForFirstOrderDensityMatResponse;
 
-        if constexpr (memorySpace == dftfe::utils::MemorySpace::HOST)
-          if (d_dftParamsPtr->isPseudopotential)
-            d_ONCVnonLocalOperator->initialiseOperatorActionOnX(d_kPointIndex);
-
         dealii::AlignedVector<dealii::VectorizedArray<double>> Xvec(
           (numberWavefunctions / batchSize) * d_nOwnedDofs + 2 * d_nGhostDofs,
           0.0),
@@ -1314,61 +1327,24 @@ namespace dftfe
         double dstNorm;
         double srcNorm;
 
-        pcout << "MF Vectorized Enter" << std::endl;
-        pcout << "trials: " << trials << std::endl;
+        pcout << "MF Vectorized Enter" << std::endl
+              << "trials: " << trials << std::endl
+              << std::endl;
 
         for (int j = 0; j < trials; j++)
           {
             MPI_Barrier(d_mpiCommDomain);
             auto start_HX = getTime();
 
-            d_matrixFreeBasePtr->computeAX(Yvec.data(),
-                                           Xvec.data(),
-                                           d_cellWaveFunctionMatrixDst,
-                                           scalarHX,
-                                           hasNonlocalComponents);
-
-            if (hasNonlocalComponents2)
-              {
-                d_ONCVNonLocalProjectorTimesVectorBlock.setValue(0);
-
-                d_ONCVnonLocalOperator->applyAllReduceOnCconjtransX(
-                  d_ONCVNonLocalProjectorTimesVectorBlock, true);
-
-                d_ONCVNonLocalProjectorTimesVectorBlock
-                  .accumulateAddLocallyOwnedBegin();
-                d_ONCVNonLocalProjectorTimesVectorBlock
-                  .accumulateAddLocallyOwnedEnd();
-                d_ONCVNonLocalProjectorTimesVectorBlock
-                  .updateGhostValuesBegin();
-                d_ONCVNonLocalProjectorTimesVectorBlock.updateGhostValuesEnd();
-
-                d_ONCVnonLocalOperator->applyVOnCconjtransX(
-                  CouplingStructure::diagonal,
-                  d_oncvClassPtr->getCouplingMatrix(),
-                  d_ONCVNonLocalProjectorTimesVectorBlock,
-                  true);
-              }
-
-            if (hasNonlocalComponents)
-              {
-                for (unsigned int iCell = 0; iCell < numCells;
-                     iCell += d_cellsBlockSizeHX)
-                  {
-                    std::pair<unsigned int, unsigned int> cellRange(
-                      iCell, std::min(iCell + d_cellsBlockSizeHX, numCells));
-
-                    d_ONCVnonLocalOperator->applyCOnVCconjtransX(
-                      d_cellWaveFunctionMatrixDst.data() +
-                        iCell * numberWavefunctions * numDoFsPerCell,
-                      cellRange);
-                  }
-
-                d_matrixFreeBasePtr->computeAX2(Yvec.data(),
-                                                Xvec.data(),
-                                                d_cellWaveFunctionMatrixDst,
-                                                scalarHX);
-              }
+            d_matrixFreeBasePtr->computeAX(
+              Yvec.data(),
+              Xvec.data(),
+              d_cellWaveFunctionMatrixDst,
+              d_ONCVNonLocalProjectorTimesVectorBlock,
+              scalarHX,
+              d_kPointIndex,
+              hasNonlocalComponents,
+              hasNonlocalComponents2);
 
             MPI_Barrier(d_mpiCommDomain);
             auto stop_HX = getTime();
@@ -1389,6 +1365,7 @@ namespace dftfe
               Yvec[i + j * d_nOwnedDofs].store(
                 dst.data() + (i + j * d_nOwnedDofs) * batchSize);
             }
+
 
         d_BLASWrapperPtr->xnrm2(dst.localSize() * dst.numVectors(),
                                 dst.data(),
@@ -1422,7 +1399,9 @@ namespace dftfe
         double dstNorm;
         double srcNorm;
 
-        pcout << "CM Enter" << std::endl;
+        pcout << "CM Enter" << std::endl
+              << "trials: " << trials << std::endl
+              << std::endl;
 
         if (d_numVectorsInternal != numberWavefunctions)
           reinitNumberWavefunctions(numberWavefunctions);
@@ -1522,6 +1501,7 @@ namespace dftfe
                   {
                     d_ONCVNonLocalProjectorTimesVectorBlock
                       .updateGhostValuesEnd();
+
                     d_ONCVnonLocalOperator->applyVOnCconjtransX(
                       CouplingStructure::diagonal,
                       d_oncvClassPtr->getCouplingMatrix(),

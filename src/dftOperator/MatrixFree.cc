@@ -482,8 +482,12 @@ namespace dftfe
     std::shared_ptr<
       AtomicCenteredNonLocalOperator<dataTypes::number,
                                      dftfe::utils::MemorySpace::HOST>>
-               ONCVnonLocalOperator,
+      ONCVnonLocalOperator,
+    std::shared_ptr<
+      dftfe::oncvClass<dataTypes::number, dftfe::utils::MemorySpace::HOST>>
+               oncvClassPtr,
     const bool isGGA,
+    const int  kPointIndex,
     const int  blockSize)
     : mpi_communicator(mpi_comm)
     , n_mpi_processes(dealii::Utilities::MPI::n_mpi_processes(mpi_comm))
@@ -492,7 +496,9 @@ namespace dftfe
             (dealii::Utilities::MPI::this_mpi_process(mpi_comm) == 0))
     , d_basisOperationsPtrHost(basisOperationsPtrHost)
     , d_ONCVnonLocalOperator(ONCVnonLocalOperator)
+    , d_oncvClassPtr(oncvClassPtr)
     , d_isGGA(isGGA)
+    , d_kPointIndex(kPointIndex)
     , d_blockSize(blockSize)
     , d_nBatch(ceil((double)blockSize / (double)batchSize))
   {}
@@ -808,6 +814,21 @@ namespace dftfe
             singleVectorToMultiVectorMap[iDof] = iDof;
           }
       }
+
+    // Construct TensorStructuredDoFMap
+    auto &lexMap = d_matrixFreeDataPtr
+                     ->get_shape_info(d_basisOperationsPtrHost->d_dofHandlerID,
+                                      matrixFreeQuadratureID)
+                     .lexicographic_numbering;
+
+    // Construct CMatrixEntries and CMatrixEntriesConjugate in Lexicographic
+    // Numbering
+    d_ONCVnonLocalOperator->constructLexicoMappedCMatrix(
+      d_CMatrixEntriesConjugate,
+      d_CMatrixEntriesTranspose,
+      lexMap,
+      d_nCells,
+      d_kPointIndex);
 
     // Initialize constraints
     initConstraints();
@@ -1569,16 +1590,20 @@ namespace dftfe
     dealii::VectorizedArray<double> *x,
     dftfe::utils::MemoryStorage<dataTypes::number,
                                 dftfe::utils::MemorySpace::HOST>
-      &          cellWaveFunctionMatrixDst,
+      &cellWaveFunctionMatrixDst,
+    dftfe::linearAlgebra::MultiVector<dataTypes::number,
+                                      dftfe::utils::MemorySpace::HOST>
+      &          d_ONCVNonLocalProjectorTimesVectorBlock,
     const double scalarHX,
-    const bool   hasNonlocalComponents)
+    const int    kPointIndex,
+    const bool   hasNonlocalComponents,
+    const bool   hasNonlocalComponents2)
   {
     dealii::VectorizedArray<double> temp;
 
     // Batch Loop
     for (int iBatch = 0; iBatch < d_nBatch; iBatch++)
       {
-        // Overlap batches
         d_singleBatchPartitioner->export_to_ghosted_array_start<double>(
           (unsigned int)5,
           dealii::ArrayView<const double>((double *)x +
@@ -1624,6 +1649,9 @@ namespace dftfe
               }
           }
 
+        if (hasNonlocalComponents)
+          d_ONCVnonLocalOperator->initialiseOperatorActionOnX(kPointIndex);
+
         // Cell Loop
         for (int iCell = 0; iCell < d_nCells; iCell++)
           {
@@ -1637,7 +1665,8 @@ namespace dftfe
               }
 
             if (hasNonlocalComponents)
-              d_ONCVnonLocalOperator->applyCconjtransOnX(arrayX, iCell, iBatch);
+              d_ONCVnonLocalOperator->applyCconjtransOnX(
+                arrayX, d_CMatrixEntriesConjugate, iCell);
 
             if (d_isGGA)
               evalHXGGA(iCell);
@@ -1646,31 +1675,41 @@ namespace dftfe
 
             for (auto iDoF = 0; iDoF < d_nDofsPerCell; iDoF++)
               for (auto iSIMD = 0; iSIMD < 8; iSIMD++)
-                cellWaveFunctionMatrixDst[iSIMD + iBatch * 8 +
-                                          iDoF * 8 * d_nBatch +
-                                          iCell * 8 * d_nBatch *
-                                            d_nDofsPerCell] =
+                cellWaveFunctionMatrixDst[iSIMD + iDoF * 8 +
+                                          iCell * 8 * d_nDofsPerCell] =
                   arrayX[iDoF][iSIMD];
           }
-      }
-  }
 
+        if (hasNonlocalComponents2)
+          {
+            d_ONCVNonLocalProjectorTimesVectorBlock.setValue(0);
 
-  template <int ndofsPerDim, int nQuadPointsPerDim, int batchSize>
-  void
-  MatrixFree<ndofsPerDim, nQuadPointsPerDim, batchSize>::computeAX2(
-    dealii::VectorizedArray<double> *Ax,
-    dealii::VectorizedArray<double> *x,
-    dftfe::utils::MemoryStorage<dataTypes::number,
-                                dftfe::utils::MemorySpace::HOST>
-      &          cellWaveFunctionMatrixDst,
-    const double scalarHX)
-  {
-    // Batch Loop
-    for (auto iBatch = 0; iBatch < d_nBatch; iBatch++)
-      {
+            d_ONCVnonLocalOperator->applyAllReduceOnCconjtransX(
+              d_ONCVNonLocalProjectorTimesVectorBlock, true);
+
+            d_ONCVNonLocalProjectorTimesVectorBlock
+              .accumulateAddLocallyOwnedBegin();
+            d_ONCVNonLocalProjectorTimesVectorBlock
+              .accumulateAddLocallyOwnedEnd();
+            d_ONCVNonLocalProjectorTimesVectorBlock.updateGhostValuesBegin();
+            d_ONCVNonLocalProjectorTimesVectorBlock.updateGhostValuesEnd();
+
+            d_ONCVnonLocalOperator->applyVOnCconjtransX(
+              CouplingStructure::diagonal,
+              d_oncvClassPtr->getCouplingMatrix(),
+              d_ONCVNonLocalProjectorTimesVectorBlock,
+              true);
+          }
+
         for (auto iCell = 0; iCell < d_nCells; iCell++)
           {
+            if (hasNonlocalComponents)
+              d_ONCVnonLocalOperator->applyCOnVCconjtransX(
+                cellWaveFunctionMatrixDst.data() +
+                  iCell * d_blockSize * d_nDofsPerCell,
+                d_CMatrixEntriesTranspose,
+                iCell);
+
             // Assembly
             for (auto iDoF = 0; iDoF < d_nDofsPerCell; iDoF++)
               {
@@ -1686,10 +1725,8 @@ namespace dftfe
                   Ax[getMultiVectorIndex(dofIdx, iBatch)][iSIMD] +=
                     scalarHX *
                     cellInverseMassVector[iDoF + iCell * d_nDofsPerCell] *
-                    cellWaveFunctionMatrixDst[iSIMD + iBatch * 8 +
-                                              iDoF * 8 * d_nBatch +
-                                              iCell * 8 * d_nBatch *
-                                                d_nDofsPerCell];
+                    cellWaveFunctionMatrixDst[iSIMD + iDoF * 8 +
+                                              iCell * 8 * d_nDofsPerCell];
               }
           }
 
