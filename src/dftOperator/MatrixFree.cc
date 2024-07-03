@@ -1706,7 +1706,7 @@ namespace dftfe
             if (hasNonlocalComponents)
               d_ONCVnonLocalOperator->applyCOnVCconjtransX(
                 cellWaveFunctionMatrixDst.data() +
-                  iCell * d_blockSize * d_nDofsPerCell,
+                  iCell * batchSize * d_nDofsPerCell,
                 d_CMatrixEntriesTranspose,
                 iCell);
 

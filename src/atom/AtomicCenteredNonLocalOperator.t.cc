@@ -2301,8 +2301,7 @@ namespace dftfe
                                              numberSphericalFunctions],
               numberSphericalFunctions,
               &one,
-              &Xout[(cellID - cellID) * d_numberNodesPerElement *
-                    d_numberNodesPerElement],
+              Xout,
               d_numberWaveFunctions);
 
           } // iAtom
