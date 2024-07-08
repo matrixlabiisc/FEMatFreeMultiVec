@@ -99,14 +99,11 @@ namespace dftfe
     void
     computeAX(dealii::VectorizedArray<double> *Ax,
               dealii::VectorizedArray<double> *x,
-              dftfe::utils::MemoryStorage<dataTypes::number,
-                                          dftfe::utils::MemorySpace::HOST>
-                &cellWaveFunctionMatrixDst,
+              dealii::VectorizedArray<double> *cellWaveFunctionMatrixDst,
               dftfe::linearAlgebra::MultiVector<dataTypes::number,
                                                 dftfe::utils::MemorySpace::HOST>
                 &          d_ONCVNonLocalProjectorTimesVectorBlock,
               const double scalarHX,
-              const int    kPointIndex,
               const bool   hasNonlocalComponents,
               const bool   hasNonlocalComponents2);
 

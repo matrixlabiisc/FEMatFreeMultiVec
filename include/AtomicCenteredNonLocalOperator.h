@@ -253,12 +253,6 @@ namespace dftfe
     applyCconjtransOnX(const ValueType *                           X,
                        const std::pair<unsigned int, unsigned int> cellRange);
 
-    void
-    applyCconjtransOnX(const dealii::VectorizedArray<ValueType> *X,
-                       const std::vector<std::vector<std::vector<ValueType>>>
-                         &       CMatrixEntriesConjugate,
-                       const int cellID);
-
     /**
      * @brief completes the VCconjX on nodal vector src. The src vector must have all ghost nodes and contraint nodes updated.
      * @param[in] src input nodal vector on which operator acts on.
@@ -313,11 +307,32 @@ namespace dftfe
     applyCOnVCconjtransX(ValueType *                                 Xout,
                          const std::pair<unsigned int, unsigned int> cellRange);
 
+    /*MatrixFree Functions*/
     void
-    applyCOnVCconjtransX(ValueType *Xout,
-                         std::vector<std::vector<std::vector<ValueType>>>
-                           &       CMatrixEntriesLexicoTranspose,
+    applyCconjtransOnXMF(const dealii::VectorizedArray<ValueType> *X,
+                         const std::vector<std::vector<std::vector<ValueType>>>
+                           &       CMatrixEntriesConjugate,
                          const int cellID);
+
+    void
+    applyAllReduceOnCconjtransXMF(
+      dftfe::linearAlgebra::MultiVector<ValueType, memorySpace>
+        &        sphericalFunctionKetTimesVectorParFlattened,
+      const bool skipComm = false);
+
+    void
+    applyVOnCconjtransXMF(
+      const CouplingStructure                                    couplingtype,
+      const dftfe::utils::MemoryStorage<ValueType, memorySpace> &couplingMatrix,
+      dftfe::linearAlgebra::MultiVector<ValueType, memorySpace>
+        &        sphericalFunctionKetTimesVectorParFlattened,
+      const bool flagCopyResultsToMatrix = false);
+
+    void
+    applyCOnVCconjtransXMF(dealii::VectorizedArray<double> *Xout,
+                           std::vector<std::vector<std::vector<ValueType>>>
+                             &       CMatrixEntriesLexicoTranspose,
+                           const int cellID);
 
   protected:
     bool                d_AllReduceCompleted;
@@ -450,7 +465,7 @@ namespace dftfe
       d_sphericalFnTimesWavefunMatrix;
     std::map<unsigned int,
              dealii::AlignedVector<dealii::VectorizedArray<double>>>
-      d_sphericalFnTimesWaveFn;
+      d_sphericalFnTimesWavefunMatrixMF;
     std::vector<dftfe::global_size_type>
       d_flattenedNonLocalCellDofIndexToProcessDofIndexVector;
     dftfe::utils::MemoryStorage<dftfe::global_size_type, memorySpace>

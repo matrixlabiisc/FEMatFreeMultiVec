@@ -1588,18 +1588,30 @@ namespace dftfe
   MatrixFree<ndofsPerDim, nQuadPointsPerDim, batchSize>::computeAX(
     dealii::VectorizedArray<double> *Ax,
     dealii::VectorizedArray<double> *x,
-    dftfe::utils::MemoryStorage<dataTypes::number,
-                                dftfe::utils::MemorySpace::HOST>
-      &cellWaveFunctionMatrixDst,
+    dealii::VectorizedArray<double> *cellWaveFunctionMatrixDst,
     dftfe::linearAlgebra::MultiVector<dataTypes::number,
                                       dftfe::utils::MemorySpace::HOST>
       &          d_ONCVNonLocalProjectorTimesVectorBlock,
     const double scalarHX,
-    const int    kPointIndex,
     const bool   hasNonlocalComponents,
     const bool   hasNonlocalComponents2)
   {
     dealii::VectorizedArray<double> temp;
+
+    // Start updateGhost for batch 0
+    // d_singleBatchPartitioner->export_to_ghosted_array_start<double>(
+    //   (unsigned int)5,
+    //   dealii::ArrayView<const double>(x.data(), batchSize * d_nOwnedDofs),
+    //   dealii::ArrayView<double>(tempGhostStorage),
+    //   dealii::ArrayView<double>(x.data() + d_nOwnedDofs * d_blockSize,
+    //                             batchSize * d_nGhostDofs),
+    //   mpiRequestsGhost);
+
+    // // End updateGhost for batch 0
+    // d_singleBatchPartitioner->export_to_ghosted_array_finish<double>(
+    //   dealii::ArrayView<double>(x.data() + d_nOwnedDofs * d_blockSize,
+    //                             batchSize * d_nGhostDofs),
+    //   mpiRequestsGhost);
 
     // Batch Loop
     for (int iBatch = 0; iBatch < d_nBatch; iBatch++)
@@ -1610,8 +1622,8 @@ namespace dftfe
                                             iBatch * batchSize * d_nOwnedDofs,
                                           batchSize * d_nOwnedDofs),
           dealii::ArrayView<double>(tempGhostStorage),
-          dealii::ArrayView<double>((double *)x + d_nOwnedDofs * d_blockSize +
-                                      d_nGhostDofs * batchSize * (iBatch % 2),
+          dealii::ArrayView<double>((double *)x + d_blockSize * d_nOwnedDofs +
+                                      (iBatch % 2) * batchSize * d_nGhostDofs  ,
                                     batchSize * d_nGhostDofs),
           mpiRequestsGhost);
 
@@ -1650,7 +1662,7 @@ namespace dftfe
           }
 
         if (hasNonlocalComponents)
-          d_ONCVnonLocalOperator->initialiseOperatorActionOnX(kPointIndex);
+          d_ONCVnonLocalOperator->initialiseOperatorActionOnX(d_kPointIndex);
 
         // Cell Loop
         for (int iCell = 0; iCell < d_nCells; iCell++)
@@ -1665,7 +1677,7 @@ namespace dftfe
               }
 
             if (hasNonlocalComponents)
-              d_ONCVnonLocalOperator->applyCconjtransOnX(
+              d_ONCVnonLocalOperator->applyCconjtransOnXMF(
                 arrayX, d_CMatrixEntriesConjugate, iCell);
 
             if (d_isGGA)
@@ -1674,17 +1686,15 @@ namespace dftfe
               evalHXLDA(iCell);
 
             for (auto iDoF = 0; iDoF < d_nDofsPerCell; iDoF++)
-              for (auto iSIMD = 0; iSIMD < 8; iSIMD++)
-                cellWaveFunctionMatrixDst[iSIMD + iDoF * 8 +
-                                          iCell * 8 * d_nDofsPerCell] =
-                  arrayX[iDoF][iSIMD];
+              cellWaveFunctionMatrixDst[iDoF + iCell * d_nDofsPerCell] =
+                arrayX[iDoF];
           }
 
         if (hasNonlocalComponents2)
           {
             d_ONCVNonLocalProjectorTimesVectorBlock.setValue(0);
 
-            d_ONCVnonLocalOperator->applyAllReduceOnCconjtransX(
+            d_ONCVnonLocalOperator->applyAllReduceOnCconjtransXMF(
               d_ONCVNonLocalProjectorTimesVectorBlock, true);
 
             d_ONCVNonLocalProjectorTimesVectorBlock
@@ -1694,7 +1704,7 @@ namespace dftfe
             d_ONCVNonLocalProjectorTimesVectorBlock.updateGhostValuesBegin();
             d_ONCVNonLocalProjectorTimesVectorBlock.updateGhostValuesEnd();
 
-            d_ONCVnonLocalOperator->applyVOnCconjtransX(
+            d_ONCVnonLocalOperator->applyVOnCconjtransXMF(
               CouplingStructure::diagonal,
               d_oncvClassPtr->getCouplingMatrix(),
               d_ONCVNonLocalProjectorTimesVectorBlock,
@@ -1704,9 +1714,8 @@ namespace dftfe
         for (auto iCell = 0; iCell < d_nCells; iCell++)
           {
             if (hasNonlocalComponents)
-              d_ONCVnonLocalOperator->applyCOnVCconjtransX(
-                cellWaveFunctionMatrixDst.data() +
-                  iCell * batchSize * d_nDofsPerCell,
+              d_ONCVnonLocalOperator->applyCOnVCconjtransXMF(
+                cellWaveFunctionMatrixDst + iCell * d_nDofsPerCell,
                 d_CMatrixEntriesTranspose,
                 iCell);
 
@@ -1721,12 +1730,10 @@ namespace dftfe
                 //   cellInverseMassVector[iDoF + iCell * d_nDofsPerCell] *
                 //   arrayX[iDoF];
 
-                for (auto iSIMD = 0; iSIMD < 8; iSIMD++)
-                  Ax[getMultiVectorIndex(dofIdx, iBatch)][iSIMD] +=
-                    scalarHX *
-                    cellInverseMassVector[iDoF + iCell * d_nDofsPerCell] *
-                    cellWaveFunctionMatrixDst[iSIMD + iDoF * 8 +
-                                              iCell * 8 * d_nDofsPerCell];
+                Ax[getMultiVectorIndex(dofIdx, iBatch)] +=
+                  scalarHX *
+                  cellInverseMassVector[iDoF + iCell * d_nDofsPerCell] *
+                  cellWaveFunctionMatrixDst[iDoF + iCell * d_nDofsPerCell];
               }
           }
 

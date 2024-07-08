@@ -903,7 +903,7 @@ namespace dftfe
 
     if (MFflag and numWaveFunctions != 1)
       {
-        d_cellWaveFunctionMatrixDst.resize(8 * nDofsPerCell * nCells);
+        d_cellWaveFunctionMatrixDstMF.resize(nDofsPerCell * nCells);
 
         if (d_dftParamsPtr->isPseudopotential)
           d_ONCVnonLocalOperator->initialiseFlattenedDataStructure(
@@ -1282,7 +1282,7 @@ namespace dftfe
     auto d_nRelaventDofs = d_basisOperationsPtrHost->nRelaventDofs();
     auto d_nGhostDofs    = d_nRelaventDofs - d_nOwnedDofs;
 
-    const int           trials = 1;
+    const int           trials = 105;
     std::vector<double> HXTimes(trials);
     double              HXMean = 0.0, HXStdDev = 0.0;
 
@@ -1303,13 +1303,13 @@ namespace dftfe
                                        false);
 
         const bool hasNonlocalComponents =
-          d_dftParamsPtr->isPseudopotential &&
+          false and d_dftParamsPtr->isPseudopotential &&
           (d_ONCVnonLocalOperator
              ->getTotalNonLocalElementsInCurrentProcessor() > 0) &&
           !onlyHPrimePartForFirstOrderDensityMatResponse;
 
         const bool hasNonlocalComponents2 =
-          d_dftParamsPtr->isPseudopotential &&
+          false and d_dftParamsPtr->isPseudopotential &&
           !onlyHPrimePartForFirstOrderDensityMatResponse;
 
         dealii::AlignedVector<dealii::VectorizedArray<double>> Xvec(
@@ -1339,10 +1339,9 @@ namespace dftfe
             d_matrixFreeBasePtr->computeAX(
               Yvec.data(),
               Xvec.data(),
-              d_cellWaveFunctionMatrixDst,
+              d_cellWaveFunctionMatrixDstMF.data(),
               d_ONCVNonLocalProjectorTimesVectorBlock,
               scalarHX,
-              d_kPointIndex,
               hasNonlocalComponents,
               hasNonlocalComponents2);
 
@@ -1419,9 +1418,13 @@ namespace dftfe
             auto start_HX = getTime();
 
             const bool hasNonlocalComponents =
-              d_dftParamsPtr->isPseudopotential &&
+              false and d_dftParamsPtr->isPseudopotential &&
               (d_ONCVnonLocalOperator
                  ->getTotalNonLocalElementsInCurrentProcessor() > 0) &&
+              !onlyHPrimePartForFirstOrderDensityMatResponse;
+
+            const bool hasNonlocalComponents2 =
+              false and d_dftParamsPtr->isPseudopotential &&
               !onlyHPrimePartForFirstOrderDensityMatResponse;
 
             const dataTypes::number scalarCoeffAlpha = dataTypes::number(1.0),
@@ -1466,8 +1469,7 @@ namespace dftfe
 
             if (!skip2)
               {
-                if (d_dftParamsPtr->isPseudopotential &&
-                    !onlyHPrimePartForFirstOrderDensityMatResponse)
+                if (hasNonlocalComponents2)
                   {
                     d_ONCVNonLocalProjectorTimesVectorBlock.setValue(0);
                     d_ONCVnonLocalOperator->applyAllReduceOnCconjtransX(
@@ -1480,8 +1482,7 @@ namespace dftfe
                 inverseMassVectorScaledConstraintsNoneDataInfoPtr->set_zero(
                   src);
 
-                if (d_dftParamsPtr->isPseudopotential &&
-                    !onlyHPrimePartForFirstOrderDensityMatResponse)
+                if (hasNonlocalComponents2)
                   {
                     d_ONCVNonLocalProjectorTimesVectorBlock
                       .accumulateAddLocallyOwnedEnd();
@@ -1496,8 +1497,7 @@ namespace dftfe
                 //                         scalarY,
                 //                         dst.data());
 
-                if (d_dftParamsPtr->isPseudopotential &&
-                    !onlyHPrimePartForFirstOrderDensityMatResponse)
+                if (hasNonlocalComponents2)
                   {
                     d_ONCVNonLocalProjectorTimesVectorBlock
                       .updateGhostValuesEnd();
