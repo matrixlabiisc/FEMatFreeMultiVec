@@ -230,9 +230,6 @@ namespace dftfe
     dftfe::utils::MemoryStorage<dataTypes::number, memorySpace>
       d_cellWaveFunctionMatrixDst;
 
-    dealii::AlignedVector<dealii::VectorizedArray<double>>
-      d_cellWaveFunctionMatrixDstMF;
-
     dftfe::linearAlgebra::MultiVector<dataTypes::number, memorySpace>
                                                      d_ONCVNonLocalProjectorTimesVectorBlock;
     dftfe::utils::MemoryStorage<double, memorySpace> d_VeffJxW;

@@ -229,10 +229,12 @@ namespace dftfe
         unsigned int blockSize = d_dftParamsPtr->chebyWfcBlockSize;
         const bool   isGGA     = d_excManagerPtr->getDensityBasedFamilyType() ==
                            densityFamilyType::GGA;
-        const int FeOrder = d_dftParamsPtr->finiteElementPolynomialOrder;
+        const int     FeOrder   = d_dftParamsPtr->finiteElementPolynomialOrder;
+        constexpr int simdWidth = 8;
 
         if (FeOrder == 3)
-          d_matrixFreeBasePtr = std::make_unique<dftfe::MatrixFree<4, 4, 8>>(
+          d_matrixFreeBasePtr = std::make_unique<
+            dftfe::MatrixFree<4, C_rhoNodalPolyOrder<3, 3>() + 1, simdWidth>>(
             d_mpiCommDomain,
             d_basisOperationsPtrHost,
             d_ONCVnonLocalOperator,
@@ -242,7 +244,8 @@ namespace dftfe
             blockSize);
 
         if (FeOrder == 5)
-          d_matrixFreeBasePtr = std::make_unique<dftfe::MatrixFree<6, 6, 8>>(
+          d_matrixFreeBasePtr = std::make_unique<
+            dftfe::MatrixFree<6, C_rhoNodalPolyOrder<5, 5>() + 1, simdWidth>>(
             d_mpiCommDomain,
             d_basisOperationsPtrHost,
             d_ONCVnonLocalOperator,
@@ -252,7 +255,8 @@ namespace dftfe
             blockSize);
 
         if (FeOrder == 6)
-          d_matrixFreeBasePtr = std::make_unique<dftfe::MatrixFree<7, 7, 8>>(
+          d_matrixFreeBasePtr = std::make_unique<
+            dftfe::MatrixFree<7, C_rhoNodalPolyOrder<6, 6>() + 1, simdWidth>>(
             d_mpiCommDomain,
             d_basisOperationsPtrHost,
             d_ONCVnonLocalOperator,
@@ -262,7 +266,8 @@ namespace dftfe
             blockSize);
 
         if (FeOrder == 7)
-          d_matrixFreeBasePtr = std::make_unique<dftfe::MatrixFree<8, 8, 8>>(
+          d_matrixFreeBasePtr = std::make_unique<
+            dftfe::MatrixFree<8, C_rhoNodalPolyOrder<7, 7>() + 1, simdWidth>>(
             d_mpiCommDomain,
             d_basisOperationsPtrHost,
             d_ONCVnonLocalOperator,
@@ -272,7 +277,8 @@ namespace dftfe
             blockSize);
 
         if (FeOrder == 8)
-          d_matrixFreeBasePtr = std::make_unique<dftfe::MatrixFree<9, 9, 8>>(
+          d_matrixFreeBasePtr = std::make_unique<
+            dftfe::MatrixFree<9, C_rhoNodalPolyOrder<8, 8>() + 1, simdWidth>>(
             d_mpiCommDomain,
             d_basisOperationsPtrHost,
             d_ONCVnonLocalOperator,
@@ -903,8 +909,6 @@ namespace dftfe
 
     if (MFflag and numWaveFunctions != 1)
       {
-        d_cellWaveFunctionMatrixDstMF.resize(nDofsPerCell * nCells);
-
         if (d_dftParamsPtr->isPseudopotential)
           d_ONCVnonLocalOperator->initialiseFlattenedDataStructure(
             8, d_ONCVNonLocalProjectorTimesVectorBlock);
@@ -1303,13 +1307,9 @@ namespace dftfe
                                        false);
 
         const bool hasNonlocalComponents =
-          false and d_dftParamsPtr->isPseudopotential &&
+          d_dftParamsPtr->isPseudopotential &&
           (d_ONCVnonLocalOperator
              ->getTotalNonLocalElementsInCurrentProcessor() > 0) &&
-          !onlyHPrimePartForFirstOrderDensityMatResponse;
-
-        const bool hasNonlocalComponents2 =
-          false and d_dftParamsPtr->isPseudopotential &&
           !onlyHPrimePartForFirstOrderDensityMatResponse;
 
         dealii::AlignedVector<dealii::VectorizedArray<double>> Xvec(
@@ -1339,11 +1339,9 @@ namespace dftfe
             d_matrixFreeBasePtr->computeAX(
               Yvec.data(),
               Xvec.data(),
-              d_cellWaveFunctionMatrixDstMF.data(),
               d_ONCVNonLocalProjectorTimesVectorBlock,
               scalarHX,
-              hasNonlocalComponents,
-              hasNonlocalComponents2);
+              hasNonlocalComponents);
 
             MPI_Barrier(d_mpiCommDomain);
             auto stop_HX = getTime();
@@ -1418,13 +1416,13 @@ namespace dftfe
             auto start_HX = getTime();
 
             const bool hasNonlocalComponents =
-              false and d_dftParamsPtr->isPseudopotential &&
+              d_dftParamsPtr->isPseudopotential &&
               (d_ONCVnonLocalOperator
                  ->getTotalNonLocalElementsInCurrentProcessor() > 0) &&
               !onlyHPrimePartForFirstOrderDensityMatResponse;
 
             const bool hasNonlocalComponents2 =
-              false and d_dftParamsPtr->isPseudopotential &&
+              d_dftParamsPtr->isPseudopotential &&
               !onlyHPrimePartForFirstOrderDensityMatResponse;
 
             const dataTypes::number scalarCoeffAlpha = dataTypes::number(1.0),

@@ -92,8 +92,8 @@ namespace dftfe
   constexpr unsigned int
   C_rhoNodalPolyOrder()
   {
-    return FEOrder;
-    // return ((FEOrder + 2) > FEOrderElectro ? (FEOrder + 2) : FEOrderElectro);
+    // return FEOrder;
+    return ((FEOrder + 2) > FEOrderElectro ? (FEOrder + 2) : FEOrderElectro);
   }
 
   /// 1d quadrature rule order for non-local part of pseudopotential
@@ -132,8 +132,8 @@ namespace dftfe
   constexpr unsigned int
   C_rhoNodalPolyOrder()
   {
-    return FEOrder;
-    // return ((FEOrder + 2) > FEOrderElectro ? (FEOrder + 2) : FEOrderElectro);
+    // return FEOrder;
+    return ((FEOrder + 2) > FEOrderElectro ? (FEOrder + 2) : FEOrderElectro);
   }
 
   /// 1d quadrature rule order for non-local part of pseudopotential

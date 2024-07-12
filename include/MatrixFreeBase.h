@@ -57,13 +57,11 @@ namespace dftfe
     virtual void
     computeAX(dealii::VectorizedArray<double> *Ax,
               dealii::VectorizedArray<double> *x,
-              dealii::VectorizedArray<double> *cellWaveFunctionMatrixDst,
               dftfe::linearAlgebra::MultiVector<dataTypes::number,
                                                 dftfe::utils::MemorySpace::HOST>
                 &          d_ONCVNonLocalProjectorTimesVectorBlock,
               const double scalarHX,
-              const bool   hasNonlocalComponents,
-              const bool   hasNonlocalComponents2) = 0;
+              const bool   hasNonlocalComponents) = 0;
 
 
     virtual void

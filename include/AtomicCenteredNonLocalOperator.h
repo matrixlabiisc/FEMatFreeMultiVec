@@ -309,10 +309,13 @@ namespace dftfe
 
     /*MatrixFree Functions*/
     void
+    initialiseOperatorActionOnXMF(int kPointIndex);
+
+    void
     applyCconjtransOnXMF(const dealii::VectorizedArray<ValueType> *X,
                          const std::vector<std::vector<std::vector<ValueType>>>
                            &       CMatrixEntriesConjugate,
-                         const int cellID);
+                         const int cellIdx);
 
     void
     applyAllReduceOnCconjtransXMF(
@@ -332,7 +335,7 @@ namespace dftfe
     applyCOnVCconjtransXMF(dealii::VectorizedArray<double> *Xout,
                            std::vector<std::vector<std::vector<ValueType>>>
                              &       CMatrixEntriesLexicoTranspose,
-                           const int cellID);
+                           const int cellIdx);
 
   protected:
     bool                d_AllReduceCompleted;

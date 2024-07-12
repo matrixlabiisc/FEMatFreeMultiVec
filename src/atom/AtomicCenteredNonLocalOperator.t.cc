@@ -72,6 +72,29 @@ namespace dftfe
         d_numberCellsAccumNonLocalAtoms);
   }
 
+
+  template <typename ValueType, dftfe::utils::MemorySpace memorySpace>
+  void
+  AtomicCenteredNonLocalOperator<ValueType, memorySpace>::
+    initialiseOperatorActionOnXMF(int kPointIndex)
+  {
+    if constexpr (dftfe::utils::MemorySpace::HOST == memorySpace)
+      {
+        d_kPointIndex = kPointIndex;
+
+        const std::vector<unsigned int> &atomIdsInProcessor =
+          d_atomCenteredSphericalFunctionContainer
+            ->getAtomIdsInCurrentProcess();
+
+        for (const unsigned int &atomId : atomIdsInProcessor)
+          std::fill(d_sphericalFnTimesWavefunMatrixMF[atomId].data(),
+                    d_sphericalFnTimesWavefunMatrixMF[atomId].data() +
+                      d_sphericalFnTimesWavefunMatrixMF[atomId].size(),
+                    0.0);
+      }
+  }
+
+
   template <typename ValueType, dftfe::utils::MemorySpace memorySpace>
   void
   AtomicCenteredNonLocalOperator<ValueType, memorySpace>::
@@ -89,11 +112,6 @@ namespace dftfe
           {
             unsigned int atomId = atomIdsInProcessor[iAtom];
             d_sphericalFnTimesWavefunMatrix[atomId].setValue(0.0);
-
-            std::fill(d_sphericalFnTimesWavefunMatrixMF[atomId].data(),
-                      d_sphericalFnTimesWavefunMatrixMF[atomId].data() +
-                        d_sphericalFnTimesWavefunMatrixMF[atomId].size(),
-                      0.0);
           }
       }
 #if defined(DFTFE_WITH_DEVICE)
@@ -1662,10 +1680,9 @@ namespace dftfe
           {
             unsigned int       startIndex = 0;
             const unsigned int inc        = 1;
-            for (int iAtom = 0; iAtom < d_totalAtomsInCurrentProc; iAtom++)
+            for (const int &atomId : atomIdsInProc)
               {
-                const unsigned int atomId = atomIdsInProc[iAtom];
-                const unsigned int Znum   = atomicNumber[atomId];
+                const unsigned int Znum = atomicNumber[atomId];
                 const unsigned int numberSphericalFunctions =
                   d_atomCenteredSphericalFunctionContainer
                     ->getTotalNumberOfSphericalFunctionsPerAtom(Znum);
@@ -2020,20 +2037,19 @@ namespace dftfe
     const dealii::VectorizedArray<ValueType> *X,
     const std::vector<std::vector<std::vector<ValueType>>>
       &       CMatrixEntriesConjugate,
-    const int cellID)
+    const int cellIdx)
   {
     if constexpr (dftfe::utils::MemorySpace::HOST == memorySpace)
       {
-        const std::vector<unsigned int> &atomicNumber =
-          d_atomCenteredSphericalFunctionContainer->getAtomicNumbers();
-        const std::map<unsigned int, std::vector<int>> &sparsityPattern =
-          d_atomCenteredSphericalFunctionContainer->getSparsityPattern();
-
-        if (atomSupportInElement(cellID))
+        if (atomSupportInElement(cellIdx))
           {
+            const std::vector<unsigned int> &atomicNumber =
+              d_atomCenteredSphericalFunctionContainer->getAtomicNumbers();
+            const std::map<unsigned int, std::vector<int>> &sparsityPattern =
+              d_atomCenteredSphericalFunctionContainer->getSparsityPattern();
             const std::vector<int> &atomIdsInElement =
               d_atomCenteredSphericalFunctionContainer->getAtomIdsInElement(
-                cellID);
+                cellIdx);
 
             for (int iAtom = 0; iAtom < atomIdsInElement.size(); iAtom++)
               {
@@ -2043,7 +2059,7 @@ namespace dftfe
                   d_atomCenteredSphericalFunctionContainer
                     ->getTotalNumberOfSphericalFunctionsPerAtom(Znum);
                 const int nonZeroElementMatrixId =
-                  sparsityPattern.find(atomId)->second[cellID];
+                  sparsityPattern.find(atomId)->second[cellIdx];
 
                 const ValueType *Cconj =
                   &CMatrixEntriesConjugate[atomId][nonZeroElementMatrixId]
@@ -2359,59 +2375,48 @@ namespace dftfe
     applyCOnVCconjtransXMF(dealii::VectorizedArray<double> *Xout,
                            std::vector<std::vector<std::vector<ValueType>>>
                              &       CMatrixEntriesLexicoTranspose,
-                           const int cellID)
+                           const int cellIdx)
   {
-    const ValueType                                zero(0.0), one(1.0);
-    const unsigned int                             inc = 1;
-    const std::map<unsigned int, std::vector<int>> sparsityPattern =
+    const std::map<unsigned int, std::vector<int>> &sparsityPattern =
       d_atomCenteredSphericalFunctionContainer->getSparsityPattern();
     const std::vector<unsigned int> &atomicNumber =
       d_atomCenteredSphericalFunctionContainer->getAtomicNumbers();
+    const std::vector<int> &atomIdsInElement =
+      d_atomCenteredSphericalFunctionContainer->getAtomIdsInElement(cellIdx);
 
-    if (atomSupportInElement(cellID))
+    for (const int &atomId : atomIdsInElement)
       {
-        const std::vector<int> atomIdsInElement =
-          d_atomCenteredSphericalFunctionContainer->getAtomIdsInElement(cellID);
+        unsigned int       Znum = atomicNumber[atomId];
+        const unsigned int numberSphericalFunctions =
+          d_atomCenteredSphericalFunctionContainer
+            ->getTotalNumberOfSphericalFunctionsPerAtom(Znum);
+        const int nonZeroElementMatrixId =
+          sparsityPattern.find(atomId)->second[cellIdx];
 
-        int numOfAtomsInElement = atomIdsInElement.size();
-        for (int iAtom = 0; iAtom < numOfAtomsInElement; iAtom++)
+        const ValueType *Ctrans =
+          &CMatrixEntriesLexicoTranspose[atomId][nonZeroElementMatrixId]
+                                        [numberSphericalFunctions *
+                                         d_numberNodesPerElement *
+                                         d_kPointIndex];
+
+        dealii::VectorizedArray<ValueType> *sphericalFnTimesWaveFnMF =
+          d_sphericalFnTimesWavefunMatrixMF[atomId].data();
+
+        dealii::VectorizedArray<ValueType> temp;
+
+        for (int iDoF = 0; iDoF < d_numberNodesPerElement; iDoF++)
           {
-            unsigned int atomId = atomIdsInElement[iAtom];
+            temp = sphericalFnTimesWaveFnMF[0] *
+                   Ctrans[iDoF * numberSphericalFunctions];
 
-            unsigned int       Znum = atomicNumber[atomId];
-            const unsigned int numberSphericalFunctions =
-              d_atomCenteredSphericalFunctionContainer
-                ->getTotalNumberOfSphericalFunctionsPerAtom(Znum);
-            const int nonZeroElementMatrixId =
-              sparsityPattern.find(atomId)->second[cellID];
+            for (int iSphericalFn = 1; iSphericalFn < numberSphericalFunctions;
+                 iSphericalFn++)
+              temp += sphericalFnTimesWaveFnMF[iSphericalFn] *
+                      Ctrans[iSphericalFn + iDoF * numberSphericalFunctions];
 
-            const ValueType *Ctrans =
-              &CMatrixEntriesLexicoTranspose[atomId][nonZeroElementMatrixId]
-                                            [d_kPointIndex *
-                                             d_numberNodesPerElement *
-                                             numberSphericalFunctions];
-
-            dealii::VectorizedArray<ValueType> *sphericalFnTimesWaveFnMF =
-              d_sphericalFnTimesWavefunMatrixMF[atomId].data();
-
-            dealii::VectorizedArray<ValueType> temp;
-
-            for (int iDoF = 0; iDoF < d_numberNodesPerElement; iDoF++)
-              {
-                temp = sphericalFnTimesWaveFnMF[0] *
-                       Ctrans[iDoF * numberSphericalFunctions];
-
-                for (int iSphericalFn = 1;
-                     iSphericalFn < numberSphericalFunctions;
-                     iSphericalFn++)
-                  temp +=
-                    sphericalFnTimesWaveFnMF[iSphericalFn] *
-                    Ctrans[iSphericalFn + iDoF * numberSphericalFunctions];
-
-                Xout[iDoF] += temp;
-              }
-          } // iAtom
-      }
+            Xout[iDoF] += temp;
+          }
+      } // iAtom
   }
 
   template <typename ValueType, dftfe::utils::MemorySpace memorySpace>
