@@ -180,12 +180,14 @@ namespace dftfe
     std::vector<double> jacobianFactor, jacobianDeterminants,
       cellInverseMassVector;
 
-    std::vector<std::vector<int>>    slaveNodeBuckets, masterNodeBuckets;
-    std::vector<std::vector<double>> weightMatrixList, scaledWeightMatrixList;
-    std::vector<double>              inhomogenityList;
-    dealii::VectorizedArray<double>  inhomogenity, temp;
-    dealii::AlignedVector<dealii::VectorizedArray<double>> tempMasterData,
-      tempSlaveData;
+    std::vector<std::vector<int>> d_constrainingNodeBuckets,
+      d_constrainedNodeBuckets;
+    std::vector<std::vector<double>> d_weightMatrixList,
+      d_scaledWeightMatrixList;
+    std::vector<double>                                    d_inhomogenityList;
+    dealii::VectorizedArray<double>                        d_temp;
+    dealii::AlignedVector<dealii::VectorizedArray<double>> d_constrainingData,
+      d_constrainedData;
 
     static constexpr int d_quadODim = nQuadPointsPerDim / 2;
     static constexpr int d_quadEDim =

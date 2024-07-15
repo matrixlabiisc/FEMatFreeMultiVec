@@ -832,6 +832,8 @@ namespace dftfe
 
     // Initialize constraints
     initConstraints();
+    d_constrainingData.resize(ndofsPerDim * ndofsPerDim);
+    d_constrainedData.resize(4 * ndofsPerDim * ndofsPerDim);
   }
 
 
@@ -935,9 +937,9 @@ namespace dftfe
           double inhomogenity =
             d_constraintMatrixPtr->get_inhomogeneity(lineDof);
 
-          for (auto i = 0; i < masterNodeBuckets.size(); i++)
-            if ((masterNodeBuckets[i] == masterData) &&
-                (inhomogenityList[i] == inhomogenity))
+          for (auto i = 0; i < d_constrainingNodeBuckets.size(); i++)
+            if ((d_constrainingNodeBuckets[i] == masterData) &&
+                (d_inhomogenityList[i] == inhomogenity))
               {
                 constraintIndex  = i;
                 constraintExists = true;
@@ -946,35 +948,35 @@ namespace dftfe
 
           if (constraintExists)
             {
-              slaveNodeBuckets[constraintIndex].push_back(
+              d_constrainedNodeBuckets[constraintIndex].push_back(
                 d_matrixFreeDataPtr
                   ->get_vector_partitioner(
                     d_basisOperationsPtrHost->d_dofHandlerID)
                   ->global_to_local(lineDof));
 
-              weightMatrixList[constraintIndex].insert(
-                weightMatrixList[constraintIndex].end(),
+              d_weightMatrixList[constraintIndex].insert(
+                d_weightMatrixList[constraintIndex].end(),
                 weightData.begin(),
                 weightData.end());
 
-              scaledWeightMatrixList[constraintIndex].insert(
-                scaledWeightMatrixList[constraintIndex].end(),
+              d_scaledWeightMatrixList[constraintIndex].insert(
+                d_scaledWeightMatrixList[constraintIndex].end(),
                 scaledWeightData.begin(),
                 scaledWeightData.end());
             }
           else
             {
-              slaveNodeBuckets.push_back(
+              d_constrainedNodeBuckets.push_back(
                 std::vector<int>(1,
                                  d_matrixFreeDataPtr
                                    ->get_vector_partitioner(
                                      d_basisOperationsPtrHost->d_dofHandlerID)
                                    ->global_to_local(lineDof)));
 
-              weightMatrixList.push_back(weightData);
-              scaledWeightMatrixList.push_back(scaledWeightData);
-              masterNodeBuckets.push_back(masterData);
-              inhomogenityList.push_back(inhomogenity);
+              d_weightMatrixList.push_back(weightData);
+              d_scaledWeightMatrixList.push_back(scaledWeightData);
+              d_constrainingNodeBuckets.push_back(masterData);
+              d_inhomogenityList.push_back(inhomogenity);
             }
         }
   }
@@ -1327,9 +1329,8 @@ namespace dftfe
                                       dftfe::utils::MemorySpace::HOST> &x,
     const double scalarHX)
   {
-    constexpr unsigned int          oneInt   = 1;
-    constexpr unsigned int          eightInt = batchSize;
-    dealii::VectorizedArray<double> temp;
+    constexpr unsigned int oneInt   = 1;
+    constexpr unsigned int eightInt = batchSize;
 
     // Start updateGhost for batch 0
     d_singleBatchPartitioner->export_to_ghosted_array_start<double>(
@@ -1379,33 +1380,31 @@ namespace dftfe
             mpiRequestsCompress);
 
         // Constraints distribute
-        // Optimize masterNodeBuckets[i].size() from GPUs shared size
-        for (auto i = 0; i < masterNodeBuckets.size(); i++)
+        // Optimize d_constrainingNodeBuckets[i].size() from GPUs shared size
+        for (int i = 0; i < d_constrainingNodeBuckets.size(); i++)
           {
-            double inhomogenity = inhomogenityList[i];
+            double inhomogenity = d_inhomogenityList[i];
 
-            dealii::AlignedVector<dealii::VectorizedArray<double>>
-              tempMasterData(masterNodeBuckets[i].size());
-
-            for (auto k = 0; k < masterNodeBuckets[i].size(); k++)
-              tempMasterData[k].load(
+            for (int k = 0; k < d_constrainingNodeBuckets[i].size(); k++)
+              d_constrainingData[k].load(
                 x.data() +
-                getMultiVectorIndex(masterNodeBuckets[i][k], iBatch) *
+                getMultiVectorIndex(d_constrainingNodeBuckets[i][k], iBatch) *
                   batchSize);
 
-            for (auto j = 0; j < slaveNodeBuckets[i].size(); j++)
+            for (int j = 0; j < d_constrainedNodeBuckets[i].size(); j++)
               {
-                temp = inhomogenity;
+                d_temp = inhomogenity;
 
-                for (auto k = 0; k < masterNodeBuckets[i].size(); k++)
-                  temp +=
-                    weightMatrixList[i][k + j * masterNodeBuckets[i].size()] *
-                    tempMasterData[k];
+                for (int k = 0; k < d_constrainingNodeBuckets[i].size(); k++)
+                  d_temp +=
+                    d_weightMatrixList[i][k + j * d_constrainingNodeBuckets[i]
+                                                    .size()] *
+                    d_constrainingData[k];
 
                 int dofIdx =
-                  getMultiVectorIndex(slaveNodeBuckets[i][j], iBatch);
+                  getMultiVectorIndex(d_constrainedNodeBuckets[i][j], iBatch);
 
-                temp.store(x.data() + dofIdx * batchSize);
+                d_temp.store(x.data() + dofIdx * batchSize);
               }
           }
 
@@ -1452,80 +1451,89 @@ namespace dftfe
           }
 
         // Constraints distribute transpose
-        for (auto i = 0; i < slaveNodeBuckets.size(); i++)
+        for (auto i = 0; i < d_constrainedNodeBuckets.size(); i++)
           {
-            if (masterNodeBuckets[i].size() > 0)
+            if (d_constrainingNodeBuckets[i].size() > 0)
               {
-                dealii::AlignedVector<dealii::VectorizedArray<double>>
-                  tempSlaveData(slaveNodeBuckets[i].size());
-
-                for (auto k = 0; k < slaveNodeBuckets[i].size(); k++)
+                for (auto k = 0; k < d_constrainedNodeBuckets[i].size(); k++)
                   {
-                    tempSlaveData[k].load(
+                    d_constrainedData[k].load(
                       Ax.data() +
-                      getMultiVectorIndex(slaveNodeBuckets[i][k], iBatch) *
+                      getMultiVectorIndex(d_constrainedNodeBuckets[i][k],
+                                          iBatch) *
                         batchSize);
 
                     std::fill(
                       Ax.data() +
-                        getMultiVectorIndex(slaveNodeBuckets[i][k], iBatch) *
+                        getMultiVectorIndex(d_constrainedNodeBuckets[i][k],
+                                            iBatch) *
                           batchSize,
                       Ax.data() +
-                        getMultiVectorIndex(slaveNodeBuckets[i][k], iBatch) *
+                        getMultiVectorIndex(d_constrainedNodeBuckets[i][k],
+                                            iBatch) *
                           batchSize +
                         batchSize,
                       0.0);
 
                     std::fill(
                       x.data() +
-                        getMultiVectorIndex(slaveNodeBuckets[i][k], iBatch) *
+                        getMultiVectorIndex(d_constrainedNodeBuckets[i][k],
+                                            iBatch) *
                           batchSize,
                       x.data() +
-                        getMultiVectorIndex(slaveNodeBuckets[i][k], iBatch) *
+                        getMultiVectorIndex(d_constrainedNodeBuckets[i][k],
+                                            iBatch) *
                           batchSize +
                         batchSize,
                       0.0);
                   }
 
-                for (auto j = 0; j < masterNodeBuckets[i].size(); j++)
+                for (auto j = 0; j < d_constrainingNodeBuckets[i].size(); j++)
                   {
-                    temp.load(
+                    d_temp.load(
                       Ax.data() +
-                      getMultiVectorIndex(masterNodeBuckets[i][j], iBatch) *
+                      getMultiVectorIndex(d_constrainingNodeBuckets[i][j],
+                                          iBatch) *
                         batchSize);
 
-                    for (auto k = 0; k < slaveNodeBuckets[i].size(); k++)
-                      temp +=
-                        scaledWeightMatrixList[i][j + k * masterNodeBuckets[i]
-                                                            .size()] *
-                        tempSlaveData[k];
+                    for (auto k = 0; k < d_constrainedNodeBuckets[i].size();
+                         k++)
+                      d_temp +=
+                        d_scaledWeightMatrixList
+                          [i][j + k * d_constrainingNodeBuckets[i].size()] *
+                        d_constrainedData[k];
 
-                    temp.store(
+                    d_temp.store(
                       Ax.data() +
-                      getMultiVectorIndex(masterNodeBuckets[i][j], iBatch) *
+                      getMultiVectorIndex(d_constrainingNodeBuckets[i][j],
+                                          iBatch) *
                         batchSize);
                   }
               }
             else
               {
-                for (auto k = 0; k < slaveNodeBuckets[i].size(); k++)
+                for (auto k = 0; k < d_constrainedNodeBuckets[i].size(); k++)
                   {
                     std::fill(
                       Ax.data() +
-                        getMultiVectorIndex(slaveNodeBuckets[i][k], iBatch) *
+                        getMultiVectorIndex(d_constrainedNodeBuckets[i][k],
+                                            iBatch) *
                           batchSize,
                       Ax.data() +
-                        getMultiVectorIndex(slaveNodeBuckets[i][k], iBatch) *
+                        getMultiVectorIndex(d_constrainedNodeBuckets[i][k],
+                                            iBatch) *
                           batchSize +
                         batchSize,
                       0.0);
 
                     std::fill(
                       x.data() +
-                        getMultiVectorIndex(slaveNodeBuckets[i][k], iBatch) *
+                        getMultiVectorIndex(d_constrainedNodeBuckets[i][k],
+                                            iBatch) *
                           batchSize,
                       x.data() +
-                        getMultiVectorIndex(slaveNodeBuckets[i][k], iBatch) *
+                        getMultiVectorIndex(d_constrainedNodeBuckets[i][k],
+                                            iBatch) *
                           batchSize +
                         batchSize,
                       0.0);
@@ -1594,8 +1602,6 @@ namespace dftfe
     const double scalarHX,
     const bool   hasNonlocalComponents)
   {
-    dealii::VectorizedArray<double> temp;
-
     // Start updateGhost for batch 0
     // d_singleBatchPartitioner->export_to_ghosted_array_start<double>(
     //   (unsigned int)5,
@@ -1605,7 +1611,7 @@ namespace dftfe
     //                             batchSize * d_nGhostDofs),
     //   mpiRequestsGhost);
 
-    // // End updateGhost for batch 0
+    // End updateGhost for batch 0
     // d_singleBatchPartitioner->export_to_ghosted_array_finish<double>(
     //   dealii::ArrayView<double>(x.data() + d_nOwnedDofs * d_blockSize,
     //                             batchSize * d_nGhostDofs),
@@ -1634,30 +1640,33 @@ namespace dftfe
           mpiRequestsGhost);
 
         // Constraints distribute
-        for (auto i = 0; i < masterNodeBuckets.size(); i++)
+        for (int i = 0; i < d_constrainingNodeBuckets.size(); i++)
           {
-            double inhomogenity = inhomogenityList[i];
+            int iConstrainingBucketSize = d_constrainingNodeBuckets[i].size();
+            int iConstrainedBucketSize  = d_constrainedNodeBuckets[i].size();
+            double inhomogenity         = d_inhomogenityList[i];
 
-            dealii::AlignedVector<dealii::VectorizedArray<double>>
-              tempMasterData(masterNodeBuckets[i].size());
-
-            for (auto k = 0; k < masterNodeBuckets[i].size(); k++)
-              tempMasterData[k] =
-                x[getMultiVectorIndex(masterNodeBuckets[i][k], iBatch)];
-
-            for (auto j = 0; j < slaveNodeBuckets[i].size(); j++)
+            for (int k = 0; k < iConstrainingBucketSize; k++)
               {
-                temp = inhomogenity;
+                int dofIdx =
+                  getMultiVectorIndex(d_constrainingNodeBuckets[i][k], iBatch);
 
-                for (auto k = 0; k < masterNodeBuckets[i].size(); k++)
-                  temp +=
-                    weightMatrixList[i][k + j * masterNodeBuckets[i].size()] *
-                    tempMasterData[k];
+                d_constrainingData[k] = x[dofIdx];
+              }
+
+            for (int j = 0; j < iConstrainedBucketSize; j++)
+              {
+                d_temp = inhomogenity;
 
                 int dofIdx =
-                  getMultiVectorIndex(slaveNodeBuckets[i][j], iBatch);
+                  getMultiVectorIndex(d_constrainedNodeBuckets[i][j], iBatch);
 
-                x[dofIdx] = temp;
+                for (int k = 0; k < iConstrainingBucketSize; k++)
+                  d_temp +=
+                    d_weightMatrixList[i][k + j * iConstrainingBucketSize] *
+                    d_constrainingData[k];
+
+                x[dofIdx] = d_temp;
               }
           }
 
@@ -1727,9 +1736,9 @@ namespace dftfe
                 arrayX, d_CMatrixEntriesTranspose, iCell);
 
             // Assembly
-            for (auto iDoF = 0; iDoF < d_nDofsPerCell; iDoF++)
+            for (int iDoF = 0; iDoF < d_nDofsPerCell; iDoF++)
               {
-                auto dofIdx =
+                int dofIdx =
                   singleVectorGlobalToLocalMap[iDoF + iCell * d_nDofsPerCell];
 
                 Ax[getMultiVectorIndex(dofIdx, iBatch)] +=
@@ -1740,37 +1749,40 @@ namespace dftfe
           }
 
         // Constraints distribute transpose
-        for (auto i = 0; i < slaveNodeBuckets.size(); i++)
+        for (int i = 0; i < d_constrainedNodeBuckets.size(); i++)
           {
-            if (masterNodeBuckets[i].size() > 0)
+            int iConstrainingBucketSize = d_constrainingNodeBuckets[i].size();
+            int iConstrainedBucketSize  = d_constrainedNodeBuckets[i].size();
+
+            for (int k = 0; k < iConstrainedBucketSize; k++)
               {
-                dealii::AlignedVector<dealii::VectorizedArray<double>>
-                  tempSlaveData(slaveNodeBuckets[i].size());
+                int dofIdx =
+                  getMultiVectorIndex(d_constrainedNodeBuckets[i][k], iBatch);
 
-                for (auto k = 0; k < slaveNodeBuckets[i].size(); k++)
-                  tempSlaveData[k] =
-                    Ax[getMultiVectorIndex(slaveNodeBuckets[i][k], iBatch)];
+                if (iConstrainingBucketSize > 0)
+                  d_constrainedData[k] = Ax[dofIdx];
 
-                for (auto j = 0; j < masterNodeBuckets[i].size(); j++)
-                  {
-                    temp =
-                      Ax[getMultiVectorIndex(masterNodeBuckets[i][j], iBatch)];
-
-                    for (auto k = 0; k < slaveNodeBuckets[i].size(); k++)
-                      temp +=
-                        scaledWeightMatrixList[i][j + k * masterNodeBuckets[i]
-                                                            .size()] *
-                        tempSlaveData[k];
-
-                    Ax[getMultiVectorIndex(masterNodeBuckets[i][j], iBatch)] =
-                      temp;
-                  }
+                Ax[dofIdx] = 0;
+                x[dofIdx]  = 0;
               }
 
-            for (auto k = 0; k < slaveNodeBuckets[i].size(); k++)
+            if (!(iConstrainingBucketSize > 0))
+              break;
+
+            for (int j = 0; j < iConstrainingBucketSize; j++)
               {
-                Ax[getMultiVectorIndex(slaveNodeBuckets[i][k], iBatch)] = 0.0;
-                x[getMultiVectorIndex(slaveNodeBuckets[i][k], iBatch)]  = 0.0;
+                int dofIdx =
+                  getMultiVectorIndex(d_constrainingNodeBuckets[i][j], iBatch);
+
+                d_temp = Ax[dofIdx];
+
+                for (int k = 0; k < iConstrainedBucketSize; k++)
+                  d_temp +=
+                    d_scaledWeightMatrixList[i]
+                                            [j + k * iConstrainingBucketSize] *
+                    d_constrainedData[k];
+
+                Ax[dofIdx] = d_temp;
               }
           }
 
@@ -1804,7 +1816,7 @@ namespace dftfe
     std::fill(x + d_nOwnedDofs * d_nBatch,
               x + d_nOwnedDofs * d_nBatch + 2 * d_nGhostDofs,
               0.0);
-  }
+  } // namespace dftfe
 
 #include "MatrixFree.inst.cc"
 } // namespace dftfe
