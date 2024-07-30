@@ -2070,21 +2070,13 @@ namespace dftfe
                 dealii::VectorizedArray<ValueType> *sphericalFnTimesWaveFnMF =
                   d_sphericalFnTimesWavefunMatrixMF[atomId].data();
 
-                dealii::VectorizedArray<ValueType> temp;
-
-                for (int iSphericalFn = 0;
-                     iSphericalFn < numberSphericalFunctions;
-                     iSphericalFn++)
-                  {
-                    temp = X[0] * Cconj[iSphericalFn * d_numberNodesPerElement];
-
-                    for (int iDoF = 1; iDoF < d_numberNodesPerElement; iDoF++)
-                      temp +=
-                        X[iDoF] *
-                        Cconj[iDoF + iSphericalFn * d_numberNodesPerElement];
-
-                    sphericalFnTimesWaveFnMF[iSphericalFn] += temp;
-                  }
+                for (int iDoF = 0; iDoF < d_numberNodesPerElement; iDoF++)
+                  for (int iSphericalFn = 0;
+                       iSphericalFn < numberSphericalFunctions;
+                       iSphericalFn++)
+                    sphericalFnTimesWaveFnMF[iSphericalFn] +=
+                      X[iDoF] *
+                      Cconj[iSphericalFn + iDoF * numberSphericalFunctions];
               } // iAtom
           }
       }

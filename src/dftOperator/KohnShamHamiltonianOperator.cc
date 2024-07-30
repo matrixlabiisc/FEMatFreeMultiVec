@@ -226,66 +226,82 @@ namespace dftfe
     if (MFflag)
       {
         // Setup MatrixFree
-        unsigned int blockSize = d_dftParamsPtr->chebyWfcBlockSize;
-        const bool   isGGA     = d_excManagerPtr->getDensityBasedFamilyType() ==
+        unsigned int nVectors = d_dftParamsPtr->chebyWfcBlockSize;
+        const bool   isGGA    = d_excManagerPtr->getDensityBasedFamilyType() ==
                            densityFamilyType::GGA;
         const int     FeOrder   = d_dftParamsPtr->finiteElementPolynomialOrder;
-        constexpr int simdWidth = 8;
+        constexpr int batchSize = 16;
+        constexpr int subBatchSize = 8;
 
         if (FeOrder == 3)
-          d_matrixFreeBasePtr = std::make_unique<
-            dftfe::MatrixFree<4, C_rhoNodalPolyOrder<3, 3>() + 1, simdWidth>>(
-            d_mpiCommDomain,
-            d_basisOperationsPtrHost,
-            d_ONCVnonLocalOperator,
-            d_oncvClassPtr,
-            isGGA,
-            d_kPointIndex,
-            blockSize);
+          d_matrixFreeBasePtr =
+            std::make_unique<dftfe::MatrixFree<4,
+                                               C_rhoNodalPolyOrder<3, 3>() + 1,
+                                               batchSize,
+                                               subBatchSize>>(
+              d_mpiCommDomain,
+              d_basisOperationsPtrHost,
+              d_ONCVnonLocalOperator,
+              d_oncvClassPtr,
+              isGGA,
+              d_kPointIndex,
+              nVectors);
 
         if (FeOrder == 5)
-          d_matrixFreeBasePtr = std::make_unique<
-            dftfe::MatrixFree<6, C_rhoNodalPolyOrder<5, 5>() + 1, simdWidth>>(
-            d_mpiCommDomain,
-            d_basisOperationsPtrHost,
-            d_ONCVnonLocalOperator,
-            d_oncvClassPtr,
-            isGGA,
-            d_kPointIndex,
-            blockSize);
+          d_matrixFreeBasePtr =
+            std::make_unique<dftfe::MatrixFree<6,
+                                               C_rhoNodalPolyOrder<5, 5>() + 1,
+                                               batchSize,
+                                               subBatchSize>>(
+              d_mpiCommDomain,
+              d_basisOperationsPtrHost,
+              d_ONCVnonLocalOperator,
+              d_oncvClassPtr,
+              isGGA,
+              d_kPointIndex,
+              nVectors);
 
         if (FeOrder == 6)
-          d_matrixFreeBasePtr = std::make_unique<
-            dftfe::MatrixFree<7, C_rhoNodalPolyOrder<6, 6>() + 1, simdWidth>>(
-            d_mpiCommDomain,
-            d_basisOperationsPtrHost,
-            d_ONCVnonLocalOperator,
-            d_oncvClassPtr,
-            isGGA,
-            d_kPointIndex,
-            blockSize);
+          d_matrixFreeBasePtr =
+            std::make_unique<dftfe::MatrixFree<7,
+                                               C_rhoNodalPolyOrder<6, 6>() + 1,
+                                               batchSize,
+                                               subBatchSize>>(
+              d_mpiCommDomain,
+              d_basisOperationsPtrHost,
+              d_ONCVnonLocalOperator,
+              d_oncvClassPtr,
+              isGGA,
+              d_kPointIndex,
+              nVectors);
 
         if (FeOrder == 7)
-          d_matrixFreeBasePtr = std::make_unique<
-            dftfe::MatrixFree<8, C_rhoNodalPolyOrder<7, 7>() + 1, simdWidth>>(
-            d_mpiCommDomain,
-            d_basisOperationsPtrHost,
-            d_ONCVnonLocalOperator,
-            d_oncvClassPtr,
-            isGGA,
-            d_kPointIndex,
-            blockSize);
+          d_matrixFreeBasePtr =
+            std::make_unique<dftfe::MatrixFree<8,
+                                               C_rhoNodalPolyOrder<7, 7>() + 1,
+                                               batchSize,
+                                               subBatchSize>>(
+              d_mpiCommDomain,
+              d_basisOperationsPtrHost,
+              d_ONCVnonLocalOperator,
+              d_oncvClassPtr,
+              isGGA,
+              d_kPointIndex,
+              nVectors);
 
         if (FeOrder == 8)
-          d_matrixFreeBasePtr = std::make_unique<
-            dftfe::MatrixFree<9, C_rhoNodalPolyOrder<8, 8>() + 1, simdWidth>>(
-            d_mpiCommDomain,
-            d_basisOperationsPtrHost,
-            d_ONCVnonLocalOperator,
-            d_oncvClassPtr,
-            isGGA,
-            d_kPointIndex,
-            blockSize);
+          d_matrixFreeBasePtr =
+            std::make_unique<dftfe::MatrixFree<9,
+                                               C_rhoNodalPolyOrder<8, 8>() + 1,
+                                               batchSize,
+                                               subBatchSize>>(
+              d_mpiCommDomain,
+              d_basisOperationsPtrHost,
+              d_ONCVnonLocalOperator,
+              d_oncvClassPtr,
+              isGGA,
+              d_kPointIndex,
+              nVectors);
 
         d_matrixFreeBasePtr->reinit(d_densityQuadratureID);
         d_batchedPartitionerBCV = getPartitionerBCV();
@@ -307,7 +323,7 @@ namespace dftfe
   KohnShamHamiltonianOperator<memorySpace>::getPartitionerBCV()
   {
     unsigned int blockSize = d_dftParamsPtr->chebyWfcBlockSize;
-    unsigned int batchSize = 8;
+    unsigned int batchSize = 16;
 
     distributedCPUVec<dataTypes::number> dealiiMultiVector;
 
@@ -1280,21 +1296,29 @@ namespace dftfe
     const unsigned int numCells       = d_basisOperationsPtr->nCells();
     const unsigned int numDoFsPerCell = d_basisOperationsPtr->nDofsPerCell();
     const unsigned int numberWavefunctions = src.numVectors();
-    const unsigned int batchSize           = 8;
+
+    constexpr int batchSize    = 16;
+    constexpr int subBatchSize = 8;
+    constexpr int nSubBatch    = batchSize / subBatchSize;
 
     auto d_nOwnedDofs    = d_basisOperationsPtrHost->nOwnedDofs();
     auto d_nRelaventDofs = d_basisOperationsPtrHost->nRelaventDofs();
     auto d_nGhostDofs    = d_nRelaventDofs - d_nOwnedDofs;
 
-    const int           trials = 105;
+    const int           trials = 1;
     std::vector<double> HXTimes(trials);
     double              HXMean = 0.0, HXStdDev = 0.0;
+    double              dstNorm = 0.0;
+    double              srcNorm = 0.0;
 
     if (MFflag)
       {
         pcout << "MF Enter" << std::endl;
 
-        const unsigned int numberWavefunctions = src.localSize() / d_nOwnedDofs;
+        const unsigned int numberWavefunctions =
+          src.locallyOwnedSize() / d_nOwnedDofs;
+        const unsigned int nBatch =
+          (numberWavefunctions + batchSize - 1) / batchSize;
 
         if (d_numVectorsInternal != numberWavefunctions)
           reinitNumberWavefunctions(numberWavefunctions);
@@ -1306,26 +1330,25 @@ namespace dftfe
                                        false,
                                        false);
 
-        const bool hasNonlocalComponents =
-          d_dftParamsPtr->isPseudopotential &&
-          (d_ONCVnonLocalOperator
-             ->getTotalNonLocalElementsInCurrentProcessor() > 0) &&
-          !onlyHPrimePartForFirstOrderDensityMatResponse;
+        const bool hasNonlocalComponents = false;
+        // d_dftParamsPtr->isPseudopotential &&
+        // (d_ONCVnonLocalOperator
+        //    ->getTotalNonLocalElementsInCurrentProcessor() > 0) &&
+        // !onlyHPrimePartForFirstOrderDensityMatResponse;
 
         dealii::AlignedVector<dealii::VectorizedArray<double>> Xvec(
-          (numberWavefunctions / batchSize) * d_nOwnedDofs + 2 * d_nGhostDofs,
+          nSubBatch * d_nOwnedDofs * nBatch + nSubBatch * d_nGhostDofs * 2,
           0.0),
-          Yvec((numberWavefunctions / batchSize) * d_nOwnedDofs +
-                 2 * d_nGhostDofs,
+          Yvec(nSubBatch * d_nOwnedDofs * nBatch + nSubBatch * d_nGhostDofs * 2,
                0.0);
 
-        for (auto j = 0; j < numberWavefunctions / batchSize; j++)
-          for (auto i = 0; i < d_nOwnedDofs; i++)
-            Xvec[i + j * d_nOwnedDofs].load(src.data() +
-                                            (i + j * d_nOwnedDofs) * batchSize);
-
-        double dstNorm;
-        double srcNorm;
+        for (auto k = 0; k < nBatch; k++)
+          for (auto j = 0; j < d_nOwnedDofs; j++)
+            for (auto i = 0; i < nSubBatch; i++)
+              Xvec[i + j * nSubBatch + k * nSubBatch * d_nOwnedDofs].load(
+                src.data() +
+                (i + j * nSubBatch + k * nSubBatch * d_nOwnedDofs) *
+                  subBatchSize);
 
         pcout << "MF Vectorized Enter" << std::endl
               << "trials: " << trials << std::endl
@@ -1356,35 +1379,42 @@ namespace dftfe
 
         pcout << "MF Vectorized Exit" << std::endl << std::endl;
 
-        for (auto j = 0; j < numberWavefunctions / batchSize; j++)
-          for (auto i = 0; i < d_nOwnedDofs; i++)
-            {
-              Yvec[i + j * d_nOwnedDofs].store(
-                dst.data() + (i + j * d_nOwnedDofs) * batchSize);
-            }
+        for (auto k = 0; k < nBatch; k++)
+          for (auto j = 0; j < d_nOwnedDofs; j++)
+            for (auto i = 0; i < nSubBatch; i++)
+              for (auto iSubBatchSize = 0; iSubBatchSize < subBatchSize;
+                   iSubBatchSize++)
+                {
+                  auto idx = i + j * nSubBatch + k * nSubBatch * d_nOwnedDofs;
+                  *(dst.data() + iSubBatchSize + idx * subBatchSize) =
+                    Yvec[idx][iSubBatchSize];
+                }
 
-
-        d_BLASWrapperPtr->xnrm2(dst.localSize() * dst.numVectors(),
+        d_BLASWrapperPtr->xnrm2(dst.locallyOwnedSize() * dst.numVectors(),
                                 dst.data(),
                                 1,
                                 d_mpiCommDomain,
                                 &dstNorm);
 
-        d_BLASWrapperPtr->xnrm2(src.localSize() * src.numVectors(),
+        d_BLASWrapperPtr->xnrm2(src.locallyOwnedSize() * src.numVectors(),
                                 src.data(),
                                 1,
                                 d_mpiCommDomain,
                                 &srcNorm);
 
-        pcout << "numCells: " << numCells << std::endl;
-        pcout << "numDoFsPerCell: " << numDoFsPerCell << std::endl;
         pcout << "batchSize: " << batchSize << std::endl;
         pcout << "numberWavefunctions: " << numberWavefunctions << std::endl
               << std::endl;
-
-        pcout << "src.localSize(): " << src.localSize() << std::endl;
+        pcout << "nBatch: " << nBatch << std::endl;
+        pcout << "nSubBatch: " << nSubBatch << std::endl;
+        pcout << "numDoFsPerCell: " << numDoFsPerCell << std::endl;
+        pcout << "d_nOwnedDofs: " << d_nOwnedDofs << std::endl;
+        pcout << "numCells: " << numCells << std::endl;
+        pcout << "src.locallyOwnedSize(): " << src.locallyOwnedSize()
+              << std::endl;
         pcout << "src.numVectors(): " << src.numVectors() << std::endl;
-        pcout << "dst.localSize(): " << dst.localSize() << std::endl;
+        pcout << "dst.locallyOwnedSize(): " << dst.locallyOwnedSize()
+              << std::endl;
         pcout << "dst.numVectors(): " << dst.numVectors() << std::endl
               << std::endl;
 
@@ -1415,15 +1445,15 @@ namespace dftfe
             MPI_Barrier(d_mpiCommDomain);
             auto start_HX = getTime();
 
-            const bool hasNonlocalComponents =
-              d_dftParamsPtr->isPseudopotential &&
-              (d_ONCVnonLocalOperator
-                 ->getTotalNonLocalElementsInCurrentProcessor() > 0) &&
-              !onlyHPrimePartForFirstOrderDensityMatResponse;
+            const bool hasNonlocalComponents = false;
+            // d_dftParamsPtr->isPseudopotential &&
+            // (d_ONCVnonLocalOperator
+            //    ->getTotalNonLocalElementsInCurrentProcessor() > 0) &&
+            // !onlyHPrimePartForFirstOrderDensityMatResponse;
 
-            const bool hasNonlocalComponents2 =
-              d_dftParamsPtr->isPseudopotential &&
-              !onlyHPrimePartForFirstOrderDensityMatResponse;
+            const bool hasNonlocalComponents2 = false;
+            // d_dftParamsPtr->isPseudopotential &&
+            // !onlyHPrimePartForFirstOrderDensityMatResponse;
 
             const dataTypes::number scalarCoeffAlpha = dataTypes::number(1.0),
                                     scalarCoeffBeta  = dataTypes::number(0.0);
@@ -1578,13 +1608,13 @@ namespace dftfe
 
         pcout << "CM Exit" << std::endl << std::endl;
 
-        d_BLASWrapperPtr->xnrm2(src.localSize() * src.numVectors(),
+        d_BLASWrapperPtr->xnrm2(src.locallyOwnedSize() * src.numVectors(),
                                 src.data(),
                                 1,
                                 d_mpiCommDomain,
                                 &srcNorm);
 
-        d_BLASWrapperPtr->xnrm2(dst.localSize() * dst.numVectors(),
+        d_BLASWrapperPtr->xnrm2(dst.locallyOwnedSize() * dst.numVectors(),
                                 dst.data(),
                                 1,
                                 d_mpiCommDomain,
@@ -1594,10 +1624,11 @@ namespace dftfe
         pcout << "numDoFsPerCell: " << numDoFsPerCell << std::endl;
         pcout << "numberWavefunctions: " << numberWavefunctions << std::endl
               << std::endl;
-
-        pcout << "src.localSize(): " << src.localSize() << std::endl;
+        pcout << "src.locallyOwnedSize(): " << src.locallyOwnedSize()
+              << std::endl;
         pcout << "src.numVectors(): " << src.numVectors() << std::endl;
-        pcout << "dst.localSize(): " << dst.localSize() << std::endl;
+        pcout << "dst.locallyOwnedSize(): " << dst.locallyOwnedSize()
+              << std::endl;
         pcout << "dst.numVectors(): " << dst.numVectors() << std::endl
               << std::endl;
 

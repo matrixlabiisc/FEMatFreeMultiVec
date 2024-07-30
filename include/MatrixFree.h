@@ -27,13 +27,16 @@
 namespace dftfe
 {
   /**
-   * @brief MatrixFree class template. template parameter ndofsPerDim
+   * @brief MatrixFree class template. template parameter nDofsPerDim
    * is the finite element polynomial order. nQuadPointsPerDim is the order of
    * the Gauss quadrature rule. batchSize is the size of batch tuned to hardware
    *
    * @author Gourab Panigrahi
    */
-  template <int ndofsPerDim, int nQuadPointsPerDim, int batchSize>
+  template <int nDofsPerDim,
+            int nQuadPointsPerDim,
+            int batchSize,
+            int subBatchSize>
   class MatrixFree : public MatrixFreeBase
   {
   public:
@@ -54,7 +57,7 @@ namespace dftfe
                  oncvClassPtr,
       const bool isGGA,
       const int  kPointIndex,
-      const int  blockSize);
+      const int  nVectors);
 
 
     /**
@@ -155,8 +158,8 @@ namespace dftfe
     std::vector<std::vector<std::vector<dataTypes::number>>>
       d_CMatrixEntriesConjugate, d_CMatrixEntriesTranspose;
 
-    const int  d_blockSize, d_nBatch, d_kPointIndex;
     const bool d_isGGA;
+    const int  d_kPointIndex, d_nVectors, d_nBatch;
 
     unsigned int d_nOwnedDofs, d_nRelaventDofs, d_nGhostDofs, d_nCells,
       d_nDofsPerCell, d_nQuadsPerCell;
@@ -185,16 +188,15 @@ namespace dftfe
     std::vector<std::vector<double>> d_weightMatrixList,
       d_scaledWeightMatrixList;
     std::vector<double>                                    d_inhomogenityList;
-    dealii::VectorizedArray<double>                        d_temp;
-    dealii::AlignedVector<dealii::VectorizedArray<double>> d_constrainingData,
-      d_constrainedData;
+    dealii::AlignedVector<dealii::VectorizedArray<double>> d_temp,
+      d_constrainingData, d_constrainedData;
 
     static constexpr int d_quadODim = nQuadPointsPerDim / 2;
     static constexpr int d_quadEDim =
       nQuadPointsPerDim % 2 == 1 ? d_quadODim + 1 : d_quadODim;
-    static constexpr int d_dofODim = ndofsPerDim / 2;
+    static constexpr int d_dofODim = nDofsPerDim / 2;
     static constexpr int d_dofEDim =
-      ndofsPerDim % 2 == 1 ? d_dofODim + 1 : d_dofODim;
+      nDofsPerDim % 2 == 1 ? d_dofODim + 1 : d_dofODim;
 
     std::array<double, d_quadEDim * d_dofEDim + d_quadODim * d_dofODim>
       nodalShapeFunctionValuesAtQuadPointsEO;

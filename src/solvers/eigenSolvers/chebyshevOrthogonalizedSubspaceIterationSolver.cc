@@ -285,22 +285,28 @@ namespace dftfe
             computing_timer.enter_subsection(
               "Copy from full to block flattened array");
 
-            const unsigned int SIMDWidth       = 8;
-            const unsigned int nVectorizedBVec = BVec / SIMDWidth;
+            constexpr int batchSize    = 16;
+            constexpr int subBatchSize = 8;
+            constexpr int nSubBatch    = batchSize / subBatchSize;
+            const int     nBatch       = BVec / batchSize;
 
             if (MFflag)
               {
-                for (unsigned int iNode = 0; iNode < localVectorSize; iNode++)
-                  for (unsigned int iBatch = 0; iBatch < BVec / SIMDWidth;
-                       iBatch++)
-                    for (unsigned int iSIMD = 0; iSIMD < SIMDWidth; iSIMD++)
-                      {
-                        *(eigenVectorsFlattenedArrayBlock->data() + iSIMD +
-                          iNode * SIMDWidth +
-                          iBatch * SIMDWidth * localVectorSize) =
-                          *(eigenVectorsFlattened + iSIMD + iBatch * SIMDWidth +
-                            jvec + iNode * totalNumberWaveFunctions);
-                      }
+                for (int iNode = 0; iNode < localVectorSize; iNode++)
+                  for (int iBatch = 0; iBatch < nBatch; iBatch++)
+                    for (int iSubBatch = 0; iSubBatch < nSubBatch; iSubBatch++)
+                      for (int iSIMD = 0; iSIMD < subBatchSize; iSIMD++)
+                        {
+                          *(eigenVectorsFlattenedArrayBlock->data() + iSIMD +
+                            iSubBatch * subBatchSize +
+                            iNode * subBatchSize * nSubBatch +
+                            iBatch * subBatchSize * nSubBatch *
+                              localVectorSize) =
+                            *(eigenVectorsFlattened + iSIMD +
+                              iSubBatch * subBatchSize +
+                              iBatch * subBatchSize * nSubBatch + jvec +
+                              iNode * totalNumberWaveFunctions);
+                        }
 
                 operatorMatrix.setVJxWMF();
               }
@@ -324,18 +330,22 @@ namespace dftfe
                                    0,
                                    *eigenVectorsFlattenedArrayBlock2);
 
-            if (MFflag)
-              for (unsigned int iNode = 0; iNode < localVectorSize; iNode++)
-                for (unsigned int iBatch = 0; iBatch < BVec / SIMDWidth;
-                     iBatch++)
-                  for (unsigned int iSIMD = 0; iSIMD < SIMDWidth; iSIMD++)
-                    {
-                      *(eigenVectorsFlattened + iSIMD + iBatch * SIMDWidth +
-                        jvec + iNode * totalNumberWaveFunctions) =
-                        *(eigenVectorsFlattenedArrayBlock->data() + iSIMD +
-                          iNode * SIMDWidth +
-                          iBatch * SIMDWidth * localVectorSize);
-                    }
+            // if (MFflag)
+            //   for (int iNode = 0; iNode < localVectorSize; iNode++)
+            //     for (int iBatch = 0; iBatch < nBatch; iBatch++)
+            //       for (int iSubBatch = 0; iSubBatch < nSubBatch; iSubBatch++)
+            //         for (int iSIMD = 0; iSIMD < subBatchSize; iSIMD++)
+            //           {
+            //             *(eigenVectorsFlattened + iSIMD +
+            //               iSubBatch * subBatchSize +
+            //               iBatch * subBatchSize * nSubBatch + jvec +
+            //               iNode * totalNumberWaveFunctions) =
+            //               *(eigenVectorsFlattenedArrayBlock->data() + iSIMD +
+            //                 iSubBatch * subBatchSize +
+            //                 iNode * subBatchSize * nSubBatch +
+            //                 iBatch * subBatchSize * nSubBatch *
+            //                   localVectorSize);
+            //           }
 
             pcout << "HXCheby Done" << std::endl;
             exit(0);
