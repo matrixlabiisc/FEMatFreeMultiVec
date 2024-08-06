@@ -285,9 +285,9 @@ namespace dftfe
             computing_timer.enter_subsection(
               "Copy from full to block flattened array");
 
-            constexpr int batchSize    = 16;
+            const int     batchSize    = (int)d_dftParams.dc_d3cutoff2;
             constexpr int subBatchSize = 8;
-            constexpr int nSubBatch    = batchSize / subBatchSize;
+            const int     nSubBatch    = batchSize / subBatchSize;
             const int     nBatch       = BVec / batchSize;
 
             if (MFflag)

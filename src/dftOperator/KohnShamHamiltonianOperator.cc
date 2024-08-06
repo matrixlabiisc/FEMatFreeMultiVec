@@ -230,7 +230,7 @@ namespace dftfe
         const bool   isGGA    = d_excManagerPtr->getDensityBasedFamilyType() ==
                            densityFamilyType::GGA;
         const int     FeOrder   = d_dftParamsPtr->finiteElementPolynomialOrder;
-        constexpr int batchSize = 16;
+        constexpr int batchSize = 32;
         constexpr int subBatchSize = 8;
 
         if (FeOrder == 3)
@@ -322,8 +322,8 @@ namespace dftfe
   std::shared_ptr<const dealii::Utilities::MPI::Partitioner>
   KohnShamHamiltonianOperator<memorySpace>::getPartitionerBCV()
   {
-    unsigned int blockSize = d_dftParamsPtr->chebyWfcBlockSize;
-    unsigned int batchSize = 16;
+    const unsigned int blockSize = d_dftParamsPtr->chebyWfcBlockSize;
+    const unsigned int batchSize = (unsigned int)d_dftParamsPtr->dc_d3cutoff2;
 
     distributedCPUVec<dataTypes::number> dealiiMultiVector;
 
@@ -925,9 +925,11 @@ namespace dftfe
 
     if (MFflag and numWaveFunctions != 1)
       {
+        const int batchSize = (int)d_dftParamsPtr->dc_d3cutoff2;
+
         if (d_dftParamsPtr->isPseudopotential)
           d_ONCVnonLocalOperator->initialiseFlattenedDataStructure(
-            8, d_ONCVNonLocalProjectorTimesVectorBlock);
+            batchSize, d_ONCVNonLocalProjectorTimesVectorBlock);
       }
     else
       {
@@ -1297,15 +1299,15 @@ namespace dftfe
     const unsigned int numDoFsPerCell = d_basisOperationsPtr->nDofsPerCell();
     const unsigned int numberWavefunctions = src.numVectors();
 
-    constexpr int batchSize    = 16;
     constexpr int subBatchSize = 8;
-    constexpr int nSubBatch    = batchSize / subBatchSize;
+    const int     batchSize    = (int)d_dftParamsPtr->dc_d3cutoff2;
+    const int     nSubBatch    = batchSize / subBatchSize;
 
     auto d_nOwnedDofs    = d_basisOperationsPtrHost->nOwnedDofs();
     auto d_nRelaventDofs = d_basisOperationsPtrHost->nRelaventDofs();
     auto d_nGhostDofs    = d_nRelaventDofs - d_nOwnedDofs;
 
-    const int           trials = 1;
+    const int           trials = 100;
     std::vector<double> HXTimes(trials);
     double              HXMean = 0.0, HXStdDev = 0.0;
     double              dstNorm = 0.0;
@@ -1330,11 +1332,11 @@ namespace dftfe
                                        false,
                                        false);
 
-        const bool hasNonlocalComponents = false;
-        // d_dftParamsPtr->isPseudopotential &&
-        // (d_ONCVnonLocalOperator
-        //    ->getTotalNonLocalElementsInCurrentProcessor() > 0) &&
-        // !onlyHPrimePartForFirstOrderDensityMatResponse;
+        const bool hasNonlocalComponents =
+          d_dftParamsPtr->isPseudopotential &&
+          (d_ONCVnonLocalOperator
+             ->getTotalNonLocalElementsInCurrentProcessor() > 0) &&
+          !onlyHPrimePartForFirstOrderDensityMatResponse;
 
         dealii::AlignedVector<dealii::VectorizedArray<double>> Xvec(
           nSubBatch * d_nOwnedDofs * nBatch + nSubBatch * d_nGhostDofs * 2,
@@ -1445,15 +1447,15 @@ namespace dftfe
             MPI_Barrier(d_mpiCommDomain);
             auto start_HX = getTime();
 
-            const bool hasNonlocalComponents = false;
-            // d_dftParamsPtr->isPseudopotential &&
-            // (d_ONCVnonLocalOperator
-            //    ->getTotalNonLocalElementsInCurrentProcessor() > 0) &&
-            // !onlyHPrimePartForFirstOrderDensityMatResponse;
+            const bool hasNonlocalComponents =
+              d_dftParamsPtr->isPseudopotential &&
+              (d_ONCVnonLocalOperator
+                 ->getTotalNonLocalElementsInCurrentProcessor() > 0) &&
+              !onlyHPrimePartForFirstOrderDensityMatResponse;
 
-            const bool hasNonlocalComponents2 = false;
-            // d_dftParamsPtr->isPseudopotential &&
-            // !onlyHPrimePartForFirstOrderDensityMatResponse;
+            const bool hasNonlocalComponents2 =
+              d_dftParamsPtr->isPseudopotential &&
+              !onlyHPrimePartForFirstOrderDensityMatResponse;
 
             const dataTypes::number scalarCoeffAlpha = dataTypes::number(1.0),
                                     scalarCoeffBeta  = dataTypes::number(0.0);

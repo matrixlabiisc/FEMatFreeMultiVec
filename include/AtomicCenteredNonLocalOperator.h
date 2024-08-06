@@ -315,13 +315,15 @@ namespace dftfe
     applyCconjtransOnXMF(const dealii::VectorizedArray<ValueType> *X,
                          const std::vector<std::vector<std::vector<ValueType>>>
                            &       CMatrixEntriesConjugate,
-                         const int cellIdx);
+                         const int cellIdx,
+                         const int batchSize = 32);
 
     void
     applyAllReduceOnCconjtransXMF(
       dftfe::linearAlgebra::MultiVector<ValueType, memorySpace>
         &        sphericalFunctionKetTimesVectorParFlattened,
-      const bool skipComm = false);
+      const int  batchSize = 32,
+      const bool skipComm  = false);
 
     void
     applyVOnCconjtransXMF(
@@ -329,13 +331,15 @@ namespace dftfe
       const dftfe::utils::MemoryStorage<ValueType, memorySpace> &couplingMatrix,
       dftfe::linearAlgebra::MultiVector<ValueType, memorySpace>
         &        sphericalFunctionKetTimesVectorParFlattened,
+      const int  batchSize               = 32,
       const bool flagCopyResultsToMatrix = false);
 
     void
     applyCOnVCconjtransXMF(dealii::VectorizedArray<double> *Xout,
                            std::vector<std::vector<std::vector<ValueType>>>
                              &       CMatrixEntriesLexicoTranspose,
-                           const int cellIdx);
+                           const int cellIdx,
+                           const int batchSize = 32);
 
   protected:
     bool                d_AllReduceCompleted;

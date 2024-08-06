@@ -159,10 +159,10 @@ namespace dftfe
       d_CMatrixEntriesConjugate, d_CMatrixEntriesTranspose;
 
     const bool d_isGGA;
-    const int  d_kPointIndex, d_nVectors, d_nBatch;
+    const int  d_kPointIndex, d_nVectors, d_nBatch, d_nDofsPerCell,
+      d_nQuadsPerCell;
 
-    unsigned int d_nOwnedDofs, d_nRelaventDofs, d_nGhostDofs, d_nCells,
-      d_nDofsPerCell, d_nQuadsPerCell;
+    unsigned int d_nOwnedDofs, d_nRelaventDofs, d_nGhostDofs, d_nCells;
 
     /// duplicate constraints object with flattened maps for faster access
     dftUtils::constraintMatrixInfo d_constraintsInfo;

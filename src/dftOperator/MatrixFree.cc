@@ -505,6 +505,8 @@ namespace dftfe
     , d_kPointIndex(kPointIndex)
     , d_nVectors(nVectors)
     , d_nBatch((nVectors + batchSize - 1) / batchSize)
+    , d_nDofsPerCell(nDofsPerDim * nDofsPerDim * nDofsPerDim)
+    , d_nQuadsPerCell(nQuadPointsPerDim * nQuadPointsPerDim * nQuadPointsPerDim)
   {}
 
 
@@ -536,9 +538,7 @@ namespace dftfe
     // Initialize member variables
     d_nOwnedDofs              = d_basisOperationsPtrHost->nOwnedDofs();
     d_nRelaventDofs           = d_basisOperationsPtrHost->nRelaventDofs();
-    d_nQuadsPerCell           = d_basisOperationsPtrHost->nQuadsPerCell();
     d_nCells                  = d_basisOperationsPtrHost->nCells();
-    d_nDofsPerCell            = d_basisOperationsPtrHost->nDofsPerCell();
     d_nGhostDofs              = d_nRelaventDofs - d_nOwnedDofs;
     d_singleVectorPartitioner = d_matrixFreeDataPtr->get_vector_partitioner(
       d_basisOperationsPtrHost->d_dofHandlerID);
@@ -1806,9 +1806,10 @@ namespace dftfe
             else
               evalHXLDA(iCell);
 
-            if (hasNonlocalComponents)
+            if (hasNonlocalComponents and
+                d_ONCVnonLocalOperator->atomSupportInElement(iCell))
               d_ONCVnonLocalOperator->applyCOnVCconjtransXMF(
-                arrayX, d_CMatrixEntriesConjugate, iCell);
+                arrayX, d_CMatrixEntriesTranspose, iCell);
 
             // Assembly
             for (int iDoF = 0; iDoF < d_nDofsPerCell; iDoF++)
