@@ -1763,14 +1763,14 @@ namespace dftfe
                       }
 
                     d_ONCVnonLocalOperator->applyCconjtransOnXMF(
-                      arrayX, d_CMatrixEntriesConjugate, iCell);
+                      arrayX, d_CMatrixEntriesConjugate, iCell, batchSize);
                   }
               }
 
             d_ONCVNonLocalProjectorTimesVectorBlock.setValue(0);
 
             d_ONCVnonLocalOperator->applyAllReduceOnCconjtransXMF(
-              d_ONCVNonLocalProjectorTimesVectorBlock, true);
+              d_ONCVNonLocalProjectorTimesVectorBlock, batchSize, true);
 
             d_ONCVNonLocalProjectorTimesVectorBlock
               .accumulateAddLocallyOwnedBegin();
@@ -1783,6 +1783,7 @@ namespace dftfe
               CouplingStructure::diagonal,
               d_oncvClassPtr->getCouplingMatrix(),
               d_ONCVNonLocalProjectorTimesVectorBlock,
+              batchSize,
               true);
           }
 
@@ -1809,7 +1810,7 @@ namespace dftfe
             if (hasNonlocalComponents and
                 d_ONCVnonLocalOperator->atomSupportInElement(iCell))
               d_ONCVnonLocalOperator->applyCOnVCconjtransXMF(
-                arrayX, d_CMatrixEntriesTranspose, iCell);
+                arrayX, d_CMatrixEntriesTranspose, iCell, batchSize);
 
             // Assembly
             for (int iDoF = 0; iDoF < d_nDofsPerCell; iDoF++)

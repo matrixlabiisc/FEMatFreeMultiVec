@@ -230,7 +230,7 @@ namespace dftfe
         const bool   isGGA    = d_excManagerPtr->getDensityBasedFamilyType() ==
                            densityFamilyType::GGA;
         const int     FeOrder   = d_dftParamsPtr->finiteElementPolynomialOrder;
-        constexpr int batchSize = 32;
+        constexpr int batchSize = 16;
         constexpr int subBatchSize = 8;
 
         if (FeOrder == 3)
