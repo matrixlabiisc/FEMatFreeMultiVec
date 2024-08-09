@@ -670,12 +670,14 @@ namespace dftfe
               {
                 jacobianFactor[e + d * dim + cellCount * dim * dim] +=
                   0.5 *
-                  mappingData.jacobians[0][cellOffsets[iCellBatch]][d][f][0] *
-                  mappingData.jacobians[0][cellOffsets[iCellBatch]][e][f][0] *
-                  mappingData.JxW_values[cellOffsets[iCellBatch]][0];
+                  mappingData
+                    .jacobians[0][cellOffsets[iCellBatch]][d][f][iCell] *
+                  mappingData
+                    .jacobians[0][cellOffsets[iCellBatch]][e][f][iCell] *
+                  mappingData.JxW_values[cellOffsets[iCellBatch]][iCell];
 
                 jacobianDeterminants[cellCount] =
-                  mappingData.JxW_values[cellOffsets[iCellBatch]][0];
+                  mappingData.JxW_values[cellOffsets[iCellBatch]][iCell];
               }
 
     // Create matrix-free maps
@@ -1679,113 +1681,119 @@ namespace dftfe
     // Batch Loop
     for (int iBatch = 0; iBatch < d_nBatch; iBatch++)
       {
-        d_singleBatchPartitioner->export_to_ghosted_array_start<double>(
-          (unsigned int)5,
-          dealii::ArrayView<const double>(
-            (double *)x + iBatch * subBatchSize * nSubBatch * d_nOwnedDofs,
-            subBatchSize * nSubBatch * d_nOwnedDofs),
-          dealii::ArrayView<double>(tempGhostStorage),
-          dealii::ArrayView<double>((double *)x + subBatchSize * nSubBatch *
-                                                    d_nOwnedDofs * d_nBatch,
-                                    subBatchSize * nSubBatch * d_nGhostDofs),
-          mpiRequestsGhost);
+        // d_singleBatchPartitioner->export_to_ghosted_array_start<double>(
+        //   (unsigned int)5,
+        //   dealii::ArrayView<const double>(
+        //     (double *)x + iBatch * subBatchSize * nSubBatch * d_nOwnedDofs,
+        //     subBatchSize * nSubBatch * d_nOwnedDofs),
+        //   dealii::ArrayView<double>(tempGhostStorage),
+        //   dealii::ArrayView<double>((double *)x + subBatchSize * nSubBatch *
+        //                                             d_nOwnedDofs * d_nBatch,
+        //                             subBatchSize * nSubBatch * d_nGhostDofs),
+        //   mpiRequestsGhost);
 
-        d_singleBatchPartitioner->export_to_ghosted_array_finish<double>(
-          dealii::ArrayView<double>((double *)x + subBatchSize * nSubBatch *
-                                                    d_nOwnedDofs * d_nBatch,
-                                    subBatchSize * nSubBatch * d_nGhostDofs),
-          mpiRequestsGhost);
+        // d_singleBatchPartitioner->export_to_ghosted_array_finish<double>(
+        //   dealii::ArrayView<double>((double *)x + subBatchSize * nSubBatch *
+        //                                             d_nOwnedDofs * d_nBatch,
+        //                             subBatchSize * nSubBatch * d_nGhostDofs),
+        //   mpiRequestsGhost);
 
         // Constraints distribute
-        for (int i = 0; i < d_constrainingNodeBuckets.size(); i++)
-          {
-            int iConstrainingBucketSize = d_constrainingNodeBuckets[i].size();
-            int iConstrainedBucketSize  = d_constrainedNodeBuckets[i].size();
-            double inhomogenity         = d_inhomogenityList[i];
+        // for (int i = 0; i < d_constrainingNodeBuckets.size(); i++)
+        //   {
+        //     int iConstrainingBucketSize =
+        //     d_constrainingNodeBuckets[i].size(); int iConstrainedBucketSize
+        //     = d_constrainedNodeBuckets[i].size(); double inhomogenity =
+        //     d_inhomogenityList[i];
 
-            for (int k = 0; k < iConstrainingBucketSize; k++)
-              {
-                int dofIdx =
-                  getMultiVectorIndex(d_constrainingNodeBuckets[i][k], iBatch);
+        //     for (int k = 0; k < iConstrainingBucketSize; k++)
+        //       {
+        //         int dofIdx =
+        //           getMultiVectorIndex(d_constrainingNodeBuckets[i][k],
+        //           iBatch);
 
-                for (int iSubBatch = 0; iSubBatch < nSubBatch; iSubBatch++)
-                  d_constrainingData[iSubBatch + k * nSubBatch] =
-                    x[iSubBatch + dofIdx * nSubBatch];
-              }
+        //         for (int iSubBatch = 0; iSubBatch < nSubBatch; iSubBatch++)
+        //           d_constrainingData[iSubBatch + k * nSubBatch] =
+        //             x[iSubBatch + dofIdx * nSubBatch];
+        //       }
 
-            for (int j = 0; j < iConstrainedBucketSize; j++)
-              {
-                for (int iSubBatch = 0; iSubBatch < nSubBatch; iSubBatch++)
-                  d_temp[iSubBatch] = inhomogenity;
+        //     for (int j = 0; j < iConstrainedBucketSize; j++)
+        //       {
+        //         for (int iSubBatch = 0; iSubBatch < nSubBatch; iSubBatch++)
+        //           d_temp[iSubBatch] = inhomogenity;
 
-                int dofIdx =
-                  getMultiVectorIndex(d_constrainedNodeBuckets[i][j], iBatch);
+        //         int dofIdx =
+        //           getMultiVectorIndex(d_constrainedNodeBuckets[i][j],
+        //           iBatch);
 
-                for (int k = 0; k < iConstrainingBucketSize; k++)
-                  {
-                    double weight =
-                      d_weightMatrixList[i][k + j * iConstrainingBucketSize];
+        //         for (int k = 0; k < iConstrainingBucketSize; k++)
+        //           {
+        //             double weight =
+        //               d_weightMatrixList[i][k + j * iConstrainingBucketSize];
 
-                    for (int iSubBatch = 0; iSubBatch < nSubBatch; iSubBatch++)
-                      d_temp[iSubBatch] +=
-                        weight * d_constrainingData[iSubBatch + k * nSubBatch];
-                  }
+        //             for (int iSubBatch = 0; iSubBatch < nSubBatch;
+        //             iSubBatch++)
+        //               d_temp[iSubBatch] +=
+        //                 weight * d_constrainingData[iSubBatch + k *
+        //                 nSubBatch];
+        //           }
 
-                for (int iSubBatch = 0; iSubBatch < nSubBatch; iSubBatch++)
-                  x[iSubBatch + dofIdx * nSubBatch] = d_temp[iSubBatch];
-              }
-          }
+        //         for (int iSubBatch = 0; iSubBatch < nSubBatch; iSubBatch++)
+        //           x[iSubBatch + dofIdx * nSubBatch] = d_temp[iSubBatch];
+        //       }
+        //   }
 
-        if (hasNonlocalComponents)
-          {
-            d_ONCVnonLocalOperator->initialiseOperatorActionOnXMF(
-              d_kPointIndex);
+        // if (hasNonlocalComponents)
+        //   {
+        //     d_ONCVnonLocalOperator->initialiseOperatorActionOnXMF(
+        //       d_kPointIndex);
 
-            // Cell Loop
-            for (int iCell = 0; iCell < d_nCells; iCell++)
-              {
-                if (d_ONCVnonLocalOperator->atomSupportInElement(iCell))
-                  {
-                    // Extraction
-                    for (int iDoF = 0; iDoF < d_nDofsPerCell; iDoF++)
-                      {
-                        int dofIdx =
-                          singleVectorGlobalToLocalMap[iDoF +
-                                                       iCell * d_nDofsPerCell];
+        //     // Cell Loop
+        //     for (int iCell = 0; iCell < d_nCells; iCell++)
+        //       {
+        //         if (d_ONCVnonLocalOperator->atomSupportInElement(iCell))
+        //           {
+        //             // Extraction
+        //             for (int iDoF = 0; iDoF < d_nDofsPerCell; iDoF++)
+        //               {
+        //                 int dofIdx =
+        //                   singleVectorGlobalToLocalMap[iDoF +
+        //                                                iCell *
+        //                                                d_nDofsPerCell];
 
-                        int idx =
-                          getMultiVectorIndex(dofIdx, iBatch) * nSubBatch;
+        //                 int idx =
+        //                   getMultiVectorIndex(dofIdx, iBatch) * nSubBatch;
 
-                        for (int iSubBatch = 0; iSubBatch < nSubBatch;
-                             iSubBatch++)
-                          arrayX[iSubBatch + iDoF * nSubBatch] =
-                            x[iSubBatch + idx];
-                      }
+        //                 for (int iSubBatch = 0; iSubBatch < nSubBatch;
+        //                      iSubBatch++)
+        //                   arrayX[iSubBatch + iDoF * nSubBatch] =
+        //                     x[iSubBatch + idx];
+        //               }
 
-                    d_ONCVnonLocalOperator->applyCconjtransOnXMF(
-                      arrayX, d_CMatrixEntriesConjugate, iCell, batchSize);
-                  }
-              }
+        //             d_ONCVnonLocalOperator->applyCconjtransOnXMF(
+        //               arrayX, d_CMatrixEntriesConjugate, iCell, batchSize);
+        //           }
+        //       }
 
-            d_ONCVNonLocalProjectorTimesVectorBlock.setValue(0);
+        //     d_ONCVNonLocalProjectorTimesVectorBlock.setValue(0);
 
-            d_ONCVnonLocalOperator->applyAllReduceOnCconjtransXMF(
-              d_ONCVNonLocalProjectorTimesVectorBlock, batchSize, true);
+        //     d_ONCVnonLocalOperator->applyAllReduceOnCconjtransXMF(
+        //       d_ONCVNonLocalProjectorTimesVectorBlock, batchSize, true);
 
-            d_ONCVNonLocalProjectorTimesVectorBlock
-              .accumulateAddLocallyOwnedBegin();
-            d_ONCVNonLocalProjectorTimesVectorBlock
-              .accumulateAddLocallyOwnedEnd();
-            d_ONCVNonLocalProjectorTimesVectorBlock.updateGhostValuesBegin();
-            d_ONCVNonLocalProjectorTimesVectorBlock.updateGhostValuesEnd();
+        //     d_ONCVNonLocalProjectorTimesVectorBlock
+        //       .accumulateAddLocallyOwnedBegin();
+        //     d_ONCVNonLocalProjectorTimesVectorBlock
+        //       .accumulateAddLocallyOwnedEnd();
+        //     d_ONCVNonLocalProjectorTimesVectorBlock.updateGhostValuesBegin();
+        //     d_ONCVNonLocalProjectorTimesVectorBlock.updateGhostValuesEnd();
 
-            d_ONCVnonLocalOperator->applyVOnCconjtransXMF(
-              CouplingStructure::diagonal,
-              d_oncvClassPtr->getCouplingMatrix(),
-              d_ONCVNonLocalProjectorTimesVectorBlock,
-              batchSize,
-              true);
-          }
+        //     d_ONCVnonLocalOperator->applyVOnCconjtransXMF(
+        //       CouplingStructure::diagonal,
+        //       d_oncvClassPtr->getCouplingMatrix(),
+        //       d_ONCVNonLocalProjectorTimesVectorBlock,
+        //       batchSize,
+        //       true);
+        //   }
 
         // Cell Loop
         for (int iCell = 0; iCell < d_nCells; iCell++)
@@ -1807,10 +1815,10 @@ namespace dftfe
             else
               evalHXLDA(iCell);
 
-            if (hasNonlocalComponents and
-                d_ONCVnonLocalOperator->atomSupportInElement(iCell))
-              d_ONCVnonLocalOperator->applyCOnVCconjtransXMF(
-                arrayX, d_CMatrixEntriesTranspose, iCell, batchSize);
+            // if (hasNonlocalComponents and
+            //     d_ONCVnonLocalOperator->atomSupportInElement(iCell))
+            //   d_ONCVnonLocalOperator->applyCOnVCconjtransXMF(
+            //     arrayX, d_CMatrixEntriesTranspose, iCell, batchSize);
 
             // Assembly
             for (int iDoF = 0; iDoF < d_nDofsPerCell; iDoF++)
@@ -1820,94 +1828,104 @@ namespace dftfe
                 int idx = getMultiVectorIndex(dofIdx, iBatch) * nSubBatch;
 
                 for (int iSubBatch = 0; iSubBatch < nSubBatch; iSubBatch++)
-                  Ax[iSubBatch + idx] += scalarHX *
-                                         cellInverseMassVector[cellDofIdx] *
-                                         arrayX[iSubBatch + iDoF * nSubBatch];
+                  Ax[iSubBatch + idx] +=
+                    //  scalarHX *
+                    //                        cellInverseMassVector[cellDofIdx]
+                    //                        *
+                    arrayX[iSubBatch + iDoF * nSubBatch];
               }
           }
 
         // Constraints distribute transpose
-        for (int i = 0; i < d_constrainedNodeBuckets.size(); i++)
-          {
-            int iConstrainingBucketSize = d_constrainingNodeBuckets[i].size();
-            int iConstrainedBucketSize  = d_constrainedNodeBuckets[i].size();
+        // for (int i = 0; i < d_constrainedNodeBuckets.size(); i++)
+        //   {
+        //     int iConstrainingBucketSize =
+        //     d_constrainingNodeBuckets[i].size(); int iConstrainedBucketSize
+        //     = d_constrainedNodeBuckets[i].size();
 
-            for (int k = 0; k < iConstrainedBucketSize; k++)
-              {
-                int dofIdx =
-                  getMultiVectorIndex(d_constrainedNodeBuckets[i][k], iBatch);
+        //     for (int k = 0; k < iConstrainedBucketSize; k++)
+        //       {
+        //         int dofIdx =
+        //           getMultiVectorIndex(d_constrainedNodeBuckets[i][k],
+        //           iBatch);
 
-                if (iConstrainingBucketSize > 0)
-                  {
-                    for (int iSubBatch = 0; iSubBatch < nSubBatch; iSubBatch++)
-                      d_constrainedData[iSubBatch + k * nSubBatch] =
-                        Ax[iSubBatch + dofIdx * nSubBatch];
-                  }
+        //         if (iConstrainingBucketSize > 0)
+        //           {
+        //             for (int iSubBatch = 0; iSubBatch < nSubBatch;
+        //             iSubBatch++)
+        //               d_constrainedData[iSubBatch + k * nSubBatch] =
+        //                 Ax[iSubBatch + dofIdx * nSubBatch];
+        //           }
 
-                for (int iSubBatch = 0; iSubBatch < nSubBatch; iSubBatch++)
-                  {
-                    Ax[iSubBatch + dofIdx * nSubBatch] = 0;
-                    x[iSubBatch + dofIdx * nSubBatch]  = 0;
-                  }
-              }
+        //         for (int iSubBatch = 0; iSubBatch < nSubBatch; iSubBatch++)
+        //           {
+        //             Ax[iSubBatch + dofIdx * nSubBatch] = 0;
+        //             x[iSubBatch + dofIdx * nSubBatch]  = 0;
+        //           }
+        //       }
 
-            if (!(iConstrainingBucketSize > 0))
-              break;
+        //     if (!(iConstrainingBucketSize > 0))
+        //       break;
 
-            for (int j = 0; j < iConstrainingBucketSize; j++)
-              {
-                int dofIdx =
-                  getMultiVectorIndex(d_constrainingNodeBuckets[i][j], iBatch);
+        //     for (int j = 0; j < iConstrainingBucketSize; j++)
+        //       {
+        //         int dofIdx =
+        //           getMultiVectorIndex(d_constrainingNodeBuckets[i][j],
+        //           iBatch);
 
-                for (int iSubBatch = 0; iSubBatch < nSubBatch; iSubBatch++)
-                  d_temp[iSubBatch] = Ax[iSubBatch + dofIdx * nSubBatch];
+        //         for (int iSubBatch = 0; iSubBatch < nSubBatch; iSubBatch++)
+        //           d_temp[iSubBatch] = Ax[iSubBatch + dofIdx * nSubBatch];
 
-                for (int k = 0; k < iConstrainedBucketSize; k++)
-                  {
-                    double weight =
-                      d_scaledWeightMatrixList[i]
-                                              [j + k * iConstrainingBucketSize];
+        //         for (int k = 0; k < iConstrainedBucketSize; k++)
+        //           {
+        //             double weight =
+        //               d_scaledWeightMatrixList[i]
+        //                                       [j + k *
+        //                                       iConstrainingBucketSize];
 
-                    for (int iSubBatch = 0; iSubBatch < nSubBatch; iSubBatch++)
-                      d_temp[iSubBatch] +=
-                        weight * d_constrainedData[iSubBatch + k * nSubBatch];
-                  }
+        //             for (int iSubBatch = 0; iSubBatch < nSubBatch;
+        //             iSubBatch++)
+        //               d_temp[iSubBatch] +=
+        //                 weight * d_constrainedData[iSubBatch + k *
+        //                 nSubBatch];
+        //           }
 
-                for (int iSubBatch = 0; iSubBatch < nSubBatch; iSubBatch++)
-                  Ax[iSubBatch + dofIdx * nSubBatch] = d_temp[iSubBatch];
-              }
-          }
+        //         for (int iSubBatch = 0; iSubBatch < nSubBatch; iSubBatch++)
+        //           Ax[iSubBatch + dofIdx * nSubBatch] = d_temp[iSubBatch];
+        //       }
+        //   }
 
-        d_singleBatchPartitioner->import_from_ghosted_array_start(
-          dealii::VectorOperation::add,
-          0,
-          dealii::ArrayView<double>((double *)Ax + subBatchSize * nSubBatch *
-                                                     d_nOwnedDofs * d_nBatch,
-                                    subBatchSize * nSubBatch * d_nGhostDofs),
-          dealii::ArrayView<double>(tempCompressStorage),
-          mpiRequestsCompress);
+        // d_singleBatchPartitioner->import_from_ghosted_array_start(
+        //   dealii::VectorOperation::add,
+        //   0,
+        //   dealii::ArrayView<double>((double *)Ax + subBatchSize * nSubBatch *
+        //                                              d_nOwnedDofs * d_nBatch,
+        //                             subBatchSize * nSubBatch * d_nGhostDofs),
+        //   dealii::ArrayView<double>(tempCompressStorage),
+        //   mpiRequestsCompress);
 
-        d_singleBatchPartitioner->import_from_ghosted_array_finish(
-          dealii::VectorOperation::add,
-          dealii::ArrayView<const double>(tempCompressStorage),
-          dealii::ArrayView<double>((double *)Ax + iBatch * subBatchSize *
-                                                     nSubBatch * d_nOwnedDofs,
-                                    subBatchSize * nSubBatch * d_nOwnedDofs),
-          dealii::ArrayView<double>((double *)Ax + subBatchSize * nSubBatch *
-                                                     d_nOwnedDofs * d_nBatch,
-                                    subBatchSize * d_nGhostDofs),
-          mpiRequestsCompress);
+        // d_singleBatchPartitioner->import_from_ghosted_array_finish(
+        //   dealii::VectorOperation::add,
+        //   dealii::ArrayView<const double>(tempCompressStorage),
+        //   dealii::ArrayView<double>((double *)Ax + iBatch * subBatchSize *
+        //                                              nSubBatch *
+        //                                              d_nOwnedDofs,
+        //                             subBatchSize * nSubBatch * d_nOwnedDofs),
+        //   dealii::ArrayView<double>((double *)Ax + subBatchSize * nSubBatch *
+        //                                              d_nOwnedDofs * d_nBatch,
+        //                             subBatchSize * d_nGhostDofs),
+        //   mpiRequestsCompress);
       }
 
     // Compare with memsets
-    std::fill(Ax + nSubBatch * d_nOwnedDofs * d_nBatch,
-              Ax + nSubBatch * d_nOwnedDofs * d_nBatch +
-                nSubBatch * d_nGhostDofs * 2,
-              0.0);
-    std::fill(x + nSubBatch * d_nOwnedDofs * d_nBatch,
-              x + nSubBatch * d_nOwnedDofs * d_nBatch +
-                nSubBatch * d_nGhostDofs * 2,
-              0.0);
+    // std::fill(Ax + nSubBatch * d_nOwnedDofs * d_nBatch,
+    //           Ax + nSubBatch * d_nOwnedDofs * d_nBatch +
+    //             nSubBatch * d_nGhostDofs * 2,
+    //           0.0);
+    // std::fill(x + nSubBatch * d_nOwnedDofs * d_nBatch,
+    //           x + nSubBatch * d_nOwnedDofs * d_nBatch +
+    //             nSubBatch * d_nGhostDofs * 2,
+    //           0.0);
 
   } // namespace dftfe
 
