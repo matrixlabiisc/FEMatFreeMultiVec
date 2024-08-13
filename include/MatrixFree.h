@@ -91,15 +91,6 @@ namespace dftfe
      *
      */
     void
-    computeAX(
-      dftfe::linearAlgebra::MultiVector<dataTypes::number,
-                                        dftfe::utils::MemorySpace::HOST> &Ax,
-      dftfe::linearAlgebra::MultiVector<dataTypes::number,
-                                        dftfe::utils::MemorySpace::HOST> &x,
-      const double scalarHX);
-
-
-    void
     computeAX(dealii::VectorizedArray<double> *Ax,
               dealii::VectorizedArray<double> *x,
               dftfe::linearAlgebra::MultiVector<dataTypes::number,
@@ -180,8 +171,7 @@ namespace dftfe
       d_basisOperationsPtrHost;
 
     std::vector<int> singleVectorGlobalToLocalMap, singleVectorToMultiVectorMap;
-    std::vector<double> jacobianFactor, jacobianDeterminants,
-      cellInverseMassVector;
+    std::vector<double> jacobianFactor, cellInverseMassVector;
 
     std::vector<std::vector<int>> d_constrainingNodeBuckets,
       d_constrainedNodeBuckets;

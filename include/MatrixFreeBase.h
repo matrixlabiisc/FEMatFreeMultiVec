@@ -46,15 +46,6 @@ namespace dftfe
      *
      */
     virtual void
-    computeAX(
-      dftfe::linearAlgebra::MultiVector<dataTypes::number,
-                                        dftfe::utils::MemorySpace::HOST> &Ax,
-      dftfe::linearAlgebra::MultiVector<dataTypes::number,
-                                        dftfe::utils::MemorySpace::HOST> &x,
-      const double scalarHX) = 0;
-
-
-    virtual void
     computeAX(dealii::VectorizedArray<double> *Ax,
               dealii::VectorizedArray<double> *x,
               dftfe::linearAlgebra::MultiVector<dataTypes::number,
