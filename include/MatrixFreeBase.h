@@ -46,13 +46,9 @@ namespace dftfe
      *
      */
     virtual void
-    computeAX(dealii::VectorizedArray<double> *Ax,
-              dealii::VectorizedArray<double> *x,
-              dftfe::linearAlgebra::MultiVector<dataTypes::number,
-                                                dftfe::utils::MemorySpace::HOST>
-                &          d_ONCVNonLocalProjectorTimesVectorBlock,
-              const double scalarHX,
-              const bool   hasNonlocalComponents) = 0;
+    computeAX(const double scalarHX,
+              const double scalarY,
+              const double scalarX) = 0;
 
 
     virtual void
@@ -65,6 +61,12 @@ namespace dftfe
       dftfe::utils::MemoryStorage<dataTypes::number,
                                   dftfe::utils::MemorySpace::HOST>
         &VGGAJxW) = 0;
+
+
+    virtual void
+    reshape(dataTypes::number *eigenVector,
+            bool               isXBlock = true,
+            bool               CVtoBCV  = true) = 0;
   };
 
 } // namespace dftfe

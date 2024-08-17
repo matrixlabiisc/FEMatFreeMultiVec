@@ -69,10 +69,13 @@ namespace dftfe
     virtual void
     createMFVector(
       dftfe::linearAlgebra::MultiVector<dataTypes::number, memorySpace> *
-        &multiVector);
+        &multiVector) = 0;
 
     virtual void
-    setVJxWMF();
+    reshapeMF(dataTypes::number *eigenVector, bool isXBlock, bool CVtoBCV) = 0;
+
+    virtual void
+    setVJxWMF() = 0;
 
     virtual void
     init(const std::vector<double> &kPointCoordinates,

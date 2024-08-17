@@ -54,7 +54,11 @@ namespace dftfe
         ONCVnonLocalOperator,
       std::shared_ptr<
         dftfe::oncvClass<dataTypes::number, dftfe::utils::MemorySpace::HOST>>
-                 oncvClassPtr,
+        oncvClassPtr,
+      dftfe::linearAlgebra::MultiVector<dataTypes::number,
+                                        dftfe::utils::MemorySpace::HOST>
+        *        ONCVNonLocalProjectorTimesVectorBlockPtr,
+      const bool hasNonlocalComponents,
       const bool isGGA,
       const int  kPointIndex,
       const int  nVectors);
@@ -91,14 +95,15 @@ namespace dftfe
      *
      */
     void
-    computeAX(dealii::VectorizedArray<double> *Ax,
-              dealii::VectorizedArray<double> *x,
-              dftfe::linearAlgebra::MultiVector<dataTypes::number,
-                                                dftfe::utils::MemorySpace::HOST>
-                &          d_ONCVNonLocalProjectorTimesVectorBlock,
-              const double scalarHX,
-              const bool   hasNonlocalComponents);
+    computeAX(const double scalarHX,
+              const double scalarY,
+              const double scalarX);
 
+
+    void
+    reshape(dataTypes::number *eigenVector,
+            bool               isXBlock = true,
+            bool               CVtoBCV  = true);
 
   private:
     /**
@@ -130,6 +135,53 @@ namespace dftfe
     inline int
     getMultiVectorIndex(const int nodeIdx, const int batchIdx) const;
 
+    const bool d_hasNonlocalComponents, d_isGGA;
+    const int  d_kPointIndex, d_nVectors, d_nBatch, d_nDofsPerCell,
+      d_nQuadsPerCell;
+
+    unsigned int d_nOwnedDofs, d_nRelaventDofs, d_nGhostDofs, d_nCells;
+
+    static constexpr int d_quadODim = nQuadPointsPerDim / 2;
+    static constexpr int d_quadEDim =
+      nQuadPointsPerDim % 2 == 1 ? d_quadODim + 1 : d_quadODim;
+    static constexpr int d_dofODim = nDofsPerDim / 2;
+    static constexpr int d_dofEDim =
+      nDofsPerDim % 2 == 1 ? d_dofODim + 1 : d_dofODim;
+
+    std::array<double, d_quadEDim * d_dofEDim + d_quadODim * d_dofODim>
+      nodalShapeFunctionValuesAtQuadPointsEO;
+    std::array<double, 2 * d_quadODim * d_quadEDim>
+                                          quadShapeFunctionGradientsAtQuadPointsEO;
+    std::array<double, nQuadPointsPerDim> quadratureWeights;
+
+    dealii::AlignedVector<dealii::VectorizedArray<double>> alignedVector;
+    dealii::VectorizedArray<double> *arrayV, *arrayW, *arrayX, *arrayY, *arrayZ;
+
+    dealii::AlignedVector<dealii::VectorizedArray<double>> XBlock, YBlock;
+
+    dftfe::utils::MemoryStorage<double, dftfe::utils::MemorySpace::HOST>
+      d_VeffJxW, d_VeffExtPotJxW, d_VGGAJxW;
+
+    std::vector<int> singleVectorGlobalToLocalMap, singleVectorToMultiVectorMap;
+    std::vector<double> jacobianFactor, cellInverseMassVector;
+
+    std::vector<std::vector<int>> d_constrainingNodeBuckets,
+      d_constrainedNodeBuckets;
+    std::vector<std::vector<double>> d_weightMatrixList,
+      d_scaledWeightMatrixList;
+    std::vector<double>                                    d_inhomogenityList;
+    dealii::AlignedVector<dealii::VectorizedArray<double>> d_temp,
+      d_constrainingData, d_constrainedData;
+
+    dftfe::linearAlgebra::MultiVector<dataTypes::number,
+                                      dftfe::utils::MemorySpace::HOST>
+      *d_ONCVNonLocalProjectorTimesVectorBlockPtr;
+
+    std::shared_ptr<
+      dftfe::basis::FEBasisOperations<dataTypes::number,
+                                      double,
+                                      dftfe::utils::MemorySpace::HOST>>
+      d_basisOperationsPtrHost;
 
     /// pointer to dealii MatrixFree object
     const dealii::MatrixFree<3, double> *d_matrixFreeDataPtr;
@@ -149,53 +201,10 @@ namespace dftfe
     std::vector<std::vector<std::vector<dataTypes::number>>>
       d_CMatrixEntriesConjugate, d_CMatrixEntriesTranspose;
 
-    const bool d_isGGA;
-    const int  d_kPointIndex, d_nVectors, d_nBatch, d_nDofsPerCell,
-      d_nQuadsPerCell;
-
-    unsigned int d_nOwnedDofs, d_nRelaventDofs, d_nGhostDofs, d_nCells;
-
     /// duplicate constraints object with flattened maps for faster access
     dftUtils::constraintMatrixInfo d_constraintsInfo;
     std::shared_ptr<const dealii::Utilities::MPI::Partitioner>
       d_singleVectorPartitioner, d_singleBatchPartitioner;
-
-    dftfe::utils::MemoryStorage<double, dftfe::utils::MemorySpace::HOST>
-      d_VeffJxW, d_VeffExtPotJxW, d_VGGAJxW;
-
-    /// Matrix free data
-    std::shared_ptr<
-      dftfe::basis::FEBasisOperations<dataTypes::number,
-                                      double,
-                                      dftfe::utils::MemorySpace::HOST>>
-      d_basisOperationsPtrHost;
-
-    std::vector<int> singleVectorGlobalToLocalMap, singleVectorToMultiVectorMap;
-    std::vector<double> jacobianFactor, cellInverseMassVector;
-
-    std::vector<std::vector<int>> d_constrainingNodeBuckets,
-      d_constrainedNodeBuckets;
-    std::vector<std::vector<double>> d_weightMatrixList,
-      d_scaledWeightMatrixList;
-    std::vector<double>                                    d_inhomogenityList;
-    dealii::AlignedVector<dealii::VectorizedArray<double>> d_temp,
-      d_constrainingData, d_constrainedData;
-
-    static constexpr int d_quadODim = nQuadPointsPerDim / 2;
-    static constexpr int d_quadEDim =
-      nQuadPointsPerDim % 2 == 1 ? d_quadODim + 1 : d_quadODim;
-    static constexpr int d_dofODim = nDofsPerDim / 2;
-    static constexpr int d_dofEDim =
-      nDofsPerDim % 2 == 1 ? d_dofODim + 1 : d_dofODim;
-
-    std::array<double, d_quadEDim * d_dofEDim + d_quadODim * d_dofODim>
-      nodalShapeFunctionValuesAtQuadPointsEO;
-    std::array<double, 2 * d_quadODim * d_quadEDim>
-                                          quadShapeFunctionGradientsAtQuadPointsEO;
-    std::array<double, nQuadPointsPerDim> quadratureWeights;
-
-    dealii::AlignedVector<dealii::VectorizedArray<double>> alignedVector;
-    dealii::VectorizedArray<double> *arrayV, *arrayW, *arrayX, *arrayY, *arrayZ;
 
     dealii::ConditionalOStream pcout;
     std::vector<double>        tempGhostStorage, tempCompressStorage;

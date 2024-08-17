@@ -239,12 +239,7 @@ namespace dftfe
 
     bool MFflag = (bool)d_dftParams.dc_d3ATM;
 
-    if (MFflag)
-      {
-        operatorMatrix.createMFVector(eigenVectorsFlattenedArrayBlock);
-        operatorMatrix.createMFVector(eigenVectorsFlattenedArrayBlock2);
-      }
-    else
+    if (!MFflag)
       {
         eigenVectorsFlattenedArrayBlock =
           &operatorMatrix.getScratchFEMultivector(vectorsBlockSize, 0);
@@ -272,7 +267,7 @@ namespace dftfe
             numVectorsBandParal = jvec + BVec - startIndexBandParal;
 
             // create custom partitioned dealii array
-            if (BVec != vectorsBlockSize)
+            if (!MFflag and BVec != vectorsBlockSize)
               {
                 eigenVectorsFlattenedArrayBlock =
                   &operatorMatrix.getScratchFEMultivector(BVec, 0);
@@ -292,22 +287,9 @@ namespace dftfe
 
             if (MFflag)
               {
-                for (int iNode = 0; iNode < localVectorSize; iNode++)
-                  for (int iBatch = 0; iBatch < nBatch; iBatch++)
-                    for (int iSubBatch = 0; iSubBatch < nSubBatch; iSubBatch++)
-                      for (int iSIMD = 0; iSIMD < subBatchSize; iSIMD++)
-                        {
-                          *(eigenVectorsFlattenedArrayBlock->data() + iSIMD +
-                            iSubBatch * subBatchSize +
-                            iNode * subBatchSize * nSubBatch +
-                            iBatch * subBatchSize * nSubBatch *
-                              localVectorSize) =
-                            *(eigenVectorsFlattened + iSIMD +
-                              iSubBatch * subBatchSize +
-                              iBatch * subBatchSize * nSubBatch + jvec +
-                              iNode * totalNumberWaveFunctions);
-                        }
-
+                operatorMatrix.reshapeMF(eigenVectorsFlattened + jvec,
+                                         true,
+                                         true);
                 operatorMatrix.setVJxWMF();
               }
             else
@@ -329,23 +311,6 @@ namespace dftfe
                                    0,
                                    0,
                                    *eigenVectorsFlattenedArrayBlock2);
-
-            // if (MFflag)
-            //   for (int iNode = 0; iNode < localVectorSize; iNode++)
-            //     for (int iBatch = 0; iBatch < nBatch; iBatch++)
-            //       for (int iSubBatch = 0; iSubBatch < nSubBatch; iSubBatch++)
-            //         for (int iSIMD = 0; iSIMD < subBatchSize; iSIMD++)
-            //           {
-            //             *(eigenVectorsFlattened + iSIMD +
-            //               iSubBatch * subBatchSize +
-            //               iBatch * subBatchSize * nSubBatch + jvec +
-            //               iNode * totalNumberWaveFunctions) =
-            //               *(eigenVectorsFlattenedArrayBlock->data() + iSIMD +
-            //                 iSubBatch * subBatchSize +
-            //                 iNode * subBatchSize * nSubBatch +
-            //                 iBatch * subBatchSize * nSubBatch *
-            //                   localVectorSize);
-            //           }
 
             pcout << "HXCheby Done" << std::endl;
             exit(0);

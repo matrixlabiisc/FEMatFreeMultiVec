@@ -97,6 +97,9 @@ namespace dftfe
         &BCVmultiVector);
 
     void
+    reshapeMF(dataTypes::number *eigenVector, bool isXBlock, bool CVtoBCV);
+
+    void
     setVJxWMF();
 
     /**
