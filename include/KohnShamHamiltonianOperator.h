@@ -97,7 +97,38 @@ namespace dftfe
         &BCVmultiVector);
 
     void
-    reshapeMF(dataTypes::number *eigenVector, bool isXBlock, bool CVtoBCV);
+    reshapeMF(dataTypes::number *eigenVector,
+              int                totalNumberWaveFunctions,
+              bool               isXBlock,
+              bool               CVtoBCV);
+
+    void
+    reshapeMF(const dataTypes::number *eigenVector,
+              int                      totalNumberWaveFunctions,
+              bool                     isXBlock);
+
+    void
+    swapMF();
+
+    void
+    setValueMF(dataTypes::number val = 0);
+
+    dealii::AlignedVector<dealii::VectorizedArray<double>> &
+    getBlockMF(bool isXBlock = true);
+
+    void
+    print(dataTypes::number *Y, dataTypes::number *X, int size);
+
+    void
+    print();
+
+    void
+    norm(dataTypes::number *X, int size, dataTypes::number &nrm);
+
+    void
+    computeAXMF(const double scalarHX,
+                const double scalarY,
+                const double scalarX);
 
     void
     setVJxWMF();

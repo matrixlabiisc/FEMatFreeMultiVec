@@ -502,11 +502,112 @@ namespace dftfe
   void
   KohnShamHamiltonianOperator<memorySpace>::reshapeMF(
     dataTypes::number *eigenVector,
+    int                totalNumberWaveFunctions,
     bool               isXBlock,
     bool               CVtoBCV)
   {
-    d_matrixFreeBasePtr->reshape(eigenVector, isXBlock, CVtoBCV);
+    d_matrixFreeBasePtr->reshape(eigenVector,
+                                 totalNumberWaveFunctions,
+                                 isXBlock,
+                                 CVtoBCV);
   }
+
+  template <dftfe::utils::MemorySpace memorySpace>
+  void
+  KohnShamHamiltonianOperator<memorySpace>::reshapeMF(
+    const dataTypes::number *eigenVector,
+    int                      totalNumberWaveFunctions,
+    bool                     isXBlock)
+  {
+    d_matrixFreeBasePtr->reshape(eigenVector,
+                                 totalNumberWaveFunctions,
+                                 isXBlock);
+  }
+
+  template <dftfe::utils::MemorySpace memorySpace>
+  void
+  KohnShamHamiltonianOperator<memorySpace>::swapMF()
+  {
+    d_matrixFreeBasePtr->swap();
+  }
+
+  template <dftfe::utils::MemorySpace memorySpace>
+  void
+  KohnShamHamiltonianOperator<memorySpace>::setValueMF(dataTypes::number val)
+  {
+    d_matrixFreeBasePtr->setValue(val);
+  }
+
+
+  template <dftfe::utils::MemorySpace memorySpace>
+  dealii::AlignedVector<dealii::VectorizedArray<double>> &
+  KohnShamHamiltonianOperator<memorySpace>::getBlockMF(bool isXBlock)
+  {
+    return d_matrixFreeBasePtr->getBlock(isXBlock);
+  }
+
+
+  template <dftfe::utils::MemorySpace memorySpace>
+  void
+  KohnShamHamiltonianOperator<memorySpace>::print(dataTypes::number *Y,
+                                                  dataTypes::number *X,
+                                                  int                size)
+  {
+    double *eigenVectorYPtr;
+    double *eigenVectorXPtr;
+    double  norm;
+
+    eigenVectorYPtr = Y;
+    eigenVectorXPtr = X;
+
+    d_BLASWrapperPtr->xnrm2(size, eigenVectorYPtr, 1, d_mpiCommDomain, &norm);
+    pcout << "Y: " << norm << std::endl;
+
+    norm = 0.0;
+    d_BLASWrapperPtr->xnrm2(size, eigenVectorXPtr, 1, d_mpiCommDomain, &norm);
+    pcout << "X: " << norm << std::endl;
+  }
+
+
+  template <dftfe::utils::MemorySpace memorySpace>
+  void
+  KohnShamHamiltonianOperator<memorySpace>::print()
+  {
+    double *eigenVectorYPtr;
+    double *eigenVectorXPtr;
+    double  norm;
+
+    int size        = d_matrixFreeBasePtr->getBlock(true).size() * 8;
+    eigenVectorYPtr = (double *)(d_matrixFreeBasePtr->getBlock(false).data());
+    eigenVectorXPtr = (double *)(d_matrixFreeBasePtr->getBlock(true).data());
+
+    d_BLASWrapperPtr->xnrm2(size, eigenVectorYPtr, 1, d_mpiCommDomain, &norm);
+    pcout << "Y: " << norm << std::endl;
+
+    norm = 0.0;
+    d_BLASWrapperPtr->xnrm2(size, eigenVectorXPtr, 1, d_mpiCommDomain, &norm);
+    pcout << "X: " << norm << std::endl;
+  }
+
+  template <dftfe::utils::MemorySpace memorySpace>
+  void
+  KohnShamHamiltonianOperator<memorySpace>::norm(dataTypes::number *X,
+                                                 int                size,
+                                                 dataTypes::number &nrm)
+  {
+    d_BLASWrapperPtr->xnrm2(size, X, 1, d_mpiCommDomain, &nrm);
+  }
+
+
+  template <dftfe::utils::MemorySpace memorySpace>
+  void
+  KohnShamHamiltonianOperator<memorySpace>::computeAXMF(const double scalarHX,
+                                                        const double scalarY,
+                                                        const double scalarX)
+  {
+    d_matrixFreeBasePtr->computeAX(scalarHX, scalarY, scalarX);
+  }
+
 
   template <dftfe::utils::MemorySpace memorySpace>
   void
@@ -1320,7 +1421,7 @@ namespace dftfe
     const bool skip3)
   {
     if (MFflag)
-      d_matrixFreeBasePtr->computeAX(scalarHX, scalarY, scalarX);
+      d_matrixFreeBasePtr->computeAXCheby(scalarHX, scalarY, scalarX);
     else
       {
         const unsigned int numCells = d_basisOperationsPtr->nCells();
@@ -1483,23 +1584,6 @@ namespace dftfe
             dst.accumulateAddLocallyOwned();
             dst.zeroOutGhosts();
           }
-
-        // double norm = 0.0;
-
-        // d_BLASWrapperPtr->xnrm2(src.locallyOwnedSize() * src.numVectors(),
-        //                         src.data(),
-        //                         1,
-        //                         d_mpiCommDomain,
-        //                         &norm);
-        // pcout << "src: " << norm << std::endl;
-
-        // norm = 0.0;
-        // d_BLASWrapperPtr->xnrm2(dst.locallyOwnedSize() * dst.numVectors(),
-        //                         dst.data(),
-        //                         1,
-        //                         d_mpiCommDomain,
-        //                         &norm);
-        // pcout << "dst: " << norm << std::endl;
       }
   }
 

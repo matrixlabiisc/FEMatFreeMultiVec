@@ -72,7 +72,38 @@ namespace dftfe
         &multiVector) = 0;
 
     virtual void
-    reshapeMF(dataTypes::number *eigenVector, bool isXBlock, bool CVtoBCV) = 0;
+    reshapeMF(dataTypes::number *eigenVector,
+              int                totalNumberWaveFunctions,
+              bool               isXBlock,
+              bool               CVtoBCV) = 0;
+
+    virtual void
+    reshapeMF(const dataTypes::number *eigenVector,
+              int                      totalNumberWaveFunctions,
+              bool                     isXBlock) = 0;
+
+    virtual void
+    swapMF() = 0;
+
+    virtual void
+    setValueMF(dataTypes::number val = 0) = 0;
+
+    virtual dealii::AlignedVector<dealii::VectorizedArray<double>> &
+    getBlockMF(bool isXBlock = true) = 0;
+
+    virtual void
+    print(dataTypes::number *Y, dataTypes::number *X, int size) = 0;
+
+    virtual void
+    print() = 0;
+
+    virtual void
+    norm(dataTypes::number *X, int size, dataTypes::number &nrm) = 0;
+
+    virtual void
+    computeAXMF(const double scalarHX,
+                const double scalarY,
+                const double scalarX) = 0;
 
     virtual void
     setVJxWMF() = 0;

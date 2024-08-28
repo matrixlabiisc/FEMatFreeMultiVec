@@ -281,7 +281,8 @@ namespace dftfe
                     const unsigned int                                 m,
                     const double                                       a,
                     const double                                       b,
-                    const double                                       a0)
+                    const double                                       a0,
+                    const dftParameters &dftParams)
     {
       double e, c, sigma, sigma1, sigma2, gamma;
       e      = (b - a) / 2.0;
@@ -290,41 +291,44 @@ namespace dftfe
       sigma1 = sigma;
       gamma  = 2.0 / sigma1;
 
+      const bool MFflag = (bool)dftParams.dc_d3ATM;
 
       //
       // create YArray
       // initialize to zeros.
       // x
-      Y.setValue(T(0.0));
-
+      if (MFflag)
+        operatorMatrix.setValueMF(T(0.0));
+      else
+        Y.setValue(T(0.0));
 
       //
       // call HX
       //
-
-
       double alpha1 = sigma1 / e, alpha2 = -c;
       operatorMatrix.HXCheby(X, alpha1, 0.0, alpha1 * alpha2, Y);
+
       //
       // polynomial loop
       //
-      for (unsigned int degree = 2; degree < m + 1; ++degree)
+      for (unsigned int degree = 2; degree < m + 1; degree++)
         {
           sigma2 = 1.0 / (gamma - sigma);
           alpha1 = 2.0 * sigma2 / e, alpha2 = -(sigma * sigma2);
 
-
+          if (MFflag)
+            operatorMatrix.swapMF();
 
           //
           // call HX
           //
           operatorMatrix.HXCheby(Y, alpha1, alpha2, -c * alpha1, X);
 
-
           //
           // XArray = YArray
           //
-          X.swap(Y);
+          if (!MFflag)
+            X.swap(Y);
 
           //
           // YArray = YNewArray
@@ -333,7 +337,10 @@ namespace dftfe
         }
 
       // copy back YArray to XArray
-      X = Y;
+      if (MFflag)
+        operatorMatrix.swapMF();
+      else
+        X = Y;
     }
 
 
@@ -530,7 +537,6 @@ namespace dftfe
       // SConj=LConj*L^{T}
       computing_timer.enter_subsection("Cholesky and triangular matrix invert");
 
-
       dftfe::LAPACKSupport::Property overlapMatPropertyPostCholesky;
       if (dftParams.useELPA)
         {
@@ -576,7 +582,6 @@ namespace dftfe
         dealii::ExcMessage(
           "DFT-FE Error: overlap matrix property after cholesky factorization incorrect"));
 
-
       // extract LConj
       dftfe::ScaLAPACKMatrix<T> LMatPar(
         numberWaveFunctions,
@@ -603,7 +608,6 @@ namespace dftfe
 
       computing_timer.leave_subsection("Cholesky and triangular matrix invert");
 
-
       computing_timer.enter_subsection("Compute ProjHam, RR step");
       //
       // compute projected Hamiltonian conjugate HConjProj= X^{T}*HConj*XConj
@@ -617,7 +621,6 @@ namespace dftfe
                     projHamPar.local_m() * projHamPar.local_n(),
                   T(0.0));
 
-
       XtHX(operatorMatrix,
            X,
            numberWaveFunctions,
@@ -627,6 +630,7 @@ namespace dftfe
            interBandGroupComm,
            dftParams,
            projHamPar);
+
       computing_timer.leave_subsection("Compute ProjHam, RR step");
 
       computing_timer.enter_subsection(
@@ -643,7 +647,6 @@ namespace dftfe
                     projHamParConjTrans.local_m() *
                       projHamParConjTrans.local_n(),
                   T(0.0));
-
 
       projHamParConjTrans.copy_conjugate_transposed(projHamPar);
       projHamPar.add(projHamParConjTrans, T(1.0), T(1.0));
@@ -671,6 +674,7 @@ namespace dftfe
 
       computing_timer.leave_subsection(
         "Compute HSConjProj= Lconj^{-1}*HConjProj*(Lconj^{-1})^C, RR step");
+
       //
       // compute standard eigendecomposition HSConjProj: {QConjPrime,D}
       // HSConjProj=QConjPrime*D*QConjPrime^{C} QConj={Lc^{-1}}^{C}*QConjPrime
@@ -702,7 +706,6 @@ namespace dftfe
                             "DFT-FE Error: elpa_eigenvectors error."));
             }
 
-
           MPI_Bcast(&eigenValues[0],
                     eigenValues.size(),
                     MPI_DOUBLE,
@@ -729,13 +732,6 @@ namespace dftfe
                                                      interBandGroupComm,
                                                      0);
 
-      /*
-         MPI_Bcast(&eigenValues[0],
-         eigenValues.size(),
-         MPI_DOUBLE,
-         0,
-         interBandGroupComm);
-       */
       computing_timer.leave_subsection(
         "Broadcast eigvec and eigenvalues across band groups, RR step");
       //
@@ -750,6 +746,7 @@ namespace dftfe
           "X^{T}={QConjPrime}^{C}*LConj^{-1}*X^{T} mixed prec, RR step");
 
       projHamParCopy.copy_conjugate_transposed(projHamPar);
+
       projHamParCopy.mmult(projHamPar, LMatPar);
 
       if (!(dftParams.useMixedPrecSubspaceRotRR && useMixedPrec))
@@ -799,6 +796,7 @@ namespace dftfe
         computing_timer.leave_subsection(
           "X^{T}={QConjPrime}^{C}*LConj^{-1}*X^{T} mixed prec, RR step");
     }
+
 
     template <typename T>
     void
@@ -2270,6 +2268,8 @@ namespace dftfe
       const dftParameters &                              dftParams)
 
     {
+      bool MFflag = (bool)dftParams.dc_d3ATM;
+
       //
       // get the number of eigenVectors
       //
@@ -2302,7 +2302,7 @@ namespace dftfe
           const unsigned int B =
             std::min(vectorsBlockSize, totalNumberVectors - jvec);
 
-          if (jvec == 0 || B != vectorsBlockSize)
+          if (!MFflag && (jvec == 0 || B != vectorsBlockSize))
             {
               XBlock  = &operatorMatrix.getScratchFEMultivector(B, 0);
               HXBlock = &operatorMatrix.getScratchFEMultivector(B, 1);
@@ -2312,26 +2312,69 @@ namespace dftfe
                 bandGroupLowHighPlusOneIndices[2 * bandGroupTaskId + 1] &&
               (jvec + B) > bandGroupLowHighPlusOneIndices[2 * bandGroupTaskId])
             {
-              XBlock->setValue(T(0.));
-              // fill XBlock from X:
-              for (unsigned int iNode = 0; iNode < localVectorSize; ++iNode)
-                for (unsigned int iWave = 0; iWave < B; ++iWave)
-                  XBlock->data()[iNode * B + iWave] =
-                    X[iNode * totalNumberVectors + jvec + iWave];
+              if (MFflag)
+                operatorMatrix.reshapeMF(X + jvec, totalNumberVectors, true);
+              else
+                {
+                  XBlock->setValue(T(0.));
+                  // fill XBlock from X:
+                  for (unsigned int iNode = 0; iNode < localVectorSize; ++iNode)
+                    for (unsigned int iWave = 0; iWave < B; ++iWave)
+                      XBlock->data()[iNode * B + iWave] =
+                        X[iNode * totalNumberVectors + jvec + iWave];
+                }
 
               MPI_Barrier(mpiCommDomain);
+
               // evaluate H times XBlock and store in HXBlock
-              operatorMatrix.HX(*XBlock, 1.0, 0.0, 0.0, *HXBlock);
+              if (MFflag)
+                operatorMatrix.computeAXMF(1.0, 0.0, 0.0);
+              else
+                operatorMatrix.HX(*XBlock, 1.0, 0.0, 0.0, *HXBlock);
+
               // compute residual norms:
-              for (unsigned int iDof = 0; iDof < localVectorSize; ++iDof)
-                for (unsigned int iWave = 0; iWave < B; iWave++)
-                  {
-                    const double temp =
-                      std::abs(HXBlock->data()[B * iDof + iWave] -
-                               eigenValues[jvec + iWave] *
-                                 XBlock->data()[B * iDof + iWave]);
-                    residualNormSquare[jvec + iWave] += temp * temp;
-                  }
+              if (MFflag)
+                {
+                  constexpr int batchSize    = 16;
+                  constexpr int subBatchSize = 8;
+                  constexpr int nSubBatch    = batchSize / subBatchSize;
+                  int nBatch = (vectorsBlockSize + batchSize - 1) / batchSize;
+
+                  for (int iBatch = 0; iBatch < nBatch; iBatch++)
+                    for (int iNode = 0; iNode < localVectorSize; iNode++)
+                      for (int iSubBatch = 0; iSubBatch < nSubBatch;
+                           iSubBatch++)
+                        {
+                          int idx = iSubBatch + iNode * nSubBatch +
+                                    iBatch * nSubBatch * localVectorSize;
+                          int idxE = (iSubBatch + iBatch * nSubBatch +
+                                      jvec / subBatchSize) *
+                                     subBatchSize;
+
+                          dealii::VectorizedArray<dataTypes::number> eigen, res,
+                            temp;
+
+                          eigen.load(eigenValues.data() + idxE);
+                          res = operatorMatrix.getBlockMF(false)[idx] -
+                                eigen * operatorMatrix.getBlockMF(true)[idx];
+
+                          temp.load(residualNormSquare.data() + idxE);
+                          temp += res * res;
+                          temp.store(residualNormSquare.data() + idxE);
+                        }
+                }
+              else
+                {
+                  for (unsigned int iDof = 0; iDof < localVectorSize; ++iDof)
+                    for (unsigned int iWave = 0; iWave < B; iWave++)
+                      {
+                        const double temp =
+                          std::abs(HXBlock->data()[B * iDof + iWave] -
+                                   eigenValues[jvec + iWave] *
+                                     XBlock->data()[B * iDof + iWave]);
+                        residualNormSquare[jvec + iWave] += temp * temp;
+                      }
+                }
             }
         }
 
@@ -3251,6 +3294,8 @@ namespace dftfe
          dftfe::ScaLAPACKMatrix<dataTypes::number> &        projHamPar,
          const bool onlyHPrimePartForFirstOrderDensityMatResponse)
     {
+      bool MFflag = (bool)dftParams.dc_d3ATM;
+
       //
       // Get access to number of locally owned nodes on the current processor
       //
@@ -3313,7 +3358,8 @@ namespace dftfe
           // Correct block dimensions if block "goes off edge of" the matrix
           const unsigned int B =
             std::min(vectorsBlockSize, numberWaveFunctions - jvec);
-          if (jvec == 0 || B != vectorsBlockSize)
+
+          if (!MFflag && (jvec == 0 || B != vectorsBlockSize))
             {
               XBlock  = &operatorMatrix.getScratchFEMultivector(B, 0);
               HXBlock = &operatorMatrix.getScratchFEMultivector(B, 1);
@@ -3324,21 +3370,52 @@ namespace dftfe
               (jvec + B) > bandGroupLowHighPlusOneIndices[2 * bandGroupTaskId])
             {
               // fill XBlock^{T} from X:
-              for (unsigned int iNode = 0; iNode < numberDofs; ++iNode)
-                for (unsigned int iWave = 0; iWave < B; ++iWave)
-                  XBlock->data()[iNode * B + iWave] =
-                    X[iNode * numberWaveFunctions + jvec + iWave];
-
+              if (MFflag)
+                operatorMatrix.reshapeMF(X + jvec, numberWaveFunctions, true);
+              else
+                for (unsigned int iNode = 0; iNode < numberDofs; ++iNode)
+                  for (unsigned int iWave = 0; iWave < B; ++iWave)
+                    XBlock->data()[iNode * B + iWave] =
+                      X[iNode * numberWaveFunctions + jvec + iWave];
 
               MPI_Barrier(mpiCommDomain);
+
               // evaluate H times XBlock and store in HXBlock^{T}
-              operatorMatrix.HX(*XBlock,
-                                1.0,
-                                0.0,
-                                0.0,
-                                *HXBlock,
-                                onlyHPrimePartForFirstOrderDensityMatResponse);
+              if (MFflag)
+                operatorMatrix.computeAXMF(1.0, 0.0, 0.0);
+              else
+                operatorMatrix.HX(
+                  *XBlock,
+                  1.0,
+                  0.0,
+                  0.0,
+                  *HXBlock,
+                  onlyHPrimePartForFirstOrderDensityMatResponse);
+
               MPI_Barrier(mpiCommDomain);
+
+              if (MFflag)
+                {
+                  constexpr int batchSize    = 16;
+                  constexpr int subBatchSize = 8;
+                  constexpr int nSubBatch    = batchSize / subBatchSize;
+                  int nBatch = (vectorsBlockSize + batchSize - 1) / batchSize;
+
+                  for (int iNode = 0; iNode < numberDofs; iNode++)
+                    for (int iBatch = 0; iBatch < nBatch; iBatch++)
+                      for (int iSubBatch = 0; iSubBatch < nSubBatch;
+                           iSubBatch++)
+                        {
+                          int idxL = iSubBatch + iBatch * nSubBatch +
+                                     iNode * nSubBatch * nBatch;
+
+                          int idxR = iSubBatch + iNode * nSubBatch +
+                                     iBatch * nSubBatch * numberDofs;
+
+                          operatorMatrix.getBlockMF(true)[idxL] =
+                            operatorMatrix.getBlockMF(false)[idxR];
+                        }
+                }
 
               const char transA = 'N';
               const char transB =
@@ -3363,7 +3440,9 @@ namespace dftfe
                     &alpha,
                     &X[0] + jvec,
                     &numberWaveFunctions,
-                    HXBlock->data(),
+                    MFflag ?
+                      (double *)(operatorMatrix.getBlockMF(true).data()) :
+                      HXBlock->data(),
                     &B,
                     &beta,
                     &projHamBlock[0],
@@ -3693,7 +3772,8 @@ namespace dftfe
       const unsigned int,
       const double,
       const double,
-      const double);
+      const double,
+      const dftParameters &);
 #ifdef DFTFE_WITH_DEVICE
     template void
     chebyshevFilter(
@@ -3705,7 +3785,8 @@ namespace dftfe
       const unsigned int,
       const double,
       const double,
-      const double);
+      const double,
+      const dftParameters &);
 #endif
 
 

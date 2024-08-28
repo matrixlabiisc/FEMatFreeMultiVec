@@ -804,6 +804,7 @@ namespace dftfe
             std::fill(rotatedVectorsMatBlock.begin(),
                       rotatedVectorsMatBlock.end(),
                       0.);
+
             for (unsigned int jvec = 0; jvec < N; jvec += vectorsBlockSize)
               {
                 // Correct block dimensions if block "goes off edge of" the

@@ -46,6 +46,11 @@ namespace dftfe
      *
      */
     virtual void
+    computeAXCheby(const double scalarHX,
+                   const double scalarY,
+                   const double scalarX) = 0;
+
+    virtual void
     computeAX(const double scalarHX,
               const double scalarY,
               const double scalarX) = 0;
@@ -65,8 +70,27 @@ namespace dftfe
 
     virtual void
     reshape(dataTypes::number *eigenVector,
+            int                totalNumberWaveFunctions,
             bool               isXBlock = true,
             bool               CVtoBCV  = true) = 0;
+
+
+    virtual void
+    reshape(const dataTypes::number *eigenVector,
+            int                      totalNumberWaveFunctions,
+            bool                     isXBlock = true) = 0;
+
+
+    virtual void
+    swap() = 0;
+
+
+    virtual dealii::AlignedVector<dealii::VectorizedArray<double>> &
+    getBlock(bool isXBlock = true) = 0;
+
+
+    virtual void
+    setValue(dataTypes::number val = 0) = 0;
   };
 
 } // namespace dftfe

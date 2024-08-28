@@ -239,7 +239,9 @@ namespace dftfe
 
     bool MFflag = (bool)d_dftParams.dc_d3ATM;
 
-    if (!MFflag)
+    if (MFflag)
+      operatorMatrix.setVJxWMF();
+    else
       {
         eigenVectorsFlattenedArrayBlock =
           &operatorMatrix.getScratchFEMultivector(vectorsBlockSize, 0);
@@ -286,12 +288,10 @@ namespace dftfe
             const int     nBatch       = BVec / batchSize;
 
             if (MFflag)
-              {
-                operatorMatrix.reshapeMF(eigenVectorsFlattened + jvec,
-                                         true,
-                                         true);
-                operatorMatrix.setVJxWMF();
-              }
+              operatorMatrix.reshapeMF(eigenVectorsFlattened + jvec,
+                                       totalNumberWaveFunctions,
+                                       true,
+                                       true);
             else
               {
                 for (unsigned int iNode = 0; iNode < localVectorSize; ++iNode)
@@ -306,21 +306,10 @@ namespace dftfe
             computing_timer.leave_subsection(
               "Copy from full to block flattened array");
 
-            operatorMatrix.HXCheby(*eigenVectorsFlattenedArrayBlock,
-                                   2,
-                                   0,
-                                   0,
-                                   *eigenVectorsFlattenedArrayBlock2);
-
-            pcout << "HXCheby Done" << std::endl;
-            exit(0);
-
             //
             // call Chebyshev filtering function only for the current block to
             // be filtered and does in-place filtering
             computing_timer.enter_subsection("Chebyshev filtering");
-
-
 
             linearAlgebraOperations::chebyshevFilter(
               operatorMatrix,
@@ -329,11 +318,10 @@ namespace dftfe
               chebyshevOrder,
               d_lowerBoundUnWantedSpectrum,
               d_upperBoundUnWantedSpectrum,
-              d_lowerBoundWantedSpectrum);
+              d_lowerBoundWantedSpectrum,
+              d_dftParams);
 
             computing_timer.leave_subsection("Chebyshev filtering");
-
-
 
             if (d_dftParams.verbosity >= 4)
               dftUtils::printCurrentMemoryUsage(
@@ -343,12 +331,20 @@ namespace dftfe
             // eigenVectorsFlattenedArray after filtering
             computing_timer.enter_subsection(
               "Copy from block to full flattened array");
-            for (unsigned int iNode = 0; iNode < localVectorSize; ++iNode)
-              std::copy(eigenVectorsFlattenedArrayBlock->data() + iNode * BVec,
-                        eigenVectorsFlattenedArrayBlock->data() +
-                          (iNode + 1) * BVec,
-                        eigenVectorsFlattened +
-                          iNode * totalNumberWaveFunctions + jvec);
+
+            if (MFflag)
+              operatorMatrix.reshapeMF(eigenVectorsFlattened + jvec,
+                                       totalNumberWaveFunctions,
+                                       true,
+                                       false);
+            else
+              for (unsigned int iNode = 0; iNode < localVectorSize; ++iNode)
+                std::copy(eigenVectorsFlattenedArrayBlock->data() +
+                            iNode * BVec,
+                          eigenVectorsFlattenedArrayBlock->data() +
+                            (iNode + 1) * BVec,
+                          eigenVectorsFlattened +
+                            iNode * totalNumberWaveFunctions + jvec);
 
             computing_timer.leave_subsection(
               "Copy from block to full flattened array");
@@ -363,7 +359,6 @@ namespace dftfe
                                       iWave] = dataTypes::number(0.0);
           }
       } // block loop
-
 
     if (numberBandGroups > 1)
       {
@@ -457,8 +452,10 @@ namespace dftfe
       }
 
     computingTimerStandard.leave_subsection("Chebyshev filtering on CPU");
+
     if (d_dftParams.verbosity >= 4)
       pcout << "ChebyShev Filtering Done: " << std::endl;
+
     //
     // scale the eigenVectors (initial guess of single atom wavefunctions or
     // previous guess) to convert into Lowden Orthonormalized FE basis multiply
@@ -468,7 +465,6 @@ namespace dftfe
                                  totalNumberWaveFunctions,
                                  localVectorSize,
                                  eigenVectorsFlattened);
-
 
     if (d_dftParams.orthogType.compare("CGS") == 0)
       {
@@ -504,6 +500,7 @@ namespace dftfe
                                                      useMixedPrec,
                                                      d_dftParams);
           }
+
         computing_timer.leave_subsection("Rayleigh-Ritz GEP");
 
         computing_timer.enter_subsection("eigen vectors residuals opt");
@@ -535,6 +532,7 @@ namespace dftfe
               residualNorms,
               d_dftParams);
           }
+
         computing_timer.leave_subsection("eigen vectors residuals opt");
       }
     else if (d_dftParams.orthogType.compare("GS") == 0)

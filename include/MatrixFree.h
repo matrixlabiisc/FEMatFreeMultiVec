@@ -95,15 +95,36 @@ namespace dftfe
      *
      */
     void
+    computeAXCheby(const double scalarHX,
+                   const double scalarY,
+                   const double scalarX);
+
+    void
     computeAX(const double scalarHX,
               const double scalarY,
               const double scalarX);
 
-
     void
     reshape(dataTypes::number *eigenVector,
+            int                totalNumberWaveFunctions,
             bool               isXBlock = true,
             bool               CVtoBCV  = true);
+
+    void
+    reshape(const dataTypes::number *eigenVector,
+            int                      totalNumberWaveFunctions,
+            bool                     isXBlock = true);
+
+    void
+    swap();
+
+    dealii::AlignedVector<dealii::VectorizedArray<double>> &
+    getBlock(bool isXBlock = true);
+
+
+    void
+    setValue(dataTypes::number val = 0);
+
 
   private:
     /**
@@ -163,12 +184,13 @@ namespace dftfe
       d_VeffJxW, d_VeffExtPotJxW, d_VGGAJxW;
 
     std::vector<int> singleVectorGlobalToLocalMap, singleVectorToMultiVectorMap;
-    std::vector<double> jacobianFactor, cellInverseMassVector;
+    std::vector<double> jacobianFactor, cellInverseMassVector,
+      cellInverseSqrtMassVector;
 
     std::vector<std::vector<int>> d_constrainingNodeBuckets,
       d_constrainedNodeBuckets;
     std::vector<std::vector<double>> d_weightMatrixList,
-      d_scaledWeightMatrixList;
+      d_scaledInvMassWeightMatrixList, d_scaledInvSqrtMassWeightMatrixList;
     std::vector<double>                                    d_inhomogenityList;
     dealii::AlignedVector<dealii::VectorizedArray<double>> d_temp,
       d_constrainingData, d_constrainedData;
